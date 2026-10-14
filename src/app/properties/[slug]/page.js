@@ -26,7 +26,6 @@ export default async function ListingPage({ params }) {
     ["Utilities", l.utilities],
     ["Parking", l.parking],
     ["Laundry", l.laundry],
-    ["Pets", l.pets],
     ["Available", availableText(l.available_on)],
   ].filter(([, v]) => v);
 

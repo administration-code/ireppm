@@ -116,7 +116,7 @@ button, input, select, textarea { font: inherit; }
 
 /* home */
 .hero { padding-block: 64px 56px; }
-.hero .grid { display: grid; grid-template-columns: 1.25fr 1fr; gap: 56px; align-items: end; }
+.hero .grid { display: grid; grid-template-columns: 1.25fr 1fr; gap: 56px; align-items: flex-end; }
 .hero h1 em { font-style: italic; color: var(--red); }
 .hero .copy { display: grid; gap: 22px; min-width: 0; }
 .panel-box { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; display: grid; gap: 16px; }

@@ -104,7 +104,6 @@ create table if not exists public.listings (
   utilities text,
   parking text,
   laundry text,
-  pets text,
   description text,
   features text[] not null default '{}',
   photos text[] not null default '{}',
