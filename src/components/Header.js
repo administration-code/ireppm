@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { IRepMark } from "./Brand";
 import { useAuth } from "./AuthProvider";
+import { useStaff } from "@/lib/useStaff";
 
 const NAV = [
   ["/", "Home"],
@@ -15,6 +16,7 @@ const NAV = [
 export default function Header() {
   const path = usePathname() || "/";
   const { user, openSignIn } = useAuth();
+  const { isStaff } = useStaff();
   const isCurrent = (href) => (href === "/" ? path === "/" : path.startsWith(href));
 
   return (
@@ -34,6 +36,11 @@ export default function Header() {
             </Link>
           ))}
         </nav>
+        {isStaff ? (
+          <Link className="staff-link" href="/admin/listings" aria-current={path.startsWith("/admin") ? "page" : undefined}>
+            Staff
+          </Link>
+        ) : null}
         {user ? (
           <Link className="acct-btn" href="/account">
             My profile
