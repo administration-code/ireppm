@@ -40,25 +40,32 @@ export default function AuthProvider({ children }) {
     return () => data.subscription.unsubscribe();
   }, []);
 
-  // Returning renters who signed in again: save the phone number they typed, if we don't have one.
+  // After sign-in: save the phone number typed in the email form if we don't have one yet,
+  // then ask for a mobile number if there still isn't one (Google sign-in doesn't share it).
+  const [askPhone, setAskPhone] = useState(false);
+  const userId = session?.user?.id || null;
   useEffect(() => {
-    if (!session) return;
-    let phone = null;
-    try {
-      phone = localStorage.getItem(PENDING_PHONE);
-    } catch {}
-    if (!phone) return;
-    const sb = getBrowserClient();
-    sb.from("profiles")
-      .update({ phone })
-      .eq("id", session.user.id)
-      .is("phone", null)
-      .then(() => {
+    if (!userId) return;
+    let cancelled = false;
+    (async () => {
+      const sb = getBrowserClient();
+      let pending = null;
+      try {
+        pending = localStorage.getItem(PENDING_PHONE);
+      } catch {}
+      if (pending) {
+        await sb.from("profiles").update({ phone: pending }).eq("id", userId).is("phone", null);
         try {
           localStorage.removeItem(PENDING_PHONE);
         } catch {}
-      });
-  }, [session]);
+      }
+      const { data } = await sb.from("profiles").select("phone").eq("id", userId).maybeSingle();
+      if (!cancelled && data && !data.phone) setAskPhone(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
 
   const openSignIn = useCallback((next) => {
     setModal({ next: next || window.location.pathname });
@@ -76,7 +83,78 @@ export default function AuthProvider({ children }) {
     >
       {children}
       {modal ? <SignInModal next={modal.next} onClose={() => setModal(null)} /> : null}
+      {askPhone && !modal ? <PhoneModal userId={userId} onDone={() => setAskPhone(false)} /> : null}
     </AuthContext.Provider>
+  );
+}
+
+const GOOGLE_ON = process.env.NEXT_PUBLIC_GOOGLE_SIGNIN === "on";
+
+function GoogleButton({ next, onError }) {
+  const [busy, setBusy] = useState(false);
+  async function go() {
+    setBusy(true);
+    const sb = getBrowserClient();
+    const { error } = await sb.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin + next },
+    });
+    if (error) {
+      setBusy(false);
+      onError("Google sign-in isn't available right now. Use your email instead.");
+    }
+  }
+  return (
+    <button type="button" className="btn ghost google-btn" onClick={go} disabled={busy}>
+      <svg viewBox="0 0 48 48" width="18" height="18" aria-hidden="true">
+        <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z" />
+        <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z" />
+        <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z" />
+        <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z" />
+      </svg>
+      {busy ? "Opening Google…" : "Continue with Google"}
+    </button>
+  );
+}
+
+function PhoneModal({ userId, onDone }) {
+  const [phone, setPhone] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function save(e) {
+    e.preventDefault();
+    if (phone.replace(/\D/g, "").length < 10) return setError("Enter a 10-digit phone number, including area code.");
+    setBusy(true);
+    const { error: err } = await getBrowserClient().from("profiles").update({ phone: phone.trim() }).eq("id", userId);
+    setBusy(false);
+    if (err) return setError("We couldn't save that. Try again.");
+    onDone();
+  }
+
+  return (
+    <div className="scrim">
+      <div className="modal" role="dialog" aria-modal="true" aria-labelledby="phone-title">
+        <button className="x" onClick={onDone}>
+          Later
+        </button>
+        <form className="stack" onSubmit={save}>
+          <div style={{ display: "grid", gap: 6 }}>
+            <span className="eyebrow">One more thing</span>
+            <h3 id="phone-title">What's your mobile number?</h3>
+            <p className="small">We text you to confirm showing times. We don't share it.</p>
+          </div>
+          <div className="field">
+            <label htmlFor="ask-phone">Mobile number</label>
+            <input id="ask-phone" type="tel" autoComplete="tel" placeholder="519-555-0123" value={phone} onChange={(e) => setPhone(e.target.value)} autoFocus />
+          </div>
+          {error ? <p className="err">{error}</p> : null}
+          <button className="btn primary" type="submit" disabled={busy}>
+            {busy ? "Saving…" : "Save"}
+          </button>
+        </form>
+      </div>
+    </div>
   );
 }
 
@@ -150,12 +228,19 @@ function SignInModal({ next, onClose }) {
           <form className="stack" onSubmit={submit}>
             <div style={{ display: "grid", gap: 6 }}>
               <span className="eyebrow">Sign in or create an account</span>
-              <h3 id="signin-title">Just your email and phone</h3>
+              <h3 id="signin-title">{GOOGLE_ON ? "Sign in to continue" : "Just your email and phone"}</h3>
               <p className="small">
-                We'll email you a sign-in link, so there's no password to remember. We use your phone number to
-                confirm showings.
+                No password to remember. We use your phone number to confirm showings.
               </p>
             </div>
+            {GOOGLE_ON ? (
+              <>
+                <GoogleButton next={next} onError={setError} />
+                <div className="or-rule">
+                  <span>or get a sign-in link by email</span>
+                </div>
+              </>
+            ) : null}
             <div className="field">
               <label htmlFor="signin-email">Email</label>
               <input

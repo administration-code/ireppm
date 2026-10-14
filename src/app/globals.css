@@ -235,6 +235,9 @@ table.cmp thead th { font-family: var(--display); font-size: 1.2rem; }
 /* modal */
 .scrim { position: fixed; inset: 0; background: rgba(10, 10, 10, .55); display: grid; place-items: center; z-index: 50; padding: 16px; }
 .modal { background: var(--surface); color: var(--fg); border-radius: var(--radius); width: min(480px, 100%); max-height: 100%; overflow: auto; padding: 28px; display: grid; gap: 18px; border-top: 3px solid var(--red); }
+.google-btn { width: 100%; background: var(--surface); }
+.or-rule { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: .8125rem; }
+.or-rule::before, .or-rule::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .modal .x { justify-self: end; background: none; border: 0; color: var(--muted); cursor: pointer; font-size: .875rem; margin: -8px -8px -10px 0; padding: 4px 8px; }
 
 /* footer */
