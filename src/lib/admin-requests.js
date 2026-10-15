@@ -67,7 +67,7 @@ export function sortNewest(list) {
 
 export async function loadInbox() {
   const sb = getBrowserClient();
-  const [showings, applications, inquiries, drafts, maintenanceNew, unmatchedPayments] = await Promise.all([
+  const [showings, applications, inquiries, drafts, maintenanceNew, unmatchedPayments, openTurnovers] = await Promise.all([
     sb
       .from("showing_requests")
       .select(
@@ -87,6 +87,7 @@ export async function loadInbox() {
     sb.from("listings").select("id", { count: "exact", head: true }).eq("status", "draft"),
     sb.from("maintenance_requests").select("id", { count: "exact", head: true }).eq("status", "new"),
     sb.from("payments").select("id", { count: "exact", head: true }).eq("status", "unmatched"),
+    sb.from("turnovers").select("id", { count: "exact", head: true }).not("status", "in", "(leased,cancelled)"),
   ]);
 
   const failed = [showings, applications, inquiries].some((r) => r.error);
@@ -97,6 +98,7 @@ export async function loadInbox() {
     drafts: drafts.count || 0,
     maintenanceNew: maintenanceNew.count || 0,
     unmatchedPayments: unmatchedPayments.count || 0,
+    openTurnovers: openTurnovers.count || 0,
     error: failed ? "Some requests couldn't load. Refresh the page to try again." : "",
   };
 }

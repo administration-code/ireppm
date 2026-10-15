@@ -32,7 +32,7 @@ export function RentHead({ title, intro, children }) {
     <div className="admin-head">
       <div style={{ display: "grid", gap: 8 }}>
         <Link className="eyebrow back-link" href="/admin">
-          ← Requests inbox
+          ← Staff dashboard
         </Link>
         <h1 className="admin-title">{title}</h1>
         {intro ? <p className="small">{intro}</p> : null}

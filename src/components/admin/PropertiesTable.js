@@ -66,7 +66,7 @@ export default function PropertiesTable() {
       <div className="admin-head">
         <div style={{ display: "grid", gap: 8 }}>
           <Link className="eyebrow back-link" href="/admin">
-            ← Requests inbox
+            ← Staff dashboard
           </Link>
           <h1 className="admin-title">Properties</h1>
           <p className="small">Buildings IRep manages, their units and who lives there. Owner details stay in the staff area.</p>

@@ -3,11 +3,18 @@ import LogRequestForm from "@/components/admin/LogRequestForm";
 
 export const metadata = { title: "Log a maintenance request" };
 
+const str = (v) => (typeof v === "string" ? v : "");
+
 export default async function NewMaintenancePage({ searchParams }) {
-  const { property } = await searchParams;
+  const { property, unit, task, title } = await searchParams;
   return (
     <StaffGate>
-      <LogRequestForm initialPropertyId={typeof property === "string" ? property : ""} />
+      <LogRequestForm
+        initialPropertyId={str(property)}
+        initialUnitId={str(unit)}
+        taskId={str(task)}
+        initialTitle={str(title).slice(0, 120)}
+      />
     </StaffGate>
   );
 }

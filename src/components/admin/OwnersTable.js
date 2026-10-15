@@ -44,7 +44,7 @@ export default function OwnersTable() {
       <div className="admin-head">
         <div style={{ display: "grid", gap: 8 }}>
           <Link className="eyebrow back-link" href="/admin">
-            ← Requests inbox
+            ← Staff dashboard
           </Link>
           <h1 className="admin-title">Owners</h1>
           <p className="small">The people and companies who own the properties IRep manages.</p>

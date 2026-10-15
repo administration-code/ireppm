@@ -38,7 +38,7 @@ export default function PartnersTable() {
       <div className="admin-head">
         <div style={{ display: "grid", gap: 8 }}>
           <Link className="eyebrow back-link" href="/admin">
-            ← Requests inbox
+            ← Staff dashboard
           </Link>
           <h1 className="admin-title">Partners</h1>
           <p className="small">Trades and contractors we send maintenance jobs to.</p>

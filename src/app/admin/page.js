@@ -1,15 +1,12 @@
-import { Suspense } from "react";
 import StaffGate from "@/components/admin/StaffGate";
-import RequestsInbox from "@/components/admin/RequestsInbox";
+import StaffDashboard from "@/components/admin/StaffDashboard";
 
-export const metadata = { title: "Requests inbox" };
+export const metadata = { title: "Staff dashboard" };
 
 export default function AdminPage() {
   return (
     <StaffGate>
-      <Suspense fallback={<p className="small">Loading requests…</p>}>
-        <RequestsInbox />
-      </Suspense>
+      <StaffDashboard />
     </StaffGate>
   );
 }

@@ -24,15 +24,18 @@ function PastLedger({ tenancy }) {
     <div className="stack" style={{ marginTop: 12 }}>
       <RentLedger tenancy={tenancy} />
       <NoticesPanel tenancyId={tenancy.id} />
+      <InspectionsList unitId={tenancy.unit_id} tenancyId={tenancy.id} title="Inspections for this tenancy" />
     </div>
   ) : (
     <button type="button" className="btn ghost sm" style={{ marginTop: 12 }} onClick={() => setOpen(true)}>
-      Show rent ledger and notices
+      Show rent ledger, notices and inspections
     </button>
   );
 }
 import StartTenancyForm from "./StartTenancyForm";
 import NoticesPanel from "./NoticesPanel";
+import UnitTurnover from "./UnitTurnover";
+import InspectionsList from "./InspectionsList";
 
 async function loadUnit(id) {
   const sb = getBrowserClient();
@@ -110,6 +113,8 @@ export default function UnitTenancy({ id }) {
 
       {error ? <div className="warnbox">{error}</div> : null}
 
+      <UnitTurnover unitId={unit.id} />
+
       {current ? (
         <>
           <CurrentTenancy key={`${current.id}-${current.status}`} tenancy={current} onChanged={reload} />
@@ -135,6 +140,12 @@ export default function UnitTenancy({ id }) {
         </div>
       )}
 
+      <InspectionsList
+        unitId={unit.id}
+        title="Inspections for this unit"
+        newHref={current ? `/admin/inspections/new?tenancy=${current.id}` : `/admin/inspections/new?unit=${unit.id}`}
+      />
+
       <section className="stack" aria-labelledby="sec-past">
         <h2 id="sec-past" className="sec-title">
           Past tenancies
@@ -142,7 +153,7 @@ export default function UnitTenancy({ id }) {
         {past.length ? (
           <ul className="req-list">
             {past.map((t) => (
-              <li key={t.id} className="req">
+              <li key={t.id} id={`tenancy-${t.id}`} className="req">
                 <div className="req-top">
                   <b>{sortTenants(t.tenancy_tenants || []).map((p) => p.full_name).join(", ") || "No tenants recorded"}</b>
                   <span className="pill ts-ended">Ended</span>
