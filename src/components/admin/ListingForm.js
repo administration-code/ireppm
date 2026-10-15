@@ -78,10 +78,10 @@ function toRow(f, status) {
   };
 }
 
-export default function ListingForm({ listing, saved }) {
+export default function ListingForm({ listing, saved, prefill, unitId }) {
   const router = useRouter();
   const isNew = !listing;
-  const [form, setForm] = useState(() => toForm(listing));
+  const [form, setForm] = useState(() => (listing ? toForm(listing) : { ...toForm(null), ...prefill }));
   const [status, setStatus] = useState(listing?.status || "draft");
   const [saving, setSaving] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -141,6 +141,7 @@ export default function ListingForm({ listing, saved }) {
     await removeUnusedPhotos(row.photos);
 
     if (isNew) {
+      if (unitId) await sb.from("units").update({ listing_id: result.data.id }).eq("id", unitId);
       router.replace(`/admin/listings/${result.data.id}?saved=${nextStatus}`);
       return;
     }

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import ContactLine from "@/components/admin/ContactLine";
+import MoveInForm from "@/components/admin/MoveInForm";
 import { getBrowserClient } from "@/lib/supabase";
 import { listingTitle } from "@/lib/format";
 import { DOC_BUCKET, DOC_TYPES, INCOME_TYPES } from "@/lib/documents";
@@ -154,6 +155,7 @@ function ApplicationItem({ app, onChange }) {
           </span>
         ) : null}
       </div>
+      {app.status === "approved" ? <MoveInForm app={app} /> : null}
     </li>
   );
 }

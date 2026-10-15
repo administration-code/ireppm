@@ -77,7 +77,7 @@ export async function loadInbox() {
     sb
       .from("applications")
       .select(
-        "id, applicant_name, applicant_email, applicant_phone, income_type, documents, credit_consent, consent_at, status, staff_notes, created_at, listing:listings(address, unit, slug)"
+        "id, user_id, applicant_name, applicant_email, applicant_phone, income_type, documents, credit_consent, consent_at, status, staff_notes, created_at, listing:listings(address, unit, slug)"
       )
       .order("created_at", { ascending: false }),
     sb
