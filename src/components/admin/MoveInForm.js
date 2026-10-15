@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { getBrowserClient } from "@/lib/supabase";
-import { UNIT_STATUS, createTenancy, orNull, todayISO, wholeDollars } from "@/lib/admin-properties";
+import { UNIT_STATUS, checkDollars, createTenancy, dollars, orNull, todayISO } from "@/lib/admin-properties";
 
 export default function MoveInForm({ app }) {
   const [open, setOpen] = useState(false);
@@ -43,7 +43,7 @@ export default function MoveInForm({ app }) {
       ? "Choose the property and unit."
       : !form.start_date
         ? "Add the start date."
-        : wholeDollars(form.rent, "monthly rent", { required: true }) ||
+        : checkDollars(form.rent, "monthly rent", { required: true }) ||
           (!Number.isInteger(day) || day < 1 || day > 28 ? "Rent due day must be a number from 1 to 28." : "");
     if (problem) return setError(problem);
 
@@ -53,7 +53,7 @@ export default function MoveInForm({ app }) {
         unitId: form.unitId,
         tenancy: {
           start_date: form.start_date,
-          rent: parseInt(form.rent, 10),
+          rent: dollars(form.rent),
           rent_due_day: day,
           application_id: app.id,
         },

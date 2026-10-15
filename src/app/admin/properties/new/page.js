@@ -4,7 +4,8 @@ import PropertyForm from "@/components/admin/PropertyForm";
 
 export const metadata = { title: "Add property" };
 
-export default function NewPropertyPage() {
+export default async function NewPropertyPage({ searchParams }) {
+  const { owner } = await searchParams;
   return (
     <StaffGate>
       <div className="stack" style={{ gap: 24 }}>
@@ -15,7 +16,7 @@ export default function NewPropertyPage() {
           <span className="eyebrow">Staff · Create</span>
           <h1 className="admin-title">Add property</h1>
         </div>
-        <PropertyForm />
+        <PropertyForm initialOwnerId={typeof owner === "string" ? owner : ""} />
       </div>
     </StaffGate>
   );

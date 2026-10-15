@@ -3,14 +3,16 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getBrowserClient } from "@/lib/supabase";
-import { PROPERTY_FIELDS, UNIT_FIELDS, propertyTitle } from "@/lib/admin-properties";
+import { PROPERTY_SELECT, UNIT_FIELDS, propertyTitle } from "@/lib/admin-properties";
+import PropertyAddons from "./PropertyAddons";
 import PropertyForm from "./PropertyForm";
+import PropertySummary from "./PropertySummary";
 import UnitCard from "./UnitCard";
 import UnitForm from "./UnitForm";
 
 const UNIT_SELECT = `${UNIT_FIELDS}, tenancies(id, status, rent, tenancy_tenants(full_name, is_primary, created_at))`;
 
-export default function PropertyEditor({ id }) {
+export default function PropertyEditor({ id, initialOwnerId }) {
   const [state, setState] = useState({ loading: true, property: null, units: [], error: "" });
   const [adding, setAdding] = useState(false);
 
@@ -18,7 +20,7 @@ export default function PropertyEditor({ id }) {
     let alive = true;
     const sb = getBrowserClient();
     Promise.all([
-      sb.from("properties").select(PROPERTY_FIELDS).eq("id", id).maybeSingle(),
+      sb.from("properties").select(PROPERTY_SELECT).eq("id", id).maybeSingle(),
       sb.from("units").select(UNIT_SELECT).eq("property_id", id).order("label"),
     ]).then(([p, u]) => {
       if (!alive) return;
@@ -74,7 +76,22 @@ export default function PropertyEditor({ id }) {
 
       {error ? <div className="warnbox">{error}</div> : null}
 
-      <PropertyForm property={property} onSaved={(p) => setState((s) => ({ ...s, property: p }))} />
+      <PropertySummary property={property} />
+
+      {initialOwnerId ? (
+        <div className="okbox" role="status">
+          New owner added. Click Save property to link them.
+        </div>
+      ) : null}
+
+      <PropertyForm
+        key={property.id}
+        property={property}
+        initialOwnerId={initialOwnerId}
+        onSaved={(p) => setState((s) => ({ ...s, property: p }))}
+      />
+
+      <PropertyAddons propertyId={property.id} />
 
       <section className="stack" aria-labelledby="sec-units">
         <div className="admin-head">

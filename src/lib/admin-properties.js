@@ -1,5 +1,6 @@
 import { getBrowserClient } from "@/lib/supabase";
 import { PACKAGES } from "@/lib/site";
+import { money } from "@/lib/format";
 
 export const PACKAGE_LABEL = {
   leasing_only: "Leasing only",
@@ -24,11 +25,80 @@ export const TENANCY_STATUS = {
 
 export const CURRENT_TENANCY = ["upcoming", "active", "notice"];
 
+export const UNIT_MANAGEMENT = {
+  managed: "Managed",
+  leasing_only: "Leasing only",
+};
+
+export const OWNER_TYPES = {
+  individual: "Individual",
+  corporation: "Corporation",
+};
+
+export const OWNER_FIELDS = "id, legacy_id, name, entity_type, email, phone, mailing_address, payout_method, notes";
+
 export const PROPERTY_FIELDS =
-  "id, address, city, postal_code, owner_name, owner_email, owner_phone, management_package, notes, archived";
-export const UNIT_FIELDS = "id, property_id, label, unit_type, beds, baths, market_rent, status, listing_id, notes";
+  "id, address, city, postal_code, owner_id, management_package, notes, archived, monthly_fee, agreement_start, agreement_renewal, renewal_notice_sent_on, lot_size_sqft";
+export const PROPERTY_SELECT = `${PROPERTY_FIELDS}, owner:owners(id, name, entity_type, email, phone)`;
+export const UNIT_FIELDS =
+  "id, property_id, label, unit_type, beds, baths, market_rent, status, management_type, listing_id, notes";
 export const TENANCY_FIELDS =
-  "id, unit_id, status, start_date, end_date, move_out_date, rent, rent_due_day, last_month_deposit, key_deposit, payprop_reference, application_id, notes, created_at";
+  "id, unit_id, status, start_date, start_date_estimated, end_date, move_out_date, rent, rent_due_day, last_month_deposit, key_deposit, payprop_reference, email_service_consent, application_id, notes, created_at";
+
+export const RATE_CATEGORIES = {
+  management: "Management",
+  addon: "Add-ons",
+  leasing: "Leasing",
+  tax: "Tax",
+  rent_control: "Rent control",
+};
+
+export const DEFAULT_HST_PERCENT = 13;
+
+const plainNumber = (n) => Number(n).toLocaleString("en-CA", { maximumFractionDigits: 2 });
+
+export function formatRate(amount, unit) {
+  if (amount === null || amount === undefined) return "Not set";
+  const n = Number(amount);
+  switch (unit) {
+    case "per_month":
+      return `${money(n)} / month`;
+    case "one_time":
+      return `${money(n)} one-time`;
+    case "months_of_rent":
+      return `${plainNumber(n)} ${n === 1 ? "month" : "months"} of rent`;
+    case "percent":
+      return `${plainNumber(n)}%`;
+    case "days":
+      return `${plainNumber(n)} ${n === 1 ? "day" : "days"}`;
+    case "months":
+      return `${plainNumber(n)} ${n === 1 ? "month" : "months"}`;
+    default:
+      return plainNumber(n);
+  }
+}
+
+export function feeWithHst(fee, hstPercent = DEFAULT_HST_PERCENT) {
+  if (fee === null || fee === undefined) return "Not set";
+  const total = Math.round(Number(fee) * (1 + Number(hstPercent) / 100) * 100) / 100;
+  return `${money(fee)} + HST = ${money(total)}`;
+}
+
+const DAY = 24 * 60 * 60 * 1000;
+
+export function daysUntil(dateStr) {
+  if (!dateStr) return null;
+  return Math.round((Date.parse(dateStr + "T00:00:00Z") - Date.parse(todayISO() + "T00:00:00Z")) / DAY);
+}
+
+export function renewalBadge(dateStr) {
+  const days = daysUntil(dateStr);
+  if (days === null) return { kind: "none", text: "Not set" };
+  if (days < 0) return { kind: "lapsed", text: `Lapsed ${-days} ${days === -1 ? "day" : "days"} ago` };
+  if (days === 0) return { kind: "soon", text: "Renews today" };
+  if (days <= 60) return { kind: "soon", text: `Renews in ${days} ${days === 1 ? "day" : "days"}` };
+  return { kind: "later", text: prettyDate(dateStr) };
+}
 export const TENANT_FIELDS = "id, tenancy_id, profile_id, full_name, email, phone, is_primary, created_at";
 
 export function prettyDate(dateStr) {
@@ -54,14 +124,16 @@ export function bedsBaths(u) {
 export const text = (v) => (v === null || v === undefined ? "" : String(v));
 export const orNull = (v) => (String(v ?? "").trim() ? String(v).trim() : null);
 
-export function wholeDollars(value, label, { required = false } = {}) {
+export function checkDollars(value, label, { required = false } = {}) {
   const v = String(value ?? "").trim();
-  if (!v) return required ? `Enter the ${label} in whole dollars, like 1850.` : "";
-  if (!/^\d+$/.test(v) || (required && Number(v) <= 0)) return `Enter the ${label} in whole dollars, like 1850.`;
+  const message = `Enter the ${label} in dollars, like 1850 or 533.33.`;
+  if (!v) return required ? message : "";
+  if (!/^\d+(\.\d{1,2})?$/.test(v) || (required && Number(v) <= 0)) return message;
   return "";
 }
 
-export const dollarsOrNull = (v) => (String(v ?? "").trim() ? parseInt(v, 10) : null);
+export const dollars = (v) => Math.round(Number(String(v).trim()) * 100) / 100;
+export const dollarsOrNull = (v) => (String(v ?? "").trim() ? dollars(v) : null);
 
 export function sortTenants(list) {
   return [...list].sort(
@@ -114,22 +186,24 @@ export async function createTenancy({ unitId, tenancy, tenants }) {
 export function validateTenancy(f) {
   if (!f.start_date) return "Add the start date.";
   if (f.end_date && f.end_date < f.start_date) return "The end date must be after the start date.";
-  const rent = wholeDollars(f.rent, "monthly rent", { required: true });
+  const rent = checkDollars(f.rent, "monthly rent", { required: true });
   if (rent) return rent;
   const day = Number(f.rent_due_day);
   if (!Number.isInteger(day) || day < 1 || day > 28) return "Rent due day must be a number from 1 to 28.";
-  return wholeDollars(f.last_month_deposit, "last month's rent deposit") || wholeDollars(f.key_deposit, "key deposit");
+  return checkDollars(f.last_month_deposit, "last month's rent deposit") || checkDollars(f.key_deposit, "key deposit");
 }
 
 export function tenancyRow(f) {
   return {
     start_date: f.start_date,
+    start_date_estimated: Boolean(f.start_date_estimated),
     end_date: f.end_date || null,
-    rent: parseInt(f.rent, 10),
+    rent: dollars(f.rent),
     rent_due_day: Number(f.rent_due_day),
     last_month_deposit: dollarsOrNull(f.last_month_deposit),
     key_deposit: dollarsOrNull(f.key_deposit),
     payprop_reference: orNull(f.payprop_reference),
+    email_service_consent: orNull(f.email_service_consent),
     notes: orNull(f.notes),
   };
 }
@@ -137,6 +211,8 @@ export function tenancyRow(f) {
 export function tenancyForm(t) {
   return {
     start_date: text(t?.start_date),
+    start_date_estimated: Boolean(t?.start_date_estimated),
+    email_service_consent: text(t?.email_service_consent),
     end_date: text(t?.end_date),
     rent: text(t?.rent),
     rent_due_day: t ? text(t.rent_due_day) : "1",

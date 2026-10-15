@@ -10,6 +10,16 @@ export default function TenancyFields({ form, setForm, idPrefix }) {
         <div className="field">
           <label htmlFor={id("start")}>Start date</label>
           <input id={id("start")} type="date" value={form.start_date} onChange={update("start_date")} required />
+          {form.start_date_estimated ? (
+            <label className="check small">
+              <input
+                type="checkbox"
+                checked
+                onChange={(e) => setForm((f) => ({ ...f, start_date_estimated: e.target.checked }))}
+              />
+              Start date estimated (untick once confirmed)
+            </label>
+          ) : null}
         </div>
         <div className="field">
           <label htmlFor={id("end")}>End date</label>
@@ -24,15 +34,15 @@ export default function TenancyFields({ form, setForm, idPrefix }) {
       <div className="row3">
         <div className="field">
           <label htmlFor={id("rent")}>Monthly rent (CAD)</label>
-          <input id={id("rent")} type="number" inputMode="numeric" min="1" step="1" value={form.rent} onChange={update("rent")} placeholder="1850" required />
+          <input id={id("rent")} type="number" inputMode="decimal" min="0" step="0.01" value={form.rent} onChange={update("rent")} placeholder="1850" required />
         </div>
         <div className="field">
           <label htmlFor={id("lmr")}>Last month&apos;s rent deposit</label>
-          <input id={id("lmr")} type="number" inputMode="numeric" min="0" step="1" value={form.last_month_deposit} onChange={update("last_month_deposit")} />
+          <input id={id("lmr")} type="number" inputMode="decimal" min="0" step="0.01" value={form.last_month_deposit} onChange={update("last_month_deposit")} />
         </div>
         <div className="field">
           <label htmlFor={id("key")}>Key deposit</label>
-          <input id={id("key")} type="number" inputMode="numeric" min="0" step="1" value={form.key_deposit} onChange={update("key_deposit")} />
+          <input id={id("key")} type="number" inputMode="decimal" min="0" step="0.01" value={form.key_deposit} onChange={update("key_deposit")} />
         </div>
       </div>
       <div className="row2">
@@ -44,6 +54,16 @@ export default function TenancyFields({ form, setForm, idPrefix }) {
           <label htmlFor={id("notes")}>Notes</label>
           <textarea id={id("notes")} value={form.notes} onChange={update("notes")} rows={2} />
         </div>
+      </div>
+      <div className="field">
+        <label htmlFor={id("consent")}>Email service consent</label>
+        <input
+          id={id("consent")}
+          value={form.email_service_consent ?? ""}
+          onChange={update("email_service_consent")}
+          placeholder="e.g. Consented in lease, March 2026"
+          autoComplete="off"
+        />
       </div>
     </div>
   );

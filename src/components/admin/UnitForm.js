@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { getBrowserClient } from "@/lib/supabase";
-import { UNIT_FIELDS, UNIT_STATUS, UNIT_TYPES, dollarsOrNull, orNull, text, wholeDollars } from "@/lib/admin-properties";
+import { UNIT_FIELDS, UNIT_MANAGEMENT, UNIT_STATUS, UNIT_TYPES, checkDollars, dollarsOrNull, orNull, text } from "@/lib/admin-properties";
 
 const MANUAL_STATUSES = ["vacant", "turnover", "offline"];
 
@@ -14,6 +14,7 @@ function toForm(u) {
     baths: u ? text(u.baths) : "1",
     market_rent: text(u?.market_rent),
     status: u?.status || "vacant",
+    management_type: u?.management_type || "managed",
     notes: text(u?.notes),
   };
 }
@@ -28,7 +29,7 @@ function validate(f) {
     const n = Number(f[key]);
     if (!Number.isFinite(n) || n < 0 || n > 99) return `${label} must be a number from 0 to 99.`;
   }
-  return wholeDollars(f.market_rent, "market rent");
+  return checkDollars(f.market_rent, "market rent");
 }
 
 export default function UnitForm({ propertyId, unit, onSaved, onCancel }) {
@@ -55,6 +56,7 @@ export default function UnitForm({ propertyId, unit, onSaved, onCancel }) {
       beds: form.beds.trim() === "" ? null : Math.round(Number(form.beds) * 10) / 10,
       baths: form.baths.trim() === "" ? null : Math.round(Number(form.baths) * 10) / 10,
       market_rent: dollarsOrNull(form.market_rent),
+      management_type: form.management_type,
       notes: orNull(form.notes),
     };
     // Occupied comes from the tenancy, so staff only set the status of empty units.
@@ -104,7 +106,7 @@ export default function UnitForm({ propertyId, unit, onSaved, onCancel }) {
         </div>
         <div className="field">
           <label htmlFor={`u-rent-${id}`}>Market rent (CAD)</label>
-          <input id={`u-rent-${id}`} type="number" inputMode="numeric" min="1" step="1" value={form.market_rent} onChange={update("market_rent")} placeholder="1850" />
+          <input id={`u-rent-${id}`} type="number" inputMode="decimal" min="0" step="0.01" value={form.market_rent} onChange={update("market_rent")} placeholder="1850" />
         </div>
       </div>
       <div className="field">
@@ -122,6 +124,24 @@ export default function UnitForm({ propertyId, unit, onSaved, onCancel }) {
             ))}
           </select>
         )}
+      </div>
+      <div className="field">
+        <label htmlFor={`u-mgmt-${id}`}>Management</label>
+        <select
+          id={`u-mgmt-${id}`}
+          value={form.management_type}
+          onChange={update("management_type")}
+          aria-describedby={`u-mgmt-help-${id}`}
+        >
+          {Object.entries(UNIT_MANAGEMENT).map(([key, label]) => (
+            <option key={key} value={key}>
+              {label}
+            </option>
+          ))}
+        </select>
+        <span className="small" id={`u-mgmt-help-${id}`}>
+          Leasing only: we don&apos;t manage this unit; we only find tenants when asked, for half a month&apos;s rent.
+        </span>
       </div>
       <div className="field">
         <label htmlFor={`u-notes-${id}`}>Notes</label>

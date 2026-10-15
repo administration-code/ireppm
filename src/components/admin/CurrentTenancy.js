@@ -100,7 +100,10 @@ export default function CurrentTenancy({ tenancy, onChanged }) {
           <dl className="req-facts">
             <div>
               <dt>Start</dt>
-              <dd>{prettyDate(tenancy.start_date)}</dd>
+              <dd>
+                {prettyDate(tenancy.start_date)}
+                {tenancy.start_date_estimated ? <span className="pill est-pill inline-pill">Start date estimated</span> : null}
+              </dd>
             </div>
             <div>
               <dt>End</dt>
@@ -129,6 +132,10 @@ export default function CurrentTenancy({ tenancy, onChanged }) {
             <div>
               <dt>PayProp reference</dt>
               <dd>{tenancy.payprop_reference || "Not set"}</dd>
+            </div>
+            <div>
+              <dt>Email service consent</dt>
+              <dd>{tenancy.email_service_consent || "Not recorded"}</dd>
             </div>
           </dl>
           {tenancy.notes ? <p className="req-note">{tenancy.notes}</p> : null}

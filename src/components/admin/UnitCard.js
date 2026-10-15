@@ -30,13 +30,16 @@ export default function UnitCard({ unit, propertyId, onSaved }) {
   }
 
   return (
-    <li className="unit-card">
+    <li className={`unit-card${unit.status === "offline" ? " is-offline" : ""}`}>
       <div className="req-top">
         <div className="req-who">
           <h3 className="unit-label">{unit.label}</h3>
           <span className="small">{[unit.unit_type, bedsBaths(unit)].filter(Boolean).join(" · ")}</span>
         </div>
-        <span className={`pill us-${unit.status}`}>{UNIT_STATUS[unit.status] || unit.status}</span>
+        <div className="pill-row">
+          {unit.management_type === "leasing_only" ? <span className="pill leasing-only">Leasing only</span> : null}
+          <span className={`pill us-${unit.status}`}>{UNIT_STATUS[unit.status] || unit.status}</span>
+        </div>
       </div>
 
       {unit.status === "occupied" && tenancy ? (
