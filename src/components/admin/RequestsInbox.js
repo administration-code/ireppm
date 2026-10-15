@@ -6,6 +6,7 @@ import StaffNav from "@/components/admin/StaffNav";
 import ShowingsPanel from "@/components/admin/ShowingsPanel";
 import ApplicationsPanel from "@/components/admin/ApplicationsPanel";
 import InquiriesPanel from "@/components/admin/InquiriesPanel";
+import PrivacyCleanups from "@/components/admin/PrivacyCleanups";
 import { TABS, loadInbox, sortShowings } from "@/lib/admin-requests";
 
 const replaceIn = (list, item) => list.map((x) => (x.id === item.id ? item : x));
@@ -75,6 +76,8 @@ export default function RequestsInbox() {
       ) : (
         <InquiriesPanel inquiries={state.inquiries} onChange={update("inquiries")} />
       )}
+
+      {state.loading ? null : <PrivacyCleanups deletions={state.deletions || []} failed={state.deletionsError} />}
     </div>
   );
 }

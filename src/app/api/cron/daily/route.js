@@ -167,22 +167,73 @@ export async function GET(request) {
     result.letters = await draftLastMonthsLetters(sb, today);
   }
 
+  const digestFailed = await sendDigest(sb, today, result);
+  result.documentCleanup = await deleteExpiredDocuments(sb);
+
+  if (digestFailed) {
+    return NextResponse.json({ ...result, error: "The rent digest didn't send" }, { status: 500 });
+  }
+  return NextResponse.json(result);
+}
+
+async function sendDigest(sb, today, result) {
   if (Number(today.slice(8, 10)) !== 8) {
     result.digest = "skipped (not the 8th)";
-    return NextResponse.json(result);
+    return false;
   }
 
   const to = staffRecipients();
-  if (!to.length) return NextResponse.json({ ...result, digest: "skipped (STAFF_ALERT_EMAIL is not set)" });
+  if (!to.length) {
+    result.digest = "skipped (STAFF_ALERT_EMAIL is not set)";
+    return false;
+  }
 
   try {
     const { email, counts } = await buildDigest(sb, `${today.slice(0, 7)}-01`);
     const { error: sendError } = await new Resend(process.env.RESEND_API_KEY).emails.send({ from: FROM, to, ...email });
     if (sendError) throw new Error(sendError.message);
     result.digest = { sent: true, to: to.length, ...counts };
-    return NextResponse.json(result);
+    return false;
   } catch (err) {
     console.error("[cron] digest failed:", err.message);
-    return NextResponse.json({ ...result, digest: "failed", error: "The rent digest didn't send" }, { status: 500 });
+    result.digest = "failed";
+    return true;
   }
+}
+
+// Privacy policy: unsuccessful applicants' documents are deleted within 90 days of the decision.
+// Only counts are logged here, never file names or applicant names.
+async function deleteExpiredDocuments(sb) {
+  const summary = { users: 0, files: 0, skipped: 0 };
+  const { data, error } = await sb.rpc("documents_due_for_deletion", { p_days: 80 });
+  if (error) {
+    console.error("[cron] documents_due_for_deletion failed:", error.message);
+    return { ...summary, error: "Couldn't load documents due for deletion" };
+  }
+
+  const pathsByUser = new Map();
+  for (const row of data || []) {
+    if (!row.user_id || !row.file_path) continue;
+    if (!pathsByUser.has(row.user_id)) pathsByUser.set(row.user_id, []);
+    pathsByUser.get(row.user_id).push(row.file_path);
+  }
+
+  for (const [userId, paths] of pathsByUser) {
+    const { error: removeError } = await sb.storage.from("applicant-docs").remove(paths);
+    if (removeError) {
+      console.error(`[cron] removing ${paths.length} applicant file(s) failed; will retry tomorrow:`, removeError.message);
+      summary.skipped += 1;
+      continue;
+    }
+    const { error: finishError } = await sb.rpc("finish_document_deletion", { p_user_id: userId, p_paths: paths });
+    if (finishError) {
+      console.error(`[cron] finish_document_deletion failed after removing ${paths.length} file(s):`, finishError.message);
+      summary.skipped += 1;
+      continue;
+    }
+    summary.users += 1;
+    summary.files += paths.length;
+  }
+
+  return summary;
 }

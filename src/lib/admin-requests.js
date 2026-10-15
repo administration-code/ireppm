@@ -67,7 +67,7 @@ export function sortNewest(list) {
 
 export async function loadInbox() {
   const sb = getBrowserClient();
-  const [showings, applications, inquiries, drafts, maintenanceNew, unmatchedPayments, openTurnovers] = await Promise.all([
+  const [showings, applications, inquiries, drafts, maintenanceNew, unmatchedPayments, openTurnovers, deletions] = await Promise.all([
     sb
       .from("showing_requests")
       .select(
@@ -77,7 +77,7 @@ export async function loadInbox() {
     sb
       .from("applications")
       .select(
-        "id, user_id, applicant_name, applicant_email, applicant_phone, income_type, documents, credit_consent, consent_at, status, staff_notes, created_at, listing:listings(address, unit, slug)"
+        "id, user_id, applicant_name, applicant_email, applicant_phone, income_type, documents, credit_consent, consent_at, status, staff_notes, created_at, decided_at, listing:listings(address, unit, slug)"
       )
       .order("created_at", { ascending: false }),
     sb
@@ -88,6 +88,7 @@ export async function loadInbox() {
     sb.from("maintenance_requests").select("id", { count: "exact", head: true }).eq("status", "new"),
     sb.from("payments").select("id", { count: "exact", head: true }).eq("status", "unmatched"),
     sb.from("turnovers").select("id", { count: "exact", head: true }).not("status", "in", "(leased,cancelled)"),
+    sb.from("document_deletions").select("id, files_deleted, deleted_at").order("deleted_at", { ascending: false }).limit(20),
   ]);
 
   const failed = [showings, applications, inquiries].some((r) => r.error);
@@ -99,6 +100,8 @@ export async function loadInbox() {
     maintenanceNew: maintenanceNew.count || 0,
     unmatchedPayments: unmatchedPayments.count || 0,
     openTurnovers: openTurnovers.count || 0,
+    deletions: deletions.data || [],
+    deletionsError: Boolean(deletions.error),
     error: failed ? "Some requests couldn't load. Refresh the page to try again." : "",
   };
 }
