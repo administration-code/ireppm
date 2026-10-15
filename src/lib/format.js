@@ -1,5 +1,7 @@
 export function money(n) {
-  return "$" + Number(n || 0).toLocaleString("en-CA");
+  const v = Math.round(Number(n || 0) * 100) / 100;
+  const digits = Number.isInteger(v) ? 0 : 2;
+  return "$" + v.toLocaleString("en-CA", { minimumFractionDigits: digits, maximumFractionDigits: digits });
 }
 
 export function availableText(dateStr) {

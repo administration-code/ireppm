@@ -70,6 +70,9 @@ export default function RequestsInbox() {
             </span>
           ) : null}
         </Link>
+        <Link href="/admin/properties">Properties</Link>
+        <Link href="/admin/owners">Owners</Link>
+        <Link href="/admin/rates">Add-ons &amp; rates</Link>
       </nav>
 
       {state.error ? <div className="warnbox">{state.error}</div> : null}
