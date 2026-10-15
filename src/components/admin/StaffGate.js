@@ -12,7 +12,7 @@ export default function StaffGate({ children }) {
     return (
       <div className="empty">
         <h2>Sign-in isn&apos;t switched on yet</h2>
-        <p>The listings manager needs Supabase accounts to be connected.</p>
+        <p>The staff area needs Supabase accounts to be connected.</p>
       </div>
     );
   }
@@ -23,7 +23,7 @@ export default function StaffGate({ children }) {
     return (
       <div className="empty">
         <h2>Sign in to continue</h2>
-        <p>The listings manager is for IRep staff. Sign in with your staff email address.</p>
+        <p>The staff area is for IRep staff. Sign in with your staff email address.</p>
         <button className="btn primary" onClick={() => openSignIn()}>
           Sign in
         </button>

@@ -37,7 +37,7 @@ export default function Header() {
           ))}
         </nav>
         {isStaff ? (
-          <Link className="staff-link" href="/admin/listings" aria-current={path.startsWith("/admin") ? "page" : undefined}>
+          <Link className="staff-link" href="/admin" aria-current={path.startsWith("/admin") ? "page" : undefined}>
             Staff
           </Link>
         ) : null}
