@@ -1,0 +1,87 @@
+import { timingSafeEqual } from "node:crypto";
+import { NextResponse } from "next/server";
+import { Resend } from "resend";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { applicationEmail, landlordEmail, showingEmail } from "@/lib/staff-alerts";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+const FROM = "IRep Property Management <alerts@ireppm.ca>";
+const HANDLED_TABLES = new Set(["showing_requests", "applications", "landlord_inquiries"]);
+
+function secretMatches(provided) {
+  const expected = process.env.NOTIFY_WEBHOOK_SECRET;
+  if (!expected || typeof provided !== "string") return false;
+  const a = Buffer.from(provided);
+  const b = Buffer.from(expected);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
+function staffRecipients() {
+  return (process.env.STAFF_ALERT_EMAIL || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+async function fetchListing(sb, listingId) {
+  if (!listingId) return null;
+  const { data, error } = await sb.from("listings").select("address, unit").eq("id", listingId).maybeSingle();
+  if (error) console.error("[notify] listing lookup failed:", error.message);
+  return data;
+}
+
+async function fetchRenter(sb, userId) {
+  if (!userId) return null;
+  const { data, error } = await sb.from("profiles").select("full_name, email, phone").eq("id", userId).maybeSingle();
+  if (error) console.error("[notify] profile lookup failed:", error.message);
+  return data;
+}
+
+async function buildEmail(table, record) {
+  if (table === "landlord_inquiries") return landlordEmail(record);
+
+  const sb = getSupabaseAdmin();
+  if (table === "showing_requests") {
+    const [listing, renter] = await Promise.all([fetchListing(sb, record.listing_id), fetchRenter(sb, record.user_id)]);
+    return showingEmail(record, listing, renter);
+  }
+  const listing = await fetchListing(sb, record.listing_id);
+  return applicationEmail(record, listing);
+}
+
+export async function POST(request) {
+  if (!secretMatches(request.headers.get("x-webhook-secret"))) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  let payload;
+  try {
+    payload = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  const { type, table, record } = payload || {};
+  if (type !== "INSERT" || !HANDLED_TABLES.has(table) || !record || typeof record !== "object") {
+    return NextResponse.json({ ok: true, skipped: true });
+  }
+
+  // From here on, always answer 200 so the database webhook doesn't retry endlessly.
+  try {
+    const to = staffRecipients();
+    if (!to.length) throw new Error("STAFF_ALERT_EMAIL is not set");
+    if (!process.env.RESEND_API_KEY) throw new Error("RESEND_API_KEY is not set");
+
+    const email = await buildEmail(table, record);
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const { error } = await resend.emails.send({ from: FROM, to, ...email });
+    if (error) throw new Error(`Resend: ${error.name || ""} ${error.message || ""}`.trim());
+
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error(`[notify] could not send ${table} alert for ${record.id}:`, err?.message || err);
+    return NextResponse.json({ ok: false, sent: false });
+  }
+}
