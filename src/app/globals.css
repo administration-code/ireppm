@@ -552,7 +552,7 @@ label.btn[aria-disabled="true"] { opacity: .6; cursor: progress; }
 .letter-table .r { text-align: right; }
 .letter-table .muted-row td { color: #888; }
 .letter-note { margin-top: 8px; font-size: .8125rem; color: #666; }
-.letter-summary { display: grid; gap: 0; margin: 16px 0 0; max-width: 420px; margin-left: auto; }
+.letter-summary { display: grid; gap: 0; margin: 16px 0 0; width: 100%; }
 .letter-summary > div { display: flex; justify-content: space-between; gap: 16px; padding: 6px 0; border-bottom: 1px solid #e3ded4; }
 .letter-summary dt { margin: 0; }
 .letter-summary dd { margin: 0; text-align: right; }
