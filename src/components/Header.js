@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { IRepMark } from "./Brand";
 import { useAuth } from "./AuthProvider";
 import { useStaff } from "@/lib/useStaff";
+import { useOwner } from "@/lib/useOwner";
 
 const NAV = [
   ["/", "Home"],
@@ -17,6 +18,7 @@ export default function Header() {
   const path = usePathname() || "/";
   const { user, openSignIn } = useAuth();
   const { isStaff } = useStaff();
+  const { isOwner } = useOwner();
   const isCurrent = (href) => (href === "/" ? path === "/" : path.startsWith(href));
 
   return (
@@ -39,6 +41,11 @@ export default function Header() {
         {isStaff ? (
           <Link className="staff-link" href="/admin" aria-current={path.startsWith("/admin") ? "page" : undefined}>
             Staff
+          </Link>
+        ) : null}
+        {isOwner ? (
+          <Link className="staff-link" href="/owner" aria-current={path.startsWith("/owner") ? "page" : undefined}>
+            Owner portal
           </Link>
         ) : null}
         {user ? (

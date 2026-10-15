@@ -10,6 +10,7 @@ export const dynamic = "force-dynamic";
 
 const FROM = "IRep Property Management <alerts@ireppm.ca>";
 const PAYOUTS_URL = "https://ireppm.ca/admin/payouts";
+const LETTERS_URL = "https://ireppm.ca/admin/letters";
 
 function staffRecipients() {
   return (process.env.STAFF_ALERT_EMAIL || "")
@@ -115,6 +116,36 @@ async function buildDigest(sb, period) {
   };
 }
 
+// On the 1st: draft every owner's letter for last month and tell staff they're ready to review.
+async function draftLastMonthsLetters(sb, today) {
+  const [y, m] = today.split("-").map(Number);
+  const month = m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, "0")}`;
+  const { data: count, error } = await sb.rpc("draft_owner_letters", { p_period: `${month}-01` });
+  if (error) {
+    console.error("[cron] draft_owner_letters failed:", error.message);
+    return "failed";
+  }
+
+  const to = staffRecipients();
+  if (!to.length) return { drafted: count, email: "skipped (STAFF_ALERT_EMAIL is not set)" };
+
+  const label = monthLabel(`${month}-01`);
+  const url = `${LETTERS_URL}?month=${month}`;
+  const subject = `Landlord letters for ${label} are ready to review`;
+  const html = `<div style="font-family:Arial,Helvetica,sans-serif;color:#1a1a1a;max-width:640px">
+<h1 style="font-size:20px">${escapeHtml(subject)}</h1>
+<p>${escapeHtml(String(count ?? 0))} draft ${count === 1 ? "letter is" : "letters are"} ready. Check them over, add any notes, then send.</p>
+<p style="margin-top:24px"><a href="${escapeHtml(url)}" style="background:#B41710;color:#fff;padding:10px 16px;text-decoration:none;font-weight:bold">Review landlord letters</a></p>
+</div>`;
+  const text = `${subject}\n\n${count ?? 0} draft letters are ready.\n\n${url}`;
+  const { error: sendError } = await new Resend(process.env.RESEND_API_KEY).emails.send({ from: FROM, to, subject, html, text });
+  if (sendError) {
+    console.error("[cron] letters email failed:", sendError.message);
+    return { drafted: count, email: "failed" };
+  }
+  return { drafted: count, email: "sent" };
+}
+
 export async function GET(request) {
   const secret = process.env.CRON_SECRET;
   if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) {
@@ -131,6 +162,10 @@ export async function GET(request) {
     return NextResponse.json({ ...result, error: "Generating rent charges failed" }, { status: 500 });
   }
   result.charges = data ?? "ok";
+
+  if (Number(today.slice(8, 10)) === 1) {
+    result.letters = await draftLastMonthsLetters(sb, today);
+  }
 
   if (Number(today.slice(8, 10)) !== 8) {
     result.digest = "skipped (not the 8th)";

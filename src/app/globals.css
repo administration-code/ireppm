@@ -530,3 +530,38 @@ label.btn[aria-disabled="true"] { opacity: .6; cursor: progress; }
   .editing-row td, .editing-row th { background: none; }
   .stmt-section { break-inside: avoid-page; }
 }
+
+/* Notices and monthly landlord letters */
+.pre-line { white-space: pre-line; }
+.is-void { opacity: .55; }
+.is-void td, .is-void .req-title { text-decoration: line-through; }
+.pill.ns-served { background: var(--warn-bg); color: var(--warn); }
+.pill.ns-resolved { background: var(--ok-bg); color: var(--ok); }
+.pill.ns-withdrawn, .pill.ns-void { background: var(--surface-2); color: var(--muted); }
+.pill.ns-filed_ltb, .pill.ns-order_issued { background: var(--surface-2); color: var(--red); }
+
+.letter-meta { display: flex; flex-wrap: wrap; gap: 6px 24px; margin-top: 16px; font-size: .875rem; color: #555; }
+.letter-staff-note { margin: 0 0 24px; padding: 14px 16px; background: #F7F4EE; border-left: 3px solid #B41710; font-size: .9375rem; }
+.letter-property { margin-top: 32px; padding-top: 24px; border-top: 1px solid #e3ded4; break-inside: avoid-page; }
+.letter-h2 { font-family: var(--font-display, "Cormorant Garamond", serif); font-size: 1.5rem; margin: 0 0 12px; }
+.letter-section { margin-top: 20px; }
+.letter-h3 { font-size: .75rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #555; margin: 0 0 8px; }
+.letter-table { width: 100%; border-collapse: collapse; font-size: .9375rem; }
+.letter-table th, .letter-table td { padding: 8px; border-bottom: 1px solid #e3ded4; text-align: left; vertical-align: top; }
+.letter-table th { font-size: .8125rem; font-weight: 600; color: #555; }
+.letter-table .r { text-align: right; }
+.letter-table .muted-row td { color: #888; }
+.letter-note { margin-top: 8px; font-size: .8125rem; color: #666; }
+.letter-summary { display: grid; gap: 0; margin: 16px 0 0; max-width: 420px; margin-left: auto; }
+.letter-summary > div { display: flex; justify-content: space-between; gap: 16px; padding: 6px 0; border-bottom: 1px solid #e3ded4; }
+.letter-summary dt { margin: 0; }
+.letter-summary dd { margin: 0; text-align: right; }
+.letter-strong { font-weight: 700; }
+.letter-summary > .letter-strong { border-bottom: 0; border-top: 2px solid #161616; }
+.letter-totals { margin-top: 32px; max-width: none; padding-top: 16px; border-top: 2px solid #B41710; }
+
+.letter-list { list-style: none; margin: 0; padding: 0; display: grid; }
+.letter-list li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.letter-list li:last-child { border-bottom: 0; }
+.letter-list a { font-weight: 600; color: var(--fg); }
+.letter-list a:hover { color: var(--red); }

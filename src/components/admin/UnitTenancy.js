@@ -21,16 +21,18 @@ import RentLedger from "./RentLedger";
 function PastLedger({ tenancy }) {
   const [open, setOpen] = useState(false);
   return open ? (
-    <div style={{ marginTop: 12 }}>
+    <div className="stack" style={{ marginTop: 12 }}>
       <RentLedger tenancy={tenancy} />
+      <NoticesPanel tenancyId={tenancy.id} />
     </div>
   ) : (
     <button type="button" className="btn ghost sm" style={{ marginTop: 12 }} onClick={() => setOpen(true)}>
-      Show rent ledger
+      Show rent ledger and notices
     </button>
   );
 }
 import StartTenancyForm from "./StartTenancyForm";
+import NoticesPanel from "./NoticesPanel";
 
 async function loadUnit(id) {
   const sb = getBrowserClient();
@@ -112,6 +114,7 @@ export default function UnitTenancy({ id }) {
         <>
           <CurrentTenancy key={`${current.id}-${current.status}`} tenancy={current} onChanged={reload} />
           <RentLedger tenancy={current} />
+          <NoticesPanel tenancyId={current.id} />
         </>
       ) : starting ? (
         <StartTenancyForm
