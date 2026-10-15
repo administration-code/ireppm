@@ -15,6 +15,21 @@ import {
   sortTenants,
 } from "@/lib/admin-properties";
 import CurrentTenancy from "./CurrentTenancy";
+import RentLedger from "./RentLedger";
+
+// Past tenancies load their ledger only when opened, to keep the unit page quick.
+function PastLedger({ tenancy }) {
+  const [open, setOpen] = useState(false);
+  return open ? (
+    <div style={{ marginTop: 12 }}>
+      <RentLedger tenancy={tenancy} />
+    </div>
+  ) : (
+    <button type="button" className="btn ghost sm" style={{ marginTop: 12 }} onClick={() => setOpen(true)}>
+      Show rent ledger
+    </button>
+  );
+}
 import StartTenancyForm from "./StartTenancyForm";
 
 async function loadUnit(id) {
@@ -94,7 +109,10 @@ export default function UnitTenancy({ id }) {
       {error ? <div className="warnbox">{error}</div> : null}
 
       {current ? (
-        <CurrentTenancy key={`${current.id}-${current.status}`} tenancy={current} onChanged={reload} />
+        <>
+          <CurrentTenancy key={`${current.id}-${current.status}`} tenancy={current} onChanged={reload} />
+          <RentLedger tenancy={current} />
+        </>
       ) : starting ? (
         <StartTenancyForm
           unit={unit}
@@ -144,6 +162,7 @@ export default function UnitTenancy({ id }) {
                     </div>
                   ) : null}
                 </dl>
+                <PastLedger tenancy={t} />
               </li>
             ))}
           </ul>

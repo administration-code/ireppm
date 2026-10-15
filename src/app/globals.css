@@ -436,3 +436,65 @@ label.btn[aria-disabled="true"] { opacity: .6; cursor: progress; }
   .maint-grid { grid-template-columns: 1fr; }
   .maint-facts > div { grid-template-columns: 1fr; gap: 2px; }
 }
+
+/* Rent collection */
+.rent-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; display: flex; flex-direction: column; gap: 4px; }
+.stat-label { color: var(--muted); font-size: .8125rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.stat-value { font-size: 1.5rem; font-weight: 600; }
+.stat-value.is-late, .owing { color: var(--red); }
+.late-row td { background: var(--warn-bg); }
+.muted-row td { color: var(--muted); }
+.pill.cs-full { background: var(--ok-bg); color: var(--ok); }
+.pill.cs-late, .pill.cs-partial { background: var(--warn-bg); color: var(--warn); }
+.pill.cs-none { background: var(--surface-2); color: var(--red); }
+.expand-btn { background: none; border: 0; padding: 0; font: inherit; font-weight: 600; color: var(--fg); cursor: pointer; text-align: left; }
+.expand-btn:hover { color: var(--red); }
+.expand-btn:focus-visible, .link-btn:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
+.nested-row > td { background: var(--surface-2); padding: 12px; }
+.nested-table { font-size: .875rem; }
+.picker { display: grid; grid-template-columns: 1fr 2fr; gap: 12px; }
+.cell-input { width: 100%; min-width: 110px; padding: 6px 8px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); color: var(--fg); font: inherit; }
+.cell-input:disabled { opacity: .5; }
+.row-check { width: 18px; height: 18px; accent-color: var(--red); }
+.row-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; white-space: nowrap; }
+.link-btn { background: none; border: 0; padding: 0; font: inherit; color: var(--red); text-decoration: underline; cursor: pointer; }
+.suggest { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; background: var(--ok-bg); color: var(--ok); padding: 12px 14px; border-radius: var(--radius); }
+.suggest p { margin: 0; }
+.split-row { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; margin: 0; display: flex; flex-direction: column; gap: 12px; }
+.split-remove { justify-content: end; }
+.split-sum { align-self: end; margin: 0; font-weight: 600; }
+.ledger-balance { font-weight: 600; color: var(--ok); }
+.ledger-balance.owing { color: var(--red); }
+.range-receipt { border-top: 1px solid var(--line); padding-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+
+/* Rent receipt */
+.receipt-tools { display: flex; flex-direction: column; gap: 12px; }
+.receipt { background: #fff; color: #161616; border: 1px solid var(--line); border-radius: var(--radius); padding: 40px; max-width: 760px; width: 100%; margin: 0 auto; }
+.receipt-head { display: flex; flex-wrap: wrap; gap: 24px; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #B41710; padding-bottom: 20px; }
+.receipt-brand { display: flex; align-items: center; gap: 10px; }
+.receipt-brand svg { width: 44px; height: 44px; color: #B41710; }
+.receipt-brand .wm { display: flex; flex-direction: column; line-height: 1.1; }
+.receipt-brand .wm b { font-family: var(--font-display, "Cormorant Garamond", serif); font-size: 1.6rem; letter-spacing: .08em; }
+.receipt-brand .wm i { font-style: normal; font-size: .625rem; letter-spacing: .18em; font-weight: 600; }
+.receipt-office { font-style: normal; font-size: .875rem; text-align: right; line-height: 1.5; }
+.receipt-title { font-family: var(--font-display, "Cormorant Garamond", serif); font-size: 2rem; margin: 24px 0 16px; }
+.receipt-facts { margin-bottom: 24px; }
+.receipt-table { width: 100%; border-collapse: collapse; font-size: .9375rem; }
+.receipt-table th, .receipt-table td { padding: 10px 8px; border-bottom: 1px solid #e3ded4; text-align: left; }
+.receipt-table .r { text-align: right; }
+.receipt-table tfoot th, .receipt-table tfoot td { border-bottom: 0; border-top: 2px solid #161616; font-weight: 700; }
+.receipt-note { margin-top: 24px; font-size: .875rem; color: #555; }
+
+@media (max-width: 760px) {
+  .rent-stats { grid-template-columns: repeat(2, 1fr); }
+  .picker { grid-template-columns: 1fr; }
+  .receipt { padding: 20px; }
+  .receipt-office { text-align: left; }
+}
+
+@media print {
+  .site-header, .site-footer, .no-print, .admin-tabs { display: none !important; }
+  body { background: #fff; }
+  .receipt { border: 0; padding: 0; max-width: none; }
+}
