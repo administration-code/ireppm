@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import StaffNav from "@/components/admin/StaffNav";
 import ShowingsPanel from "@/components/admin/ShowingsPanel";
 import ApplicationsPanel from "@/components/admin/ApplicationsPanel";
 import InquiriesPanel from "@/components/admin/InquiriesPanel";
@@ -49,62 +49,20 @@ export default function RequestsInbox() {
         </div>
       </div>
 
-      <nav className="admin-tabs" aria-label="Staff sections">
-        {TABS.map((t) => (
-          <Link key={t.key} href={`/admin?tab=${t.key}`} scroll={false} aria-current={tab === t.key ? "page" : undefined}>
-            {t.label}
-            {!state.loading && counts[t.key] ? (
-              <span className="tab-count">
-                {counts[t.key]}
-                <span className="visually-hidden"> new</span>
-              </span>
-            ) : null}
-          </Link>
-        ))}
-        <Link href="/admin/listings">
-          Listings
-          {!state.loading && state.drafts ? (
-            <span className="tab-count muted">
-              {state.drafts}
-              <span className="visually-hidden"> {state.drafts === 1 ? "draft" : "drafts"}</span>
-            </span>
-          ) : null}
-        </Link>
-        <Link href="/admin/maintenance">
-          Maintenance
-          {!state.loading && state.maintenanceNew ? (
-            <span className="tab-count">
-              {state.maintenanceNew}
-              <span className="visually-hidden"> new</span>
-            </span>
-          ) : null}
-        </Link>
-        <Link href="/admin/rent">
-          Rent
-          {!state.loading && state.unmatchedPayments ? (
-            <span className="tab-count">
-              {state.unmatchedPayments}
-              <span className="visually-hidden"> to match</span>
-            </span>
-          ) : null}
-        </Link>
-        <Link href="/admin/turnovers">
-          Turnovers
-          {!state.loading && state.openTurnovers ? (
-            <span className="tab-count muted">
-              {state.openTurnovers}
-              <span className="visually-hidden"> open</span>
-            </span>
-          ) : null}
-        </Link>
-        <Link href="/admin/payouts">Landlord payouts</Link>
-        <Link href="/admin/letters">Landlord letters</Link>
-        <Link href="/admin/notices">Notices</Link>
-        <Link href="/admin/properties">Properties</Link>
-        <Link href="/admin/owners">Owners</Link>
-        <Link href="/admin/partners">Partners</Link>
-        <Link href="/admin/rates">Add-ons &amp; rates</Link>
-      </nav>
+      <StaffNav
+        active={tab}
+        counts={
+          state.loading
+            ? null
+            : {
+                ...counts,
+                drafts: state.drafts,
+                maintenanceNew: state.maintenanceNew,
+                unmatchedPayments: state.unmatchedPayments,
+                openTurnovers: state.openTurnovers,
+              }
+        }
+      />
 
       {state.error ? <div className="warnbox">{state.error}</div> : null}
 

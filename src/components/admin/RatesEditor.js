@@ -120,7 +120,7 @@ export default function RatesEditor() {
     <div className="stack" style={{ gap: 24 }}>
       <div style={{ display: "grid", gap: 8 }}>
         <Link className="eyebrow back-link" href="/admin">
-          ← Requests inbox
+          ← Staff dashboard
         </Link>
         <h1 className="admin-title">Add-ons &amp; rates</h1>
         <p className="small">

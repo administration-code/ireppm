@@ -63,7 +63,7 @@ export default function MaintenanceTable() {
       <div className="admin-head">
         <div style={{ display: "grid", gap: 8 }}>
           <Link className="eyebrow back-link" href="/admin">
-            ← Requests inbox
+            ← Staff dashboard
           </Link>
           <h1 className="admin-title">Maintenance</h1>
           <p className="small">Repairs reported by tenants or logged by staff. Emergencies are listed first.</p>

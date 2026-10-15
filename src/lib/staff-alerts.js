@@ -3,6 +3,7 @@ import { DOC_TYPES } from "@/lib/documents";
 import { CATEGORIES as MAINTENANCE_CATEGORIES, URGENCY as MAINTENANCE_URGENCY } from "@/lib/maintenance";
 
 const ADMIN_URL = "https://ireppm.ca/admin";
+const INBOX_URL = `${ADMIN_URL}/requests`;
 
 const BRAND = {
   red: "#B41710",
@@ -42,7 +43,7 @@ function docTypeName(key) {
   return DOC_TYPES.find((d) => d.key === key)?.name || key || "Document";
 }
 
-function renderEmail({ heading, intro, rows, extraHtml = "", link = { href: ADMIN_URL, label: "Open the staff inbox" } }) {
+function renderEmail({ heading, intro, rows, extraHtml = "", link = { href: INBOX_URL, label: "Open the requests inbox" } }) {
   const rowHtml = rows
     .filter(([, value]) => value !== null && value !== undefined && String(value).trim() !== "")
     .map(
@@ -88,7 +89,7 @@ function renderEmail({ heading, intro, rows, extraHtml = "", link = { href: ADMI
 </html>`;
 }
 
-function renderText({ heading, rows, extra = "", link = { href: ADMIN_URL, label: "Open the staff inbox" } }) {
+function renderText({ heading, rows, extra = "", link = { href: INBOX_URL, label: "Open the requests inbox" } }) {
   const lines = rows
     .filter(([, value]) => value !== null && value !== undefined && String(value).trim() !== "")
     .map(([label, value]) => `${label}: ${value}`);

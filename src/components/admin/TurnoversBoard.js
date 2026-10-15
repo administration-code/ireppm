@@ -155,7 +155,7 @@ export default function TurnoversBoard() {
     <div className="stack" style={{ gap: 24 }}>
       <div>
         <Link className="back" href="/admin">
-          ← Staff
+          ← Staff dashboard
         </Link>
         <div className="admin-head">
           <div style={{ display: "grid", gap: 8 }}>
