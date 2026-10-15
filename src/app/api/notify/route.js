@@ -2,13 +2,13 @@ import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { applicationEmail, landlordEmail, showingEmail } from "@/lib/staff-alerts";
+import { applicationEmail, landlordEmail, maintenanceEmail, showingEmail } from "@/lib/staff-alerts";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const FROM = "IRep Property Management <alerts@ireppm.ca>";
-const HANDLED_TABLES = new Set(["showing_requests", "applications", "landlord_inquiries"]);
+const HANDLED_TABLES = new Set(["showing_requests", "applications", "landlord_inquiries", "maintenance_requests"]);
 
 function secretMatches(provided) {
   const expected = process.env.NOTIFY_WEBHOOK_SECRET;
@@ -32,6 +32,17 @@ async function fetchListing(sb, listingId) {
   return data;
 }
 
+async function fetchUnit(sb, unitId) {
+  if (!unitId) return null;
+  const { data, error } = await sb
+    .from("units")
+    .select("label, property:properties(address, city)")
+    .eq("id", unitId)
+    .maybeSingle();
+  if (error) console.error("[notify] unit lookup failed:", error.message);
+  return data;
+}
+
 async function fetchRenter(sb, userId) {
   if (!userId) return null;
   const { data, error } = await sb.from("profiles").select("full_name, email, phone").eq("id", userId).maybeSingle();
@@ -43,6 +54,9 @@ async function buildEmail(table, record) {
   if (table === "landlord_inquiries") return landlordEmail(record);
 
   const sb = getSupabaseAdmin();
+  if (table === "maintenance_requests") {
+    return maintenanceEmail(record, await fetchUnit(sb, record.unit_id));
+  }
   if (table === "showing_requests") {
     const [listing, renter] = await Promise.all([fetchListing(sb, record.listing_id), fetchRenter(sb, record.user_id)]);
     return showingEmail(record, listing, renter);

@@ -1,5 +1,6 @@
 import "server-only";
 import { DOC_TYPES } from "@/lib/documents";
+import { CATEGORIES as MAINTENANCE_CATEGORIES, URGENCY as MAINTENANCE_URGENCY } from "@/lib/maintenance";
 
 const ADMIN_URL = "https://ireppm.ca/admin";
 
@@ -41,7 +42,7 @@ function docTypeName(key) {
   return DOC_TYPES.find((d) => d.key === key)?.name || key || "Document";
 }
 
-function renderEmail({ heading, intro, rows, extraHtml = "" }) {
+function renderEmail({ heading, intro, rows, extraHtml = "", link = { href: ADMIN_URL, label: "Open the staff inbox" } }) {
   const rowHtml = rows
     .filter(([, value]) => value !== null && value !== undefined && String(value).trim() !== "")
     .map(
@@ -75,7 +76,7 @@ function renderEmail({ heading, intro, rows, extraHtml = "" }) {
             </tr>
             <tr>
               <td style="padding:24px 32px 32px;">
-                <a href="${ADMIN_URL}" style="display:inline-block;background:${BRAND.red};color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:12px 22px;">Open the staff inbox</a>
+                <a href="${escapeHtml(link.href)}" style="display:inline-block;background:${BRAND.red};color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:12px 22px;">${escapeHtml(link.label)}</a>
               </td>
             </tr>
           </table>
@@ -87,11 +88,35 @@ function renderEmail({ heading, intro, rows, extraHtml = "" }) {
 </html>`;
 }
 
-function renderText({ heading, rows, extra = "" }) {
+function renderText({ heading, rows, extra = "", link = { href: ADMIN_URL, label: "Open the staff inbox" } }) {
   const lines = rows
     .filter(([, value]) => value !== null && value !== undefined && String(value).trim() !== "")
     .map(([label, value]) => `${label}: ${value}`);
-  return [heading, "", ...lines, extra, "", `Open the staff inbox: ${ADMIN_URL}`].filter((l) => l !== null).join("\n");
+  return [heading, "", ...lines, extra, "", `${link.label}: ${link.href}`].filter((l) => l !== null).join("\n");
+}
+
+export function maintenanceEmail(record, unit) {
+  const property = unit?.property;
+  const address = property?.address || "Unknown address";
+  const unitLabel = unit?.label || "";
+  const place = [address, unitLabel].filter(Boolean).join(" ");
+  const emergency = record.urgency === "emergency";
+  const rows = [
+    ["Property", [address, unitLabel].filter(Boolean).join(", ")],
+    ["Title", record.title],
+    ["Category", MAINTENANCE_CATEGORIES[record.category] || record.category],
+    ["Urgency", MAINTENANCE_URGENCY[record.urgency] || record.urgency],
+    ["Description", record.description],
+    ["Permission to enter", record.permission_to_enter ? "Yes, may enter if not home" : "No, arrange a time first"],
+    ["Access notes", record.access_notes],
+  ];
+  const link = { href: `${ADMIN_URL}/maintenance/${encodeURIComponent(record.id)}`, label: "Open the request" };
+  const heading = emergency ? "Emergency maintenance request" : "New maintenance request";
+  return {
+    subject: `${emergency ? "EMERGENCY: " : ""}New maintenance request: ${place}`,
+    html: renderEmail({ heading, intro: "A maintenance request has come in.", rows, link }),
+    text: renderText({ heading, rows, link }),
+  };
 }
 
 export function showingEmail(record, listing, renter) {

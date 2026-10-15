@@ -70,8 +70,18 @@ export default function RequestsInbox() {
             </span>
           ) : null}
         </Link>
+        <Link href="/admin/maintenance">
+          Maintenance
+          {!state.loading && state.maintenanceNew ? (
+            <span className="tab-count">
+              {state.maintenanceNew}
+              <span className="visually-hidden"> new</span>
+            </span>
+          ) : null}
+        </Link>
         <Link href="/admin/properties">Properties</Link>
         <Link href="/admin/owners">Owners</Link>
+        <Link href="/admin/partners">Partners</Link>
         <Link href="/admin/rates">Add-ons &amp; rates</Link>
       </nav>
 
