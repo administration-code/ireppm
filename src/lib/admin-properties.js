@@ -38,7 +38,7 @@ export const OWNER_TYPES = {
 export const OWNER_FIELDS = "id, legacy_id, name, entity_type, email, phone, mailing_address, payout_method, notes";
 
 export const PROPERTY_FIELDS =
-  "id, address, city, postal_code, owner_id, management_package, notes, archived, monthly_fee, agreement_start, agreement_renewal, renewal_notice_sent_on, lot_size_sqft";
+  "id, address, city, postal_code, owner_id, management_package, notes, archived, monthly_fee, agreement_start, agreement_renewal, renewal_notice_sent_on, lot_size_sqft, fee_billed_separately";
 export const PROPERTY_SELECT = `${PROPERTY_FIELDS}, owner:owners(id, name, entity_type, email, phone)`;
 export const UNIT_FIELDS =
   "id, property_id, label, unit_type, beds, baths, market_rent, status, management_type, listing_id, notes";

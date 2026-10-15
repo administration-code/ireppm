@@ -34,7 +34,7 @@ export async function loadReceipt(sb, params) {
   if (params.payment) {
     const { data, error } = await sb.from("payments").select(PAYMENT_FIELDS).eq("id", params.payment).maybeSingle();
     if (error) throw new Error("load failed");
-    if (!data || !data.tenancy_id || RECEIPT_EXCLUDED.includes(data.status)) return null;
+    if (!data || !data.tenancy_id || RECEIPT_EXCLUDED.includes(data.status) || data.method === "paid_to_owner") return null;
     payments = [data];
     tenancyId = data.tenancy_id;
   } else {
@@ -45,6 +45,7 @@ export async function loadReceipt(sb, params) {
       .gte("received_on", params.from)
       .lte("received_on", params.to)
       .not("status", "in", `(${RECEIPT_EXCLUDED.join(",")})`)
+      .neq("method", "paid_to_owner")
       .order("received_on", { ascending: true });
     if (error) throw new Error("load failed");
     payments = data || [];

@@ -7,6 +7,7 @@ export const METHOD_LABEL = {
   direct_deposit: "Direct deposit",
   cheque: "Cheque",
   last_month_applied: "Last month's rent applied",
+  paid_to_owner: "Paid to landlord directly",
   other: "Other",
 };
 
