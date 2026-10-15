@@ -13,7 +13,7 @@ export default function OwnerEditor({ id }) {
     let alive = true;
     getBrowserClient()
       .from("owners")
-      .select(`${OWNER_FIELDS}, properties(id, address, city, archived)`)
+      .select(`${OWNER_FIELDS}, profile_id, properties(id, address, city, archived)`)
       .eq("id", id)
       .maybeSingle()
       .then(({ data, error }) => {
@@ -49,6 +49,13 @@ export default function OwnerEditor({ id }) {
         </Link>
         <span className="eyebrow">Staff · Owner</span>
         <h1 className="admin-title">{owner.name}</h1>
+        <p className="small" style={{ marginTop: 8 }}>
+          {owner.profile_id ? (
+            <span className="pill cs-full inline-pill">Portal: linked</span>
+          ) : (
+            <span className="pill opt inline-pill">Portal: not signed in yet</span>
+          )}
+        </p>
       </div>
 
       <OwnerForm owner={owner} onSaved={(o) => setState((s) => ({ ...s, owner: { ...s.owner, ...o } }))} />
