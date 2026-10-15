@@ -3,7 +3,7 @@ export const SITE = {
   name: "IRep Property Management",
   shortName: "IRep PM",
   url: "https://ireppm.ca",
-  email: "administation@ireppm.ca",
+  email: "administration@ireppm.ca",
   phone: "519-590-7200",
   address: "6-2557 Dougall Ave, Suite 223, Windsor, ON N8X 1T5",
   facebook: "https://www.facebook.com/IRepPM",
