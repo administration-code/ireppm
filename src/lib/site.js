@@ -3,9 +3,10 @@ export const SITE = {
   name: "IRep Property Management",
   shortName: "IRep PM",
   url: "https://ireppm.ca",
-  email: "ireppm@ireprealty.com",
-  phone: null, // e.g. "519-555-0123"
-  address: null, // e.g. "123 Ouellette Ave, Windsor, ON"
+  email: "IRepPM@IRepRealty.com",
+  phone: "(519) 999-9742",
+  address: "6-2557 Dougall Ave, Suite 223, Windsor, ON N8X 1T5",
+  facebook: "https://www.facebook.com/IRepPM",
   hours: null, // e.g. "Mon–Fri, 9 am – 5 pm"
   primaryCity: "Windsor",
   towns: [
