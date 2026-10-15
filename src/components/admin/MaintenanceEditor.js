@@ -403,13 +403,22 @@ export default function MaintenanceEditor({ id }) {
             </div>
             <div className="field">
               <label htmlFor="m-charge">Charge to</label>
-              <select id="m-charge" value={form.charge_to} onChange={update("charge_to")}>
+              <select
+                id="m-charge"
+                value={form.charge_to}
+                onChange={update("charge_to")}
+                aria-describedby="m-charge-hint"
+              >
                 {Object.entries(CHARGE_TO).map(([k, l]) => (
                   <option key={k} value={k}>
                     {l}
                   </option>
                 ))}
               </select>
+              <span className="small" id="m-charge-hint">
+                Owner: deducted from the landlord&apos;s statement for the month it&apos;s completed. Tenant: added to
+                the tenant&apos;s rent ledger.
+              </span>
             </div>
           </div>
 

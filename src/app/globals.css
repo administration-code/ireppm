@@ -493,8 +493,40 @@ label.btn[aria-disabled="true"] { opacity: .6; cursor: progress; }
   .receipt-office { text-align: left; }
 }
 
+/* Landlord payouts and owner statements */
+.payouts-table th, .payouts-table td { white-space: nowrap; }
+.payouts-table .addr { white-space: normal; min-width: 180px; }
+.totals-row th, .totals-row td { border-top: 2px solid var(--fg); font-weight: 700; }
+.to-pay { color: var(--red); font-weight: 700; }
+.overpaid { color: var(--warn); font-weight: 600; }
+.link-btn.danger { color: var(--muted); }
+.link-btn.danger:hover { color: var(--red); }
+
+.statement { max-width: 860px; }
+.stmt-parties { display: flex; flex-wrap: wrap; gap: 24px 48px; margin-bottom: 24px; }
+.stmt-parties > div { flex: 1 1 240px; }
+.stmt-parties p { margin: 4px 0 0; line-height: 1.5; }
+.stmt-section { margin-top: 28px; }
+.stmt-section h2 { font-family: var(--display); font-size: 1.375rem; margin: 0 0 8px; }
+.stmt-section h3 { font-size: 1rem; margin: 20px 0 6px; }
+.muted-table td, .muted-table th { color: #6d675f; }
+.stmt-actions { white-space: nowrap; }
+.stmt-actions .link-btn + .link-btn, .stmt-inline-actions .link-btn + .link-btn { margin-left: 12px; }
+.stmt-inline-actions { display: inline-flex; margin-left: 16px; font-weight: 400; }
+.stmt-summary th { font-weight: 500; }
+.stmt-net th, .stmt-net td { font-weight: 700; border-top: 1px solid #161616; }
+.editing-row td, .editing-row th { background: var(--warn-bg); }
+.statement .to-pay { color: #b41710; }
+.statement .sub-line { color: #6d675f; }
+
+.lease-fee-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.lease-fee-list li { display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.lease-fee-list li:last-child { border-bottom: 0; }
+
 @media print {
   .site-header, .site-footer, .no-print, .admin-tabs { display: none !important; }
   body { background: #fff; }
   .receipt { border: 0; padding: 0; max-width: none; }
+  .editing-row td, .editing-row th { background: none; }
+  .stmt-section { break-inside: avoid-page; }
 }

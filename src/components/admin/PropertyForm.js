@@ -14,6 +14,7 @@ function toForm(p, initialOwnerId) {
     owner_id: text(initialOwnerId || p?.owner_id),
     management_package: text(p?.management_package),
     monthly_fee: text(p?.monthly_fee),
+    fee_billed_separately: Boolean(p?.fee_billed_separately),
     agreement_start: text(p?.agreement_start),
     agreement_renewal: text(p?.agreement_renewal),
     renewal_notice_sent_on: text(p?.renewal_notice_sent_on),
@@ -42,6 +43,7 @@ function toRow(f) {
     owner_id: f.owner_id || null,
     management_package: f.management_package || null,
     monthly_fee: dollarsOrNull(f.monthly_fee),
+    fee_billed_separately: f.fee_billed_separately,
     agreement_start: f.agreement_start || null,
     agreement_renewal: f.agreement_renewal || null,
     renewal_notice_sent_on: f.renewal_notice_sent_on || null,
@@ -173,6 +175,10 @@ export default function PropertyForm({ property, initialOwnerId, onSaved }) {
           </div>
         </div>
         <p className="small">The monthly fee is the all-in amount billed to the owner. Add-ons below show what it includes.</p>
+        <label className="check">
+          <input type="checkbox" checked={form.fee_billed_separately} onChange={update("fee_billed_separately")} />
+          Owner pays the management fee separately (not taken from rent)
+        </label>
         <div className="row3">
           <div className="field">
             <label htmlFor="p-start">Agreement start</label>

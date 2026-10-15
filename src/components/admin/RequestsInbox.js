@@ -88,6 +88,7 @@ export default function RequestsInbox() {
             </span>
           ) : null}
         </Link>
+        <Link href="/admin/payouts">Landlord payouts</Link>
         <Link href="/admin/properties">Properties</Link>
         <Link href="/admin/owners">Owners</Link>
         <Link href="/admin/partners">Partners</Link>
