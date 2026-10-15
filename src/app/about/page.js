@@ -12,6 +12,14 @@ export default function AboutPage() {
     ["Phone", SITE.phone],
     ["Office", SITE.address],
     ["Hours", SITE.hours],
+    [
+      "Facebook",
+      SITE.facebook ? (
+        <a href={SITE.facebook} target="_blank" rel="noopener noreferrer">
+          facebook.com/IRepPM
+        </a>
+      ) : null,
+    ],
   ].filter(([, v]) => v);
 
   return (
