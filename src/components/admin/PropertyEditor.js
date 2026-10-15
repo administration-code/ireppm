@@ -7,6 +7,7 @@ import { PROPERTY_SELECT, UNIT_FIELDS, propertyTitle } from "@/lib/admin-propert
 import PropertyAddons from "./PropertyAddons";
 import PropertyForm from "./PropertyForm";
 import PropertyMaintenance from "./PropertyMaintenance";
+import PropertyTurnovers from "./PropertyTurnovers";
 import PropertySummary from "./PropertySummary";
 import UnitCard from "./UnitCard";
 import UnitForm from "./UnitForm";
@@ -93,6 +94,8 @@ export default function PropertyEditor({ id, initialOwnerId }) {
       />
 
       <PropertyAddons propertyId={property.id} />
+
+      <PropertyTurnovers unitIds={units.map((u) => u.id)} />
 
       <PropertyMaintenance propertyId={property.id} unitIds={units.map((u) => u.id)} />
 

@@ -22,10 +22,16 @@ const EMPTY = {
   access_notes: "",
 };
 
-export default function LogRequestForm({ initialPropertyId = "" }) {
+export default function LogRequestForm({ initialPropertyId = "", initialUnitId = "", taskId = "", initialTitle = "" }) {
   const router = useRouter();
   const [state, setState] = useState({ loading: true, properties: [], error: "" });
-  const [form, setForm] = useState({ ...EMPTY, property_id: initialPropertyId });
+  const [form, setForm] = useState({
+    ...EMPTY,
+    property_id: initialPropertyId,
+    unit_id: initialUnitId,
+    title: initialTitle,
+    ...(taskId ? { source: "staff" } : {}),
+  });
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
 
@@ -39,11 +45,15 @@ export default function LogRequestForm({ initialPropertyId = "" }) {
       .then(({ data, error }) => {
         if (!alive) return;
         setState({ loading: false, properties: data || [], error: error ? "We couldn't load the properties." : "" });
+        if (initialUnitId) {
+          const owner = (data || []).find((p) => (p.units || []).some((u) => u.id === initialUnitId));
+          if (owner) setForm((f) => ({ ...f, property_id: owner.id, unit_id: initialUnitId }));
+        }
       });
     return () => {
       alive = false;
     };
-  }, []);
+  }, [initialUnitId]);
 
   const property = state.properties.find((p) => p.id === form.property_id);
   const units = [...(property?.units || [])].sort((a, b) => String(a.label).localeCompare(String(b.label)));
@@ -88,6 +98,15 @@ export default function LogRequestForm({ initialPropertyId = "" }) {
     if (error) {
       setSaving(false);
       return setMsg("We couldn't log this request. Check the fields and try again.");
+    }
+    if (taskId) {
+      const linked = await sb
+        .from("turnover_tasks")
+        .update({ maintenance_request_id: data.id })
+        .eq("id", taskId)
+        .select("turnover_id");
+      const turnoverId = linked.data?.[0]?.turnover_id;
+      if (turnoverId) return router.replace(`/admin/turnovers/${turnoverId}`);
     }
     router.replace(`/admin/maintenance/${data.id}`);
   }

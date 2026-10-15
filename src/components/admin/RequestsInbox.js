@@ -88,6 +88,15 @@ export default function RequestsInbox() {
             </span>
           ) : null}
         </Link>
+        <Link href="/admin/turnovers">
+          Turnovers
+          {!state.loading && state.openTurnovers ? (
+            <span className="tab-count muted">
+              {state.openTurnovers}
+              <span className="visually-hidden"> open</span>
+            </span>
+          ) : null}
+        </Link>
         <Link href="/admin/payouts">Landlord payouts</Link>
         <Link href="/admin/letters">Landlord letters</Link>
         <Link href="/admin/notices">Notices</Link>
