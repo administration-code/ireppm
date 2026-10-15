@@ -79,6 +79,15 @@ export default function RequestsInbox() {
             </span>
           ) : null}
         </Link>
+        <Link href="/admin/rent">
+          Rent
+          {!state.loading && state.unmatchedPayments ? (
+            <span className="tab-count">
+              {state.unmatchedPayments}
+              <span className="visually-hidden"> to match</span>
+            </span>
+          ) : null}
+        </Link>
         <Link href="/admin/properties">Properties</Link>
         <Link href="/admin/owners">Owners</Link>
         <Link href="/admin/partners">Partners</Link>
