@@ -9,6 +9,7 @@ import { DOC_BUCKET, DOC_TYPES, INCOME_TYPES } from "@/lib/documents";
 import { APPLICATION_STATUS, prettyDateTime, updateRow } from "@/lib/admin-requests";
 
 const SIGNED_LINK_SECONDS = 300;
+const DELETE_AFTER_DAYS = 80;
 const DOC_NAME = Object.fromEntries(DOC_TYPES.map((d) => [d.key, d.name]));
 
 function DocumentRow({ doc }) {
@@ -53,6 +54,25 @@ function DocumentRow({ doc }) {
         </span>
       ) : null}
     </li>
+  );
+}
+
+function deletionDate(decidedAt) {
+  const d = new Date(decidedAt);
+  if (Number.isNaN(d.getTime())) return "";
+  d.setDate(d.getDate() + DELETE_AFTER_DAYS);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function RetentionNote({ app, hasDocs }) {
+  if (app.status !== "declined" && app.status !== "withdrawn") return null;
+  if (!hasDocs) return <p className="small retention-note">Documents deleted as promised in our privacy policy.</p>;
+  const date = app.decided_at ? deletionDate(app.decided_at) : "";
+  if (!date) return null;
+  return (
+    <p className="small retention-note">
+      Documents will be deleted automatically on {date}, as promised in our privacy policy.
+    </p>
   );
 }
 
@@ -119,9 +139,10 @@ function ApplicationItem({ app, onChange }) {
               <DocumentRow key={d.path || i} doc={d} />
             ))}
           </ul>
-        ) : (
+        ) : app.status === "declined" || app.status === "withdrawn" ? null : (
           <p className="small">No documents were attached to this application.</p>
         )}
+        <RetentionNote app={app} hasDocs={docs.length > 0} />
       </div>
 
       <div className="req-edit">
