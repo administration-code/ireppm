@@ -143,6 +143,30 @@ select pr.id as property_id, mo.month as period,
                                   where u.property_id = pr.id and c.period = mo.month and c.kind = 'rent')
                 then 0 else coalesce(pr.monthly_fee, 0) end as amount) fee;
 
+-- The money lines behind each statement (for the statement page and landlord letter).
+create or replace view public.owner_statement_payments
+with (security_invoker = true) as
+  select u.property_id,
+         case when p.kind = 'rent'
+              then greatest(coalesce(p.period, date_trunc('month', p.received_on)::date), date_trunc('month', p.received_on)::date)
+              else greatest(date_trunc('month', p.received_on)::date, date_trunc('month', t.start_date)::date) end as period,
+         p.id as payment_id, p.tenancy_id, u.label as unit_label, p.received_on, p.amount, p.kind, p.method,
+         p.period as rent_period, p.payer_name,
+         (p.kind in ('rent', 'last_month_rent') and p.method not in ('last_month_applied', 'paid_to_owner')) as counts_toward_statement
+    from public.payments p
+    join public.tenancies t on t.id = p.tenancy_id
+    join public.units u on u.id = t.unit_id
+   where p.status = 'matched';
+
+create or replace view public.owner_statement_work_orders
+with (security_invoker = true) as
+  select u.property_id,
+         date_trunc('month', coalesce(m.completed_at, m.updated_at) at time zone 'America/Toronto')::date as period,
+         m.id as maintenance_request_id, u.label as unit_label, m.title, m.category, m.actual_cost, m.completed_at
+    from public.maintenance_requests m
+    join public.units u on u.id = m.unit_id
+   where m.status = 'completed' and m.charge_to = 'owner' and coalesce(m.actual_cost, 0) > 0;
+
 -- Same, with the totals worked out.
 create or replace view public.owner_statement_totals
 with (security_invoker = true) as
@@ -166,4 +190,8 @@ drop policy if exists "owner_payouts: staff all" on public.owner_payouts;
 create policy "owner_payouts: staff all" on public.owner_payouts
   for all using (public.is_staff()) with check (public.is_staff());
 
-revoke all on public.owner_statements, public.owner_statement_totals from anon;
+revoke all on public.owner_statements, public.owner_statement_totals,
+  public.owner_statement_payments, public.owner_statement_work_orders from anon;
+
+-- 370 Cameron: Jackie pays the management fee separately via Square.
+update public.properties set fee_billed_separately = true where legacy_id = '370Cameron';
