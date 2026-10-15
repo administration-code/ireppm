@@ -67,7 +67,7 @@ export function sortNewest(list) {
 
 export async function loadInbox() {
   const sb = getBrowserClient();
-  const [showings, applications, inquiries, drafts] = await Promise.all([
+  const [showings, applications, inquiries, drafts, maintenanceNew] = await Promise.all([
     sb
       .from("showing_requests")
       .select(
@@ -85,6 +85,7 @@ export async function loadInbox() {
       .select("id, name, email, phone, property_address, interest, message, status, created_at")
       .order("created_at", { ascending: false }),
     sb.from("listings").select("id", { count: "exact", head: true }).eq("status", "draft"),
+    sb.from("maintenance_requests").select("id", { count: "exact", head: true }).eq("status", "new"),
   ]);
 
   const failed = [showings, applications, inquiries].some((r) => r.error);
@@ -93,6 +94,7 @@ export async function loadInbox() {
     applications: sortNewest(applications.data || []),
     inquiries: sortNewest(inquiries.data || []),
     drafts: drafts.count || 0,
+    maintenanceNew: maintenanceNew.count || 0,
     error: failed ? "Some requests couldn't load. Refresh the page to try again." : "",
   };
 }

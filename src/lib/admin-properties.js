@@ -51,6 +51,7 @@ export const RATE_CATEGORIES = {
   leasing: "Leasing",
   tax: "Tax",
   rent_control: "Rent control",
+  maintenance: "Maintenance",
 };
 
 export const DEFAULT_HST_PERCENT = 13;
@@ -65,6 +66,8 @@ export function formatRate(amount, unit) {
       return `${money(n)} / month`;
     case "one_time":
       return `${money(n)} one-time`;
+    case "per_job":
+      return `${money(n)} per job`;
     case "months_of_rent":
       return `${plainNumber(n)} ${n === 1 ? "month" : "months"} of rent`;
     case "percent":

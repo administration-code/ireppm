@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "./AuthProvider";
+import MyHome from "./MyHome";
 import { getBrowserClient } from "@/lib/supabase";
 import { ACCEPT, CONSENT_TEXT, DOC_BUCKET, DOC_TYPES, INCOME_TYPES, MAX_FILE_MB } from "@/lib/documents";
 import { listingTitle, money } from "@/lib/format";
@@ -280,6 +281,8 @@ export default function AccountView() {
 
         {tab === "docs" ? (
           <>
+            <MyHome user={user} />
+
             {pending ? (
               <div className="boxed stack" style={{ gap: 10 }}>
                 <span className="eyebrow">Applying for</span>

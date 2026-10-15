@@ -404,3 +404,35 @@ label.btn[aria-disabled="true"] { opacity: .6; cursor: progress; }
   .save-actions { width: 100%; }
   .save-actions .btn { flex: 1 1 auto; }
 }
+
+/* Maintenance */
+.sub-line { display: block; }
+.pre { white-space: pre-wrap; }
+.sub-title { font-size: 0.95rem; font-weight: 600; margin: 0; }
+.sec-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.label-text { display: block; font-weight: 500; }
+.check-line { display: flex; align-items: flex-start; gap: 8px; cursor: pointer; }
+.check-line input { margin-top: 3px; accent-color: var(--red); }
+.check-group { border: 0; padding: 0; margin: 0; display: grid; gap: 8px; }
+.check-group legend { font-weight: 500; margin-bottom: 8px; }
+.check-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px 16px; }
+.emergency-box { border-left: 3px solid var(--red); background: var(--surface-2); padding: 12px 14px; border-radius: var(--radius); }
+.entry-notice { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.entry-notice p { margin: 0; }
+.file-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.file-row span { overflow-wrap: anywhere; }
+.maint-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.maint-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; align-items: start; }
+.maint-facts { margin: 0; display: grid; gap: 8px; }
+.maint-facts > div { display: grid; grid-template-columns: 160px 1fr; gap: 12px; }
+.maint-facts dt { color: var(--muted); }
+.maint-facts dd { margin: 0; }
+.maint-photo { display: grid; gap: 4px; }
+.maint-photo img, .maint-photo video { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: var(--radius); background: var(--surface-2); display: block; }
+.owner-aside { display: grid; gap: 4px; align-content: start; padding-top: 4px; }
+.owner-pending { color: var(--warn); font-weight: 500; }
+
+@media (max-width: 760px) {
+  .maint-grid { grid-template-columns: 1fr; }
+  .maint-facts > div { grid-template-columns: 1fr; gap: 2px; }
+}

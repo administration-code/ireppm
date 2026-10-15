@@ -6,6 +6,7 @@ import { getBrowserClient } from "@/lib/supabase";
 import { PROPERTY_SELECT, UNIT_FIELDS, propertyTitle } from "@/lib/admin-properties";
 import PropertyAddons from "./PropertyAddons";
 import PropertyForm from "./PropertyForm";
+import PropertyMaintenance from "./PropertyMaintenance";
 import PropertySummary from "./PropertySummary";
 import UnitCard from "./UnitCard";
 import UnitForm from "./UnitForm";
@@ -92,6 +93,8 @@ export default function PropertyEditor({ id, initialOwnerId }) {
       />
 
       <PropertyAddons propertyId={property.id} />
+
+      <PropertyMaintenance propertyId={property.id} unitIds={units.map((u) => u.id)} />
 
       <section className="stack" aria-labelledby="sec-units">
         <div className="admin-head">
