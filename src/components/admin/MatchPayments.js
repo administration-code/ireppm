@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getBrowserClient } from "@/lib/supabase";
+import { refreshStaffCounts } from "@/lib/admin-nav";
 import { money } from "@/lib/format";
 import {
   METHOD_LABEL,
@@ -112,6 +113,7 @@ function MatchCard({ payment, tenancies, onDone }) {
     setError("");
     try {
       await action();
+      refreshStaffCounts();
       onDone(payment.id, message);
     } catch (err) {
       setError(err.message || "That didn't save. Try again.");

@@ -20,6 +20,11 @@ const STATUS_LABEL = {
   withdrawn: "Withdrawn",
 };
 
+const OPEN_STATUSES = ["submitted", "reviewing", "approved"];
+const WITHDRAWABLE = ["submitted", "reviewing"];
+const CLOSED_STATUSES = ["withdrawn", "declined"];
+const ALREADY_TEXT = "You already have an application in for this listing.";
+
 export default function AccountView() {
   const { user, ready, configured, openSignIn, signOut } = useAuth();
   const [tab, setTab] = useState("docs");
@@ -33,6 +38,8 @@ export default function AccountView() {
   const [error, setError] = useState("");
   const [busyDoc, setBusyDoc] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [already, setAlready] = useState(false);
+  const [withdrawing, setWithdrawing] = useState("");
 
   const load = useCallback(async () => {
     const sb = getBrowserClient();
@@ -48,7 +55,7 @@ export default function AccountView() {
         .order("created_at", { ascending: false }),
       sb
         .from("applications")
-        .select("id, status, created_at, documents, listings(address, unit, slug)")
+        .select("id, listing_id, status, created_at, documents, listings(id, address, unit, slug, status)")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false }),
       applyId
@@ -59,12 +66,14 @@ export default function AccountView() {
     setDocs(d.data || []);
     setShowings(s.data || []);
     setApps(a.data || []);
+    setPending(null);
     if (l.data) {
-      const already = (a.data || []).some((x) => x.listings && x.listings.slug === l.data.slug);
-      if (already) {
-        setMsg(`You've already applied for ${listingTitle(l.data)}.`);
+      const open = (a.data || []).find((x) => x.listing_id === l.data.id && OPEN_STATUSES.includes(x.status));
+      if (open) {
+        setAlready(true);
         window.history.replaceState(null, "", "/account");
       } else {
+        setAlready(false);
         setPending(l.data);
       }
     }
@@ -202,9 +211,13 @@ export default function AccountView() {
     });
     setSubmitting(false);
     if (err) {
-      return setError(
-        err.code === "23505" ? "You've already applied for this rental." : "We couldn't submit your application. Try again."
-      );
+      if (err.code === "23505") {
+        setPending(null);
+        setAlready(true);
+        window.history.replaceState(null, "", "/account");
+        return;
+      }
+      return setError("We couldn't submit your application. Try again.");
     }
     setMsg(`Application sent for ${listingTitle(pending)}. We'll be in touch within 2 business days.`);
     setPending(null);
@@ -212,6 +225,36 @@ export default function AccountView() {
     await load();
     setTab("apps");
   }
+
+  async function withdraw(app) {
+    const title = app.listings ? listingTitle(app.listings) : "this listing";
+    if (!window.confirm(`Withdraw your application for ${title}? You can apply again later.`)) return;
+    setWithdrawing(app.id);
+    setError("");
+    setMsg("");
+    const { error: err } = await sb.rpc("withdraw_application", { p_application_id: app.id });
+    setWithdrawing("");
+    if (err) return setError("We couldn't withdraw that application. Try again.");
+    setMsg(`Application for ${title} withdrawn.`);
+    await load();
+  }
+
+  function applyAgain(listingId) {
+    setMsg("");
+    setError("");
+    setAlready(false);
+    window.history.replaceState(null, "", `/account?apply=${encodeURIComponent(listingId)}`);
+    setTab("docs");
+    load();
+  }
+
+  // Newest application per listing decides whether "Apply again" shows.
+  const latestByListing = {};
+  for (const a of apps) if (a.listing_id && !latestByListing[a.listing_id]) latestByListing[a.listing_id] = a;
+  const canApplyAgain = (a) =>
+    CLOSED_STATUSES.includes(a.status) &&
+    latestByListing[a.listing_id]?.id === a.id &&
+    a.listings?.status === "available";
 
   const docRow = (key, name, desc, required) => {
     const d = docOf(key);
@@ -278,6 +321,21 @@ export default function AccountView() {
       <div className="acctpanel">
         {msg ? <div className="okbox">{msg}</div> : null}
         {error ? <div className="warnbox">{error}</div> : null}
+        {already ? (
+          <div className="okbox">
+            {ALREADY_TEXT}{" "}
+            <button
+              type="button"
+              className="linkbtn"
+              onClick={() => {
+                setAlready(false);
+                setTab("apps");
+              }}
+            >
+              View my applications
+            </button>
+          </div>
+        ) : null}
 
         {tab === "docs" ? (
           <>
@@ -401,7 +459,23 @@ export default function AccountView() {
                         {(a.documents || []).length} documents attached
                       </div>
                     </div>
-                    <span className="pill sub">{STATUS_LABEL[a.status] || a.status}</span>
+                    <div className="app-ctl">
+                      <span className="pill sub">{STATUS_LABEL[a.status] || a.status}</span>
+                      {WITHDRAWABLE.includes(a.status) ? (
+                        <button
+                          type="button"
+                          className="btn ghost sm"
+                          onClick={() => withdraw(a)}
+                          disabled={withdrawing === a.id}
+                        >
+                          {withdrawing === a.id ? "Withdrawing…" : "Withdraw"}
+                        </button>
+                      ) : canApplyAgain(a) ? (
+                        <button type="button" className="btn ghost sm" onClick={() => applyAgain(a.listing_id)}>
+                          Apply again
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
                 ))}
               </div>

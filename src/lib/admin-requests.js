@@ -1,4 +1,5 @@
 import { getBrowserClient } from "@/lib/supabase";
+import { refreshStaffCounts } from "@/lib/admin-nav";
 
 export const TABS = [
   { key: "showings", label: "Showings" },
@@ -67,7 +68,7 @@ export function sortNewest(list) {
 
 export async function loadInbox() {
   const sb = getBrowserClient();
-  const [showings, applications, inquiries, drafts, maintenanceNew, unmatchedPayments, openTurnovers, deletions, awaiting] = await Promise.all([
+  const [showings, applications, inquiries, deletions] = await Promise.all([
     sb
       .from("showing_requests")
       .select(
@@ -77,19 +78,14 @@ export async function loadInbox() {
     sb
       .from("applications")
       .select(
-        "id, user_id, applicant_name, applicant_email, applicant_phone, income_type, documents, credit_consent, consent_at, status, staff_notes, created_at, decided_at, listing:listings(address, unit, slug)"
+        "id, user_id, listing_id, applicant_name, applicant_email, applicant_phone, income_type, documents, credit_consent, consent_at, status, staff_notes, created_at, decided_at, listing:listings(address, unit, slug)"
       )
       .order("created_at", { ascending: false }),
     sb
       .from("landlord_inquiries")
       .select("id, name, email, phone, property_address, interest, message, status, created_at")
       .order("created_at", { ascending: false }),
-    sb.from("listings").select("id", { count: "exact", head: true }).eq("status", "draft"),
-    sb.from("maintenance_requests").select("id", { count: "exact", head: true }).eq("status", "new"),
-    sb.from("payments").select("id", { count: "exact", head: true }).eq("status", "unmatched"),
-    sb.from("turnovers").select("id", { count: "exact", head: true }).not("status", "in", "(leased,cancelled)"),
     sb.from("document_deletions").select("id, files_deleted, deleted_at").order("deleted_at", { ascending: false }).limit(20),
-    sb.from("signature_requests").select("id", { count: "exact", head: true }).in("status", ["draft", "sent", "delivered"]),
   ]);
 
   const failed = [showings, applications, inquiries].some((r) => r.error);
@@ -97,11 +93,6 @@ export async function loadInbox() {
     showings: sortShowings(showings.data || []),
     applications: sortNewest(applications.data || []),
     inquiries: sortNewest(inquiries.data || []),
-    drafts: drafts.count || 0,
-    maintenanceNew: maintenanceNew.count || 0,
-    unmatchedPayments: unmatchedPayments.count || 0,
-    openTurnovers: openTurnovers.count || 0,
-    awaitingSignatures: awaiting.count || 0,
     deletions: deletions.data || [],
     deletionsError: Boolean(deletions.error),
     error: failed ? "Some requests couldn't load. Refresh the page to try again." : "",
@@ -112,4 +103,5 @@ export async function loadInbox() {
 export async function updateRow(table, id, changes) {
   const { data, error } = await getBrowserClient().from(table).update(changes).eq("id", id).select("id");
   if (error || !data?.length) throw new Error("save failed");
+  if ("status" in changes) refreshStaffCounts();
 }
