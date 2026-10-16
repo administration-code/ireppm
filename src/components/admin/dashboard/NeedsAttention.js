@@ -28,6 +28,12 @@ function attentionItems(d) {
       text: (n) => `${plural(n, "draft landlord letter")}${letters.period ? ` for ${monthLabel(letters.period)}` : ""}`,
       href: "/admin/letters",
     },
+    {
+      n: d.recon_late ? 1 : 0,
+      text: () => `${monthLabel(d.recon_late.period)} bank reconciliation isn't locked yet`,
+      href: `/admin/accounting?month=${d.recon_late?.period?.slice(0, 7) || ""}`,
+      urgent: true,
+    },
     { n: num(l.showings_requested), text: (n) => plural(n, "new showing request"), href: "/admin/requests?tab=showings" },
     { n: num(l.applications_new), text: (n) => plural(n, "new application"), href: "/admin/requests?tab=applications" },
     {

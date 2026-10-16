@@ -118,6 +118,7 @@ export async function countUnmatched() {
 // RLS turns a blocked write into "0 rows", so ask for the rows back.
 export async function savePayment(id, changes) {
   const { data, error } = await getBrowserClient().from("payments").update(changes).eq("id", id).select("id");
-  if (error || !data?.length) throw new Error("That didn't save. Try again.");
+  if (error || !data?.length)
+    throw new Error(/locked/i.test(error?.message || "") ? error.message : "That didn't save. Try again.");
   refreshStaffCounts();
 }
