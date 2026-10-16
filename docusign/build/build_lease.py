@@ -137,10 +137,12 @@ for i in range(1, MAX_TENANTS + 1):
                   (sch, ("date", f"Tenant {i} Schedule A Date", 2, None, x + 140, top + 14, 80, 14))]
     items += consent_items(i)
     roles.append({"role": f"Tenant {i}", "type": "signer", "routing": 1, "items": items})
-roles.append({"role": "Guarantor", "type": "signer", "routing": 1, "items": [
+MINIMAL = len(sys.argv) > 3 and sys.argv[3] == "minimal"   # developer-account test: no guarantor, no copy
+if not MINIMAL:
+  roles.append({"role": "Guarantor", "type": "signer", "routing": 1, "items": [
     (sch, ("sign", "Guarantor Signature", 2, None, 384, 458, 136, 1)),
     (sch, ("date", "Guarantor Date Signed", 2, None, 384, 532, 136, 14))]})
-roles.append({"role": "Administration", "type": "cc", "name": "Rishi Bakshi", "email": "ireppm@ireprealty.com", "routing": 3})
+  roles.append({"role": "Administration", "type": "cc", "name": "Rishi Bakshi", "email": "ireppm@ireprealty.com", "routing": 3})
 
 build("Ontario Standard Lease" + SUFFIX,
       "Ontario Residential Tenancy Agreement (2229E) and IRep Schedule A. Fields are named so the IRep website can fill them in. "
