@@ -61,9 +61,18 @@ Create `src/lib/docusign.js` with `import "server-only"`.
 - DOCUSIGN_OAUTH_HOST
 - DOCUSIGN_BASE_URL
 - DOCUSIGN_CONNECT_HMAC_KEY: added later.
-- Template IDs, added later: DOCUSIGN_TEMPLATE_LEASE, DOCUSIGN_TEMPLATE_CONSENT, DOCUSIGN_TEMPLATE_PM_CONTRACT, DOCUSIGN_TEMPLATE_N1, DOCUSIGN_TEMPLATE_N4, DOCUSIGN_TEMPLATE_N5, DOCUSIGN_TEMPLATE_CERT_OF_SERVICE.
+- Optional template ID overrides: DOCUSIGN_TEMPLATE_LEASE, DOCUSIGN_TEMPLATE_CONSENT, DOCUSIGN_TEMPLATE_PM_CONTRACT, DOCUSIGN_TEMPLATE_N1, DOCUSIGN_TEMPLATE_N4, DOCUSIGN_TEMPLATE_N5, DOCUSIGN_TEMPLATE_CERT_OF_SERVICE.
 
-If the core variables are missing, DocuSign buttons show "DocuSign isn't connected yet". If a template ID is missing, that kind's button shows "Template not set up yet". Nothing should crash.
+**Finding templates by name.** If an override isn't set, look the template up by exact name with `GET /templates?search_text=<name>` and cache the ID in memory for an hour. Try the names in this order:
+- lease: "Ontario Standard Lease", then "Ontario Standard Lease (test)"
+- consent: "Consent to Service by Email (2022-04)"
+- pm_contract: "IRep Property Management Contract"
+- N1: "N1 - Notice of Rent Increase (2022-04)"
+- N4: "N4 - Non-Payment of Rent (2026-09)"
+- N5: "N5 - Interfering, Damage or Overcrowding (2026-09)"
+- certificate_of_service: "Certificate of Service (2022-04)", then "Certificate of Service"
+
+If the core variables are missing, DocuSign buttons show "DocuSign isn't connected yet". If a template can't be found, that kind's button shows "Template not set up yet". Nothing should crash.
 
 ## Templates: roles and field labels (exact; `src/lib/docusign-templates.js`)
 
