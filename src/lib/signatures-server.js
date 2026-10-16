@@ -1,7 +1,7 @@
 import "server-only";
 import { Resend } from "resend";
 import { escapeHtml } from "@/lib/staff-alerts";
-import { getDocument, getEnvelope, getRecipients, summarizeRecipients } from "@/lib/docusign";
+import { ds, getDocument, getEnvelope, getRecipients, summarizeRecipients } from "@/lib/docusign";
 
 export const SIGNED_BUCKET = "signed-documents";
 const ADMIN_URL = "https://ireppm.ca/admin";
@@ -97,29 +97,44 @@ async function saveFiles(sb, row) {
   return changes;
 }
 
+// Lease envelopes no longer carry the consent forms; each tenant's consent is its own envelope
+// linked by related_request_id. Work out the tenancy's consent from those.
+async function leaseConsentText(sb, leaseRow, when) {
+  const { data: forms } = await sb
+    .from("signature_requests")
+    .select("status, terms")
+    .eq("related_request_id", leaseRow.id)
+    .eq("kind", "other");
+  const done = (forms || []).filter((x) => x.status === "completed" && typeof x.terms?.consented === "boolean");
+  if (done.some((x) => x.terms.consented)) return `Yes: consent signed in DocuSign (${when})`;
+  if (forms?.length && done.length === forms.length) return `No: tenant declined email service (${when})`;
+  return null; // not all signed yet; the consent form's own completion updates the tenancy later
+}
+
 async function onCompleted(sb, row) {
   const fileChanges = await saveFiles(sb, row);
   let consent = null;
   const isConsentForm = row.kind === "other" && row.terms?.type === "consent";
+  const changes = { ...fileChanges };
+  const when = longDate(row.completed_at);
 
-  if (row.kind === "lease" || isConsentForm) {
+  if (isConsentForm) {
     try {
       consent = await readConsent(row.envelope_id, row.kind);
     } catch (err) {
       console.error("[docusign] reading consent failed:", err?.message || err);
     }
+    if (consent !== null) changes.terms = { ...row.terms, consented: consent };
   }
 
-  const changes = { ...fileChanges };
-  const when = longDate(row.completed_at);
-  if (row.kind === "lease" && consent !== null && !row.terms?.email_service_consent) {
-    changes.terms = {
-      ...row.terms,
-      email_service_consent: consent
-        ? `Yes: consent signed with lease in DocuSign (${when})`
-        : `No: tenant declined email service (${when})`,
-    };
+  if (row.kind === "lease" && !row.terms?.email_service_consent) {
+    const text = await leaseConsentText(sb, row, when);
+    if (text) {
+      changes.terms = { ...row.terms, email_service_consent: text };
+      consent = text.startsWith("Yes");
+    }
   }
+
   if (Object.keys(changes).length) {
     const { error } = await sb.from("signature_requests").update(changes).eq("id", row.id);
     if (error) throw new Error(error.message);
@@ -132,17 +147,42 @@ async function onCompleted(sb, row) {
     applied = data;
   }
 
-  if (isConsentForm && row.tenancy_id && consent !== null && !row.applied_at) {
-    if (consent) {
-      await sb
-        .from("tenancies")
-        .update({ email_service_consent: `Yes: consent signed in DocuSign (${when})` })
-        .eq("id", row.tenancy_id);
+  if (isConsentForm && consent !== null && !row.applied_at) {
+    // The tenancy: set directly (stand-alone consent) or via the lease it was sent with.
+    let tenancyId = row.tenancy_id;
+    if (!tenancyId && row.related_request_id) {
+      const { data: lease } = await sb.from("signature_requests").select("tenancy_id").eq("id", row.related_request_id).maybeSingle();
+      tenancyId = lease?.tenancy_id || null;
     }
-    await sb.from("signature_requests").update({ applied_at: new Date().toISOString() }).eq("id", row.id);
+    if (tenancyId && consent) {
+      await sb.from("tenancies").update({ email_service_consent: `Yes: consent signed in DocuSign (${when})` }).eq("id", tenancyId);
+    }
+    if (tenancyId || !row.related_request_id) {
+      await sb.from("signature_requests").update({ applied_at: new Date().toISOString(), tenancy_id: tenancyId }).eq("id", row.id);
+    }
   }
 
   return { applied, consent };
+}
+
+// When a lease that was reviewed as a draft is sent, send its consent forms too.
+async function sendLeaseConsents(sb, leaseRow) {
+  const { data: drafts } = await sb
+    .from("signature_requests")
+    .select("id, envelope_id")
+    .eq("related_request_id", leaseRow.id)
+    .eq("kind", "other")
+    .eq("status", "draft");
+  for (const d of drafts || []) {
+    if (!d.envelope_id) continue;
+    try {
+      await ds(`/envelopes/${d.envelope_id}`, { method: "PUT", body: { status: "sent" } });
+      const now = new Date().toISOString();
+      await sb.from("signature_requests").update({ status: "sent", sent_at: now, status_changed_at: now }).eq("id", d.id);
+    } catch (err) {
+      await sb.from("signature_requests").update({ error: err.message }).eq("id", d.id);
+    }
+  }
 }
 
 // Bring a request in line with DocuSign. Safe to run any number of times.
@@ -180,6 +220,10 @@ export async function syncRequest(sb, row, { eventStatus } = {}) {
   const { data: updated, error } = await sb.from("signature_requests").update(changes).eq("id", row.id).select("*").maybeSingle();
   if (error) throw new Error(error.message);
   let current = updated || { ...row, ...changes };
+
+  if (current.kind === "lease" && ["sent", "delivered", "completed"].includes(current.status) && before === "draft") {
+    await sendLeaseConsents(sb, current);
+  }
 
   if (current.status === "completed") {
     let result = null;

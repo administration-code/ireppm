@@ -556,53 +556,28 @@ export function buildLease(f, ids, owner) {
     recipients.push({ role: "Guarantor", name: str(f.guarantor_name), email: str(f.guarantor_email), routing_order: 1, status: "created" });
   }
 
-  const compositeTemplates = [
-    {
-      compositeTemplateId: "1",
-      serverTemplates: [{ sequence: "1", templateId: ids.lease }],
-      inlineTemplates: [{ sequence: "2", recipients: { signers: leaseSigners, carbonCopies: [adminCopy()] } }],
-    },
-  ];
+  // The lease goes out as its own envelope (like the N-forms). Each tenant's Consent to Service
+  // form goes out at the same time as a separate envelope, so no envelope carries more people
+  // than it needs. Roles left out of templateRoles (unused tenants, guarantor) are dropped.
+  const definition = {
+    templateId: ids.lease,
+    templateRoles: leaseSigners.map(({ recipientId, ...role }) => role),
+  };
 
-  tenants.forEach((t, i) => {
-    const c = consentTabs({
-      tenantName: t.full_name,
-      tenantEmail: t.email,
-      landlordName,
-      unitAddress,
-      signerName: signer.name,
-    });
-    prefillOf(`Consent: ${t.full_name}`, { ...c.tenantText, ...c.landlordText }, c.tenantChecks, prefill);
-    compositeTemplates.push({
-      compositeTemplateId: String(2 + i),
-      serverTemplates: [{ sequence: "1", templateId: ids.consent }],
-      inlineTemplates: [
-        {
-          sequence: "2",
-          recipients: {
-            signers: [
-              {
-                recipientId: String(11 + i),
-                roleName: "Tenant",
-                routingOrder: "1",
-                name: t.full_name,
-                email: t.email,
-                tabs: tabs(c.tenantText, c.tenantChecks),
-              },
-              {
-                recipientId: "1",
-                roleName: "Landlord",
-                routingOrder: "2",
-                name: signer.name,
-                email: signer.email,
-                tabs: tabs(c.landlordText),
-              },
-            ],
-            carbonCopies: [adminCopy()],
-          },
-        },
-      ],
-    });
+  const consents = tenants.map((t) => {
+    const c = buildConsent(
+      {
+        tenant_name: t.full_name,
+        tenant_email: t.email,
+        landlord_name: landlordName,
+        unit_address: unitAddress,
+        signer: f.signer,
+      },
+      ids,
+      owner
+    );
+    prefillOf(`Consent: ${t.full_name}`, { ...c.prefill.Tenant, ...c.prefill.Landlord }, [], prefill);
+    return { ...c, title: `Consent to Service by Email: ${t.full_name}` };
   });
 
   const terms = {
@@ -617,7 +592,7 @@ export function buildLease(f, ids, owner) {
     tenants: tenants.map((t, i) => ({ ...t, is_primary: i === 0 })),
   };
 
-  return { definition: { compositeTemplates }, prefill, recipients, terms };
+  return { definition, prefill, recipients, terms, consents };
 }
 
 export function buildConsent(f, ids, owner) {
