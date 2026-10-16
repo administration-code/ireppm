@@ -4,6 +4,7 @@ import { useId, useState } from "react";
 import { getBrowserClient } from "@/lib/supabase";
 import { checkAmount, todayISO } from "@/lib/rent";
 import { PAYOUT_METHOD_LABEL } from "@/lib/payouts";
+import { lockedMessage } from "@/lib/accounting";
 
 function toForm(payout, defaultAmount) {
   return {
@@ -43,7 +44,7 @@ export default function PayoutForm({ propertyId, period, payout, defaultAmount, 
           .insert({ ...row, property_id: propertyId, period: `${period}-01` })
           .select("id");
     setSaving(false);
-    if (err || !data?.length) return setError("That didn't save. Try again.");
+    if (err || !data?.length) return setError(lockedMessage(err, "That didn't save. Try again."));
     onSaved();
   }
 

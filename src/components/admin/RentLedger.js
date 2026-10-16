@@ -4,6 +4,8 @@ import { Fragment, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { getBrowserClient } from "@/lib/supabase";
 import { money } from "@/lib/format";
+import ClearedTag, { useClearing } from "./accounting/ClearedTag";
+import { lockedMessage } from "@/lib/accounting";
 import {
   CHARGE_KIND_LABEL,
   MANUAL_CHARGE_KINDS,
@@ -85,13 +87,15 @@ export default function RentLedger({ tenancy }) {
   }, [tenancy.id]);
 
   const { loading, entries, error } = state;
+  const clearing = useClearing({ paymentIds: entries.filter((e) => e.type === "payment").map((e) => e.row.id) });
   const balance = entries.length ? entries[entries.length - 1].balance : 0;
 
   async function remove(entry) {
     const table = entry.type === "charge" ? "rent_charges" : "payments";
     const { data, error: delError } = await getBrowserClient().from(table).delete().eq("id", entry.row.id).select("id");
     setDeleting("");
-    if (delError || !data?.length) return setState((s) => ({ ...s, error: "That didn't delete. Try again." }));
+    if (delError || !data?.length)
+      return setState((s) => ({ ...s, error: lockedMessage(delError, "That didn't delete. Try again.") }));
     return reload();
   }
 
@@ -141,6 +145,12 @@ export default function RentLedger({ tenancy }) {
                       <td>{shortDate(e.date)}</td>
                       <td>
                         {isCharge ? chargeLabel(e.row) : paymentLabel(e.row)}
+                        {!isCharge ? (
+                          <>
+                            {" "}
+                            <ClearedTag kind="payment" row={e.row} clearing={clearing} />
+                          </>
+                        ) : null}
                         {!isCharge && !counted ? (
                           <span className="sub-line small">
                             {e.row.status === "matched" ? "Held, not counted toward rent" : `Not counted (${e.row.status})`}
@@ -305,7 +315,7 @@ function ChargeForm({ tenancyId, charge, onCancel, onSaved }) {
       : await sb.insert({ ...row, tenancy_id: tenancyId }).select("id");
     setBusy(false);
     if (saveError?.code === "23505") return setError("There's already a rent charge for that month.");
-    if (saveError || !data?.length) return setError("That charge didn't save. Try again.");
+    if (saveError || !data?.length) return setError(lockedMessage(saveError, "That charge didn't save. Try again."));
     return onSaved();
   }
 

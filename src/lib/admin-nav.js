@@ -21,6 +21,7 @@ export async function loadNavCounts() {
     unmatchedPayments: sb.from("payments").select("id", head).eq("status", "unmatched"),
     openTurnovers: sb.from("turnovers").select("id", head).not("status", "in", "(leased,cancelled)"),
     awaitingSignatures: sb.from("signature_requests").select("id", head).in("status", ["draft", "sent", "delivered"]),
+    unmatchedBankLines: sb.from("bank_transactions").select("id", head).eq("status", "unmatched"),
   };
   const keys = Object.keys(queries);
   const results = await Promise.all(Object.values(queries));

@@ -11,6 +11,8 @@ import { ITEM_KIND_LABEL, PAYOUT_METHOD_LABEL, nextPeriodStart, signedMoney, toP
 import StatementItemForm from "./StatementItemForm";
 import PayoutForm from "./PayoutForm";
 import LeasingFeeHelper from "./LeasingFeeHelper";
+import ClearedTag, { useClearing } from "./accounting/ClearedTag";
+import { lockedMessage } from "@/lib/accounting";
 
 const EMPTY_TOTALS = {
   rent_expected: 0,
@@ -143,6 +145,7 @@ export default function OwnerStatement({ propertyId, period }) {
   const [editingItem, setEditingItem] = useState(null);
   const [editingPayout, setEditingPayout] = useState(null);
   const [actionError, setActionError] = useState("");
+  const clearing = useClearing({ payoutIds: (state.payouts || []).map((p) => p.id) });
 
   const reload = useCallback(() => {
     loadStatement(propertyId, period).then(
@@ -159,7 +162,7 @@ export default function OwnerStatement({ propertyId, period }) {
     if (!window.confirm(`Delete this ${what}? This can't be undone.`)) return;
     setActionError("");
     const { data, error } = await getBrowserClient().from(table).delete().eq("id", id).select("id");
-    if (error || !data?.length) return setActionError(`That ${what} couldn't be deleted. Try again.`);
+    if (error || !data?.length) return setActionError(lockedMessage(error, `That ${what} couldn't be deleted. Try again.`));
     setEditingItem(null);
     setEditingPayout(null);
     reload();
@@ -389,7 +392,8 @@ export default function OwnerStatement({ propertyId, period }) {
               {payouts.map((p) => (
                 <tr key={p.id} className={editingPayout?.id === p.id ? "editing-row" : undefined}>
                   <th scope="row">
-                    Paid {shortDate(p.paid_on)} by {PAYOUT_METHOD_LABEL[p.method] || "other"}
+                    Paid {shortDate(p.paid_on)} by {PAYOUT_METHOD_LABEL[p.method] || "other"}{" "}
+                    <ClearedTag kind="payout" row={p} clearing={clearing} />
                     {p.reference ? <span className="small sub-line">Ref {p.reference}</span> : null}
                   </th>
                   <td className="r num">

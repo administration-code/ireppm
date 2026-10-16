@@ -168,6 +168,7 @@ export async function GET(request) {
   }
 
   const digestFailed = await sendDigest(sb, today, result);
+  result.reconciliation = await sendReconciliationAlert(sb, today);
   result.documentCleanup = await deleteExpiredDocuments(sb);
 
   if (digestFailed) {
@@ -199,6 +200,96 @@ async function sendDigest(sb, today, result) {
     result.digest = "failed";
     return true;
   }
+}
+
+const ACCOUNTING_URL = "https://ireppm.ca/admin/accounting";
+
+// One reconciliation email a day at most: last month's problems from the 5th, plus this month's
+// errors on Mondays. Both land in the same email when they fall on the same day.
+async function sendReconciliationAlert(sb, today) {
+  const day = Number(today.slice(8, 10));
+  const isMonday = new Date(`${today}T12:00:00Z`).getUTCDay() === 1;
+  if (day < 5 && !isMonday) return "skipped (nothing due today)";
+
+  const { data, error } = await sb.rpc("reconciliation_alerts");
+  if (error) {
+    console.error("[cron] reconciliation_alerts failed:", error.message);
+    return "failed";
+  }
+
+  const thisPeriod = `${today.slice(0, 7)}-01`;
+  const rows = data || [];
+  const lastRows = rows.filter((r) => String(r.period).slice(0, 10) < thisPeriod);
+  const thisRows = rows.filter((r) => String(r.period).slice(0, 10) === thisPeriod);
+
+  const sections = [];
+  let subject = "";
+
+  if (day >= 5 && lastRows.length) {
+    const month = String(lastRows[0].period).slice(0, 7);
+    const label = monthLabel(`${month}-01`);
+    const withIssues = lastRows.filter((r) => (r.issues || []).length);
+    const reminder = day >= 15;
+    if (withIssues.length || reminder) {
+      subject = `Reconciliation: ${label} needs attention`;
+      sections.push({
+        heading: label,
+        url: `${ACCOUNTING_URL}?month=${month}`,
+        note: reminder ? "Last month isn't locked yet." : "",
+        accounts: withIssues.map((r) => ({ name: r.account, issues: r.issues })),
+      });
+    }
+  }
+
+  if (isMonday) {
+    const withErrors = thisRows
+      .map((r) => ({ name: r.account, issues: (r.issues || []).filter((i) => i.severity === "error") }))
+      .filter((r) => r.issues.length);
+    if (withErrors.length) {
+      const label = monthLabel(thisPeriod);
+      subject ||= `Reconciliation: ${label} this week`;
+      sections.push({ heading: `${label} so far`, url: `${ACCOUNTING_URL}?month=${today.slice(0, 7)}`, note: "", accounts: withErrors });
+    }
+  }
+
+  if (!sections.length) return "skipped (nothing to report)";
+  const to = staffRecipients();
+  if (!to.length) return "skipped (STAFF_ALERT_EMAIL is not set)";
+
+  const html = `<div style="font-family:Arial,Helvetica,sans-serif;color:#1a1a1a;max-width:640px">
+<h1 style="font-size:20px">${escapeHtml(subject)}</h1>
+${sections
+  .map(
+    (s) => `<h2 style="font-size:16px;margin-top:24px">${escapeHtml(s.heading)}</h2>
+${s.note ? `<p><b>${escapeHtml(s.note)}</b></p>` : ""}
+${s.accounts
+  .map(
+    (a) => `<p style="margin:12px 0 4px;font-weight:bold">${escapeHtml(a.name)}</p><ul style="margin:0;padding-left:20px">${a.issues
+      .map((i) => `<li style="margin-bottom:6px">${escapeHtml(i.title)}${i.fix ? `<br><span style="color:#555">${escapeHtml(i.fix)}</span>` : ""}</li>`)
+      .join("")}</ul>`
+  )
+  .join("")}
+<p style="margin-top:16px"><a href="${escapeHtml(s.url)}" style="background:#B41710;color:#fff;padding:10px 16px;text-decoration:none;font-weight:bold">Open reconciliation</a></p>`
+  )
+  .join("")}
+</div>`;
+  const text = [
+    subject,
+    ...sections.flatMap((s) => [
+      "",
+      s.heading,
+      ...(s.note ? [s.note] : []),
+      ...s.accounts.flatMap((a) => [`${a.name}:`, ...a.issues.map((i) => `- ${i.title}${i.fix ? ` (${i.fix})` : ""}`)]),
+      s.url,
+    ]),
+  ].join("\n");
+
+  const { error: sendError } = await new Resend(process.env.RESEND_API_KEY).emails.send({ from: FROM, to, subject, html, text });
+  if (sendError) {
+    console.error("[cron] reconciliation email failed:", sendError.message);
+    return "failed";
+  }
+  return { sent: true, sections: sections.length };
 }
 
 // Privacy policy: unsuccessful applicants' documents are deleted within 90 days of the decision.

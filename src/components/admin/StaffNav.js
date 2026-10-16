@@ -42,6 +42,15 @@ export const NAV_GROUPS = [
     ],
   },
   {
+    key: "accounting",
+    label: "Accounting",
+    items: [
+      { key: "reconciliation", label: "Reconciliation", href: "/admin/accounting", count: "unmatchedBankLines", note: "bank lines to match" },
+      { key: "bank-imports", label: "Bank imports", href: "/admin/accounting/import" },
+      { key: "year-end", label: "Year end", href: "/admin/accounting/year" },
+    ],
+  },
+  {
     key: "settings",
     label: "Settings",
     items: [
