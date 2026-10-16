@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getBrowserClient } from "@/lib/supabase";
+import { refreshStaffCounts } from "@/lib/admin-nav";
 import { checkDollars, dollarsOrNull, orNull, propertyTitle, sortTenants, text } from "@/lib/admin-properties";
 import {
   CATEGORIES,
@@ -194,6 +195,7 @@ export default function MaintenanceEditor({ id }) {
     setSaving(false);
     if (saveError) return setMsg({ kind: "err", text: "We couldn't save this request. Check the fields and try again." });
     applySaved(data);
+    refreshStaffCounts();
     setMsg({ kind: "ok", text: "Request saved." });
   }
 

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { refreshStaffCounts } from "@/lib/admin-nav";
 import { docusignApi } from "@/lib/signatures";
 import { blockedReason, useDocusignStatus } from "@/lib/use-docusign-status";
 
@@ -31,6 +32,7 @@ export default function SendButtons({ kind, getForm, onCancel }) {
       const res = await docusignApi("/send", { body: { kind, mode, form } });
       if (tab && res.url) tab.location.href = res.url;
       else tab?.close();
+      refreshStaffCounts();
       router.push(`/admin/signatures/${res.id}`);
     } catch (err) {
       tab?.close();

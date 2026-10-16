@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { Suspense, useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
+import { useStaff } from "@/lib/useStaff";
+import { COUNTS_EVENT, loadNavCounts } from "@/lib/admin-nav";
 
-// Edit this array to move pages between groups. `key` matches the `active` prop pages pass in;
-// `count` is a key in the `counts` object. Muted counts show only inside the menu.
+// Edit this array to move pages between groups. The current item is worked out from the URL;
+// `count` is a key from loadNavCounts(). Muted counts show only inside the menu.
 export const NAV_GROUPS = [
   { key: "dashboard", label: "Dashboard", href: "/admin" },
   {
@@ -311,13 +313,77 @@ function MobileNav({ active, c }) {
   );
 }
 
-// `active` is "dashboard", a request tab key, or a section key. `counts` may be null while loading.
-export default function StaffNav({ active, counts }) {
-  const c = counts || {};
+const REFRESH_MS = 60000;
+const EXTRA_PREFIXES = [
+  ["/admin/units", "properties"],
+  ["/admin/inspections", "properties"],
+  ["/admin/rent", "rent"],
+  ["/admin/signatures", "signatures"],
+];
+const REQUEST_TABS = ["showings", "applications", "inquiries"];
+
+function under(path, prefix) {
+  return path === prefix || path.startsWith(`${prefix}/`);
+}
+
+function activeFor(pathname, tab) {
+  const path = (pathname || "/admin").replace(/\/$/, "") || "/admin";
+  if (path === "/admin") return "dashboard";
+  if (under(path, "/admin/requests")) return REQUEST_TABS.includes(tab) ? tab : "showings";
+  let best = { key: null, length: 0 };
+  const consider = (prefix, key) => {
+    if (under(path, prefix) && prefix.length > best.length) best = { key, length: prefix.length };
+  };
+  for (const g of NAV_GROUPS) for (const item of g.items || []) consider(item.href.split("?")[0], item.key);
+  for (const [prefix, key] of EXTRA_PREFIXES) consider(prefix, key);
+  return best.key;
+}
+
+function useNavCounts(enabled) {
+  const [counts, setCounts] = useState({});
+  useEffect(() => {
+    if (!enabled) return;
+    let alive = true;
+    const load = () =>
+      loadNavCounts().then(
+        (c) => alive && setCounts(c),
+        () => {},
+      );
+    load();
+    const timer = setInterval(load, REFRESH_MS);
+    window.addEventListener(COUNTS_EVENT, load);
+    return () => {
+      alive = false;
+      clearInterval(timer);
+      window.removeEventListener(COUNTS_EVENT, load);
+    };
+  }, [enabled]);
+  return counts;
+}
+
+function NavBody({ active, c }) {
   return (
     <nav className="staff-nav" aria-label="Staff sections">
       <DesktopNav active={active} c={c} />
       <MobileNav active={active} c={c} />
     </nav>
+  );
+}
+
+function NavWithTab({ pathname, c }) {
+  const params = useSearchParams();
+  return <NavBody active={activeFor(pathname, params.get("tab"))} c={c} />;
+}
+
+// Rendered once in the admin layout. Hidden until we know the visitor is staff.
+export default function StaffNav() {
+  const { checking, isStaff } = useStaff();
+  const pathname = usePathname();
+  const c = useNavCounts(isStaff);
+  if (checking || !isStaff) return null;
+  return (
+    <Suspense fallback={<NavBody active={activeFor(pathname, null)} c={c} />}>
+      <NavWithTab pathname={pathname} c={c} />
+    </Suspense>
   );
 }

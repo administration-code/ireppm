@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { IRepMark } from "./Brand";
@@ -21,6 +22,22 @@ export default function Header() {
   const { isOwner } = useOwner();
   const isCurrent = (href) => (href === "/" ? path === "/" : path.startsWith(href));
 
+  // Remember which page the menu was opened on, so changing page closes it.
+  const [openOn, setOpenOn] = useState(null);
+  const menuOpen = openOn === path;
+  const closeMenu = () => setOpenOn(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e) => {
+      if (e.key === "Escape") setOpenOn(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [menuOpen]);
+
+  const current = (href) => (path.startsWith(href) ? "page" : undefined);
+
   return (
     <header className="site-header">
       <div className="wrap">
@@ -39,12 +56,12 @@ export default function Header() {
           ))}
         </nav>
         {isStaff ? (
-          <Link className="staff-link" href="/admin" aria-current={path.startsWith("/admin") ? "page" : undefined}>
+          <Link className="staff-link" href="/admin" aria-current={current("/admin")}>
             Staff
           </Link>
         ) : null}
         {isOwner ? (
-          <Link className="staff-link" href="/owner" aria-current={path.startsWith("/owner") ? "page" : undefined}>
+          <Link className="staff-link" href="/owner" aria-current={current("/owner")}>
             Owner portal
           </Link>
         ) : null}
@@ -57,6 +74,61 @@ export default function Header() {
             Sign in
           </button>
         )}
+        <button
+          type="button"
+          className="menu-btn"
+          aria-expanded={menuOpen}
+          aria-controls="site-menu"
+          onClick={() => setOpenOn(menuOpen ? null : path)}
+        >
+          {menuOpen ? "Close" : "Menu"}
+        </button>
+      </div>
+      <div id="site-menu" className="site-menu" hidden={!menuOpen}>
+        <div className="wrap">
+          {isStaff || isOwner ? (
+            <div className="site-menu-portals">
+              {isStaff ? (
+                <Link className="site-menu-portal" href="/admin" aria-current={current("/admin")} onClick={closeMenu}>
+                  Staff
+                </Link>
+              ) : null}
+              {isOwner ? (
+                <Link className="site-menu-portal" href="/owner" aria-current={current("/owner")} onClick={closeMenu}>
+                  Owner portal
+                </Link>
+              ) : null}
+            </div>
+          ) : null}
+          <nav aria-label="Main menu">
+            {NAV.map(([href, label]) => (
+              <Link
+                key={href}
+                href={href}
+                aria-current={isCurrent(href) ? "page" : undefined}
+                onClick={closeMenu}
+              >
+                {label}
+              </Link>
+            ))}
+          </nav>
+          {user ? (
+            <Link className="site-menu-acct" href="/account" onClick={closeMenu}>
+              My profile
+            </Link>
+          ) : (
+            <button
+              type="button"
+              className="site-menu-acct"
+              onClick={() => {
+                closeMenu();
+                openSignIn("/account");
+              }}
+            >
+              Sign in
+            </button>
+          )}
+        </div>
       </div>
     </header>
   );

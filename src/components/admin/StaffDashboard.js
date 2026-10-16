@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import StaffNav from "@/components/admin/StaffNav";
 import NeedsAttention from "@/components/admin/dashboard/NeedsAttention";
 import KeyNumbers from "@/components/admin/dashboard/KeyNumbers";
 import RentTrendChart from "@/components/admin/dashboard/RentTrendChart";
@@ -10,22 +9,8 @@ import TurnoversSummary from "@/components/admin/dashboard/TurnoversSummary";
 import ComingUp from "@/components/admin/dashboard/ComingUp";
 import ActivitySummaries from "@/components/admin/dashboard/ActivitySummaries";
 import OpenNotices from "@/components/admin/dashboard/OpenNotices";
-import { loadDashboard, num, updatedText } from "@/lib/dashboard";
+import { loadDashboard, updatedText } from "@/lib/dashboard";
 import { monthLabel, shortDate } from "@/lib/rent";
-
-function navCounts(d) {
-  if (!d) return null;
-  return {
-    showings: num(d.leasing?.showings_requested),
-    applications: num(d.leasing?.applications_new),
-    inquiries: num(d.leasing?.landlord_inquiries_new),
-    drafts: num(d.leasing?.listings_draft),
-    maintenanceNew: num(d.maintenance?.new),
-    unmatchedPayments: num(d.to_match?.count),
-    openTurnovers: num(d.turnovers?.open),
-    awaitingSignatures: num(d.awaiting_signatures),
-  };
-}
 
 export default function StaffDashboard() {
   const [state, setState] = useState({ loading: true, refreshing: false, data: null, error: "", at: null });
@@ -78,7 +63,6 @@ export default function StaffDashboard() {
           </div>
         </div>
 
-        <StaffNav active="dashboard" counts={navCounts(d)} />
       </div>
 
       {state.error ? <div className="warnbox">{state.error}</div> : null}

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { getBrowserClient } from "@/lib/supabase";
+import { refreshStaffCounts } from "@/lib/admin-nav";
 import SigStatus from "@/components/admin/signatures/SigStatus";
 import ServePanel from "@/components/admin/signatures/ServePanel";
 import { SIG_KIND, SIG_STATUS, docusignApi, openInTab, shortDate } from "@/lib/signatures";
@@ -45,6 +46,7 @@ export default function SignatureDetail({ id }) {
     try {
       const res = await docusignApi(`/requests/${id}`, { body: { action, ...extra } });
       if (done) setMessage({ text: done, tone: "ok" });
+      refreshStaffCounts();
       await reload();
       return res;
     } catch (err) {

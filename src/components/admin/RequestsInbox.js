@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import StaffNav from "@/components/admin/StaffNav";
 import ShowingsPanel from "@/components/admin/ShowingsPanel";
 import ApplicationsPanel from "@/components/admin/ApplicationsPanel";
 import InquiriesPanel from "@/components/admin/InquiriesPanel";
@@ -28,12 +27,6 @@ export default function RequestsInbox() {
     };
   }, []);
 
-  const counts = {
-    showings: state.showings.filter((s) => s.status === "requested").length,
-    applications: state.applications.filter((a) => a.status === "submitted").length,
-    inquiries: state.inquiries.filter((q) => q.status === "new").length,
-  };
-
   const update = (key) => (item) =>
     setState((s) => {
       const next = replaceIn(s[key], item);
@@ -49,22 +42,6 @@ export default function RequestsInbox() {
           <p className="small">Showing requests, rental applications and landlord inquiries from the website.</p>
         </div>
       </div>
-
-      <StaffNav
-        active={tab}
-        counts={
-          state.loading
-            ? null
-            : {
-                ...counts,
-                drafts: state.drafts,
-                maintenanceNew: state.maintenanceNew,
-                unmatchedPayments: state.unmatchedPayments,
-                openTurnovers: state.openTurnovers,
-                awaitingSignatures: state.awaitingSignatures,
-              }
-        }
-      />
 
       {state.error ? <div className="warnbox">{state.error}</div> : null}
 

@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "./AuthProvider";
 import { getBrowserClient } from "@/lib/supabase";
+
+const OPEN_STATUSES = ["submitted", "reviewing", "approved"];
 
 const WINDOWS = ["Morning (9 am – 12 pm)", "Afternoon (12 – 5 pm)", "Evening (5 – 8 pm)"];
 
@@ -28,7 +31,7 @@ export default function ListingActions({ listing, sample }) {
   const { user, ready, configured, openSignIn } = useAuth();
   const days = useMemo(() => nextDays(10), []);
   const [showing, setShowing] = useState(null);
-  const [applied, setApplied] = useState(false);
+  const [lastApp, setLastApp] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
   const [date, setDate] = useState("");
   const [win, setWin] = useState(WINDOWS[1]);
@@ -52,11 +55,12 @@ export default function ListingActions({ listing, sample }) {
       .limit(1)
       .then(({ data }) => setShowing(data && data[0] ? data[0] : null));
     sb.from("applications")
-      .select("id")
+      .select("id, status")
       .eq("listing_id", listing.id)
       .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
       .limit(1)
-      .then(({ data }) => setApplied(Boolean(data && data.length)));
+      .then(({ data }) => setLastApp(data && data[0] ? data[0] : null));
   }, [live, user, listing.id]);
 
   // Coming back from the sign-in email with ?action=book opens the showing form.
@@ -145,11 +149,13 @@ export default function ListingActions({ listing, sample }) {
           Book a showing
         </button>
       )}
-      {applied ? (
-        <div className="okbox">You've applied for this rental. We'll be in touch within 2 business days.</div>
+      {lastApp && OPEN_STATUSES.includes(lastApp.status) ? (
+        <div className="okbox">
+          Application submitted. <Link href="/account">See it in your account</Link>.
+        </div>
       ) : (
         <button className="btn ghost" onClick={apply}>
-          Apply for this rental
+          {lastApp ? "Apply again" : "Apply for this rental"}
         </button>
       )}
       <p className="small">

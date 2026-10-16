@@ -3,24 +3,14 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getBrowserClient } from "@/lib/supabase";
-import StaffNav from "@/components/admin/StaffNav";
 import SigStatus from "@/components/admin/signatures/SigStatus";
-import { AWAITING, SIG_FILTERS, SIG_KIND, SIG_LIST_SELECT, outTo, shortDate } from "@/lib/signatures";
+import { SIG_FILTERS, SIG_KIND, SIG_LIST_SELECT, outTo, shortDate } from "@/lib/signatures";
 
 export default function SignaturesList() {
   const [filter, setFilter] = useState("awaiting");
   const [kind, setKind] = useState("");
   const [rows, setRows] = useState(null);
-  const [awaiting, setAwaiting] = useState(0);
   const [error, setError] = useState("");
-
-  useEffect(() => {
-    getBrowserClient()
-      .from("signature_requests")
-      .select("id", { count: "exact", head: true })
-      .in("status", AWAITING)
-      .then(({ count }) => setAwaiting(count || 0));
-  }, []);
 
   useEffect(() => {
     let live = true;
@@ -59,8 +49,6 @@ export default function SignaturesList() {
           </Link>
         </div>
       </div>
-
-      <StaffNav active="signatures" counts={{ awaitingSignatures: awaiting }} />
 
       <div className="sec-head">
         <div className="seg" role="group" aria-label="Filter by status">

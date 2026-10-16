@@ -77,7 +77,26 @@ function RetentionNote({ app, hasDocs }) {
   );
 }
 
-function ApplicationItem({ app, onChange }) {
+// A renter can apply to the same listing again after withdrawing or being declined.
+// Show the newest application, with earlier ones tucked underneath it.
+function groupApplications(applications) {
+  const groups = new Map();
+  for (const a of applications) {
+    const key = `${a.user_id || a.applicant_email}:${a.listing_id || a.listing?.slug || a.id}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(a);
+  }
+  return [...groups.values()].map((list) => {
+    const sorted = [...list].sort((x, y) => new Date(y.created_at) - new Date(x.created_at));
+    return { latest: sorted[0], earlier: sorted.slice(1) };
+  });
+}
+
+function shortDate(iso) {
+  return new Date(iso).toLocaleDateString("en-CA", { month: "short", day: "numeric" });
+}
+
+function ApplicationItem({ app, onChange, earlier = [] }) {
   const [status, setStatus] = useState(app.status);
   const [notes, setNotes] = useState(app.staff_notes || "");
   const [saving, setSaving] = useState(false);
@@ -185,6 +204,20 @@ function ApplicationItem({ app, onChange }) {
           <MoveInForm app={app} />
         </>
       ) : null}
+      {earlier.length ? (
+        <div className="app-earlier">
+          {earlier.map((e) => (
+            <details key={e.id}>
+              <summary>
+                Earlier application ({(APPLICATION_STATUS[e.status] || e.status).toLowerCase()}, {shortDate(e.created_at)})
+              </summary>
+              <ul className="req-list">
+                <ApplicationItem app={e} onChange={onChange} />
+              </ul>
+            </details>
+          ))}
+        </div>
+      ) : null}
     </li>
   );
 }
@@ -200,8 +233,8 @@ export default function ApplicationsPanel({ applications, onChange }) {
   }
   return (
     <ul className="req-list">
-      {applications.map((a) => (
-        <ApplicationItem key={a.id} app={a} onChange={onChange} />
+      {groupApplications(applications).map(({ latest, earlier }) => (
+        <ApplicationItem key={latest.id} app={latest} earlier={earlier} onChange={onChange} />
       ))}
     </ul>
   );

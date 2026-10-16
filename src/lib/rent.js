@@ -1,4 +1,5 @@
 import { getBrowserClient } from "@/lib/supabase";
+import { refreshStaffCounts } from "@/lib/admin-nav";
 
 export const METHOD_LABEL = {
   etransfer: "e-Transfer",
@@ -118,4 +119,5 @@ export async function countUnmatched() {
 export async function savePayment(id, changes) {
   const { data, error } = await getBrowserClient().from("payments").update(changes).eq("id", id).select("id");
   if (error || !data?.length) throw new Error("That didn't save. Try again.");
+  refreshStaffCounts();
 }
