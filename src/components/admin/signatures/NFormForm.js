@@ -27,7 +27,7 @@ export default function NFormForm({ kind, ctx }) {
     new_rent: "",
     increase_date: kind === "N1" ? addDays(todayIso(), 91) : "",
     guideline: "at_or_below",
-    termination_date: kind === "N4" ? addDays(todayIso(), 14) : kind === "N5" ? addDays(todayIso(), 20) : "",
+    termination_date: kind === "N4" ? addDays(todayIso(), 8) : kind === "N5" ? addDays(todayIso(), 20) : "",
     amount_owing: "",
     periods: [emptyPeriod()],
     notice_number: "first",
@@ -171,7 +171,7 @@ export default function NFormForm({ kind, ctx }) {
               <input id="n4-term" type="date" value={f.termination_date} onChange={set("termination_date")} />
             </div>
           </div>
-          <p className="small">At least 14 days after service for a monthly tenancy. Add 5 days if you mail it.</p>
+          <p className="small">At least 7 days after service (new N4, 2026/09). Add 5 days if you mail it.</p>
         </fieldset>
       ) : null}
 
