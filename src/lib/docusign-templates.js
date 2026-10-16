@@ -135,6 +135,10 @@ const LEASE_CONSENT_LANDLORD = [
   "Consent Landlord First Name",
   "Consent Landlord Last Name",
 ];
+function lockConsentBoxes(t) {
+  if (t.checkboxTabs) t.checkboxTabs = t.checkboxTabs.map((c) => (/^consent/i.test(c.tabLabel) ? { ...c, locked: "true" } : c));
+  return t;
+}
 function leaseConsentChecks(n) {
   return CONSENT_CHECKS.map((c) => `${c} (Tenant ${n})`);
 }
@@ -569,7 +573,7 @@ export function buildLease(f, ids, owner) {
       [`Tenant ${n} Consent Email`]: t.email,
       ...(n === 1 ? { "Tenant 1 Consent First Name": tn.first, "Tenant 1 Consent Last Name": tn.last } : {}),
     };
-    // Consent boxes start ticked; each tenant can untick any they don't agree to before signing.
+    // Every consent box is ticked and locked: consent to email service is part of every IRep lease.
     const tchecks = leaseConsentChecks(n);
     prefillOf(role, ttext, tchecks, prefill);
     leaseSigners.push({
@@ -578,7 +582,7 @@ export function buildLease(f, ids, owner) {
       routingOrder: "1",
       name: t.full_name,
       email: t.email,
-      tabs: tabs(ttext, tchecks),
+      tabs: lockConsentBoxes(tabs(ttext, tchecks)),
     });
     recipients.push({ role, name: t.full_name, email: t.email, routing_order: 1, status: "created" });
   });
