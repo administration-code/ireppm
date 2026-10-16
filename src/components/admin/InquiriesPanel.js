@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import ContactLine from "@/components/admin/ContactLine";
+import DeleteRecord from "@/components/admin/DeleteRecord";
+import { deleteLeasingRecord } from "@/lib/delete-records";
 import { INQUIRY_STATUS, prettyDateTime, updateRow } from "@/lib/admin-requests";
 
-function InquiryItem({ inquiry, onChange }) {
+function InquiryItem({ inquiry, onChange, onRemove }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const statusId = `i-status-${inquiry.id}`;
@@ -61,16 +63,25 @@ function InquiryItem({ inquiry, onChange }) {
       </dl>
 
       {inquiry.message ? <p className="req-note">{inquiry.message}</p> : null}
-      {error ? (
-        <p className="small err" role="alert">
-          {error}
-        </p>
-      ) : null}
+      <div className="req-actions">
+        {error ? (
+          <span className="small err" role="alert">
+            {error}
+          </span>
+        ) : null}
+        <span className="req-actions-end">
+          <DeleteRecord
+            summary={`the landlord inquiry from ${inquiry.name || inquiry.email || "this owner"}`}
+            run={(reason) => deleteLeasingRecord("landlord_inquiry", inquiry.id, reason)}
+            onDeleted={() => onRemove(inquiry.id)}
+          />
+        </span>
+      </div>
     </li>
   );
 }
 
-export default function InquiriesPanel({ inquiries, onChange }) {
+export default function InquiriesPanel({ inquiries, onChange, onRemove }) {
   if (!inquiries.length) {
     return (
       <div className="empty">
@@ -82,7 +93,7 @@ export default function InquiriesPanel({ inquiries, onChange }) {
   return (
     <ul className="req-list">
       {inquiries.map((q) => (
-        <InquiryItem key={q.id} inquiry={q} onChange={onChange} />
+        <InquiryItem key={q.id} inquiry={q} onChange={onChange} onRemove={onRemove} />
       ))}
     </ul>
   );

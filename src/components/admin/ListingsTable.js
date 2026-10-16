@@ -5,6 +5,8 @@ import Link from "next/link";
 import { getBrowserClient } from "@/lib/supabase";
 import { listingTitle, money } from "@/lib/format";
 import { STATUS_LABEL, STATUS_ORDER } from "@/lib/admin-listings";
+import DeleteRecord from "@/components/admin/DeleteRecord";
+import { deleteLeasingRecord } from "@/lib/delete-records";
 
 function sortListings(list) {
   return [...list].sort((a, b) => {
@@ -36,6 +38,7 @@ export default function ListingsTable() {
   }, []);
 
   const { loading, listings, error } = state;
+  const removeListing = (id) => setState((s) => ({ ...s, listings: s.listings.filter((x) => x.id !== id) }));
 
   return (
     <div className="stack" style={{ gap: 24 }}>
@@ -89,9 +92,18 @@ export default function ListingsTable() {
                     <span className={`pill st-${l.status}`}>{STATUS_LABEL[l.status] || l.status}</span>
                   </td>
                   <td className="r">
-                    <Link className="btn ghost sm" href={`/admin/listings/${l.id}`}>
-                      Edit<span className="visually-hidden"> {listingTitle(l)}</span>
-                    </Link>
+                    <div className="row-actions">
+                      <Link className="btn ghost sm" href={`/admin/listings/${l.id}`}>
+                        Edit<span className="visually-hidden"> {listingTitle(l)}</span>
+                      </Link>
+                      {l.status === "draft" ? (
+                        <DeleteRecord
+                          summary={`the draft listing for ${listingTitle(l)}`}
+                          run={(reason) => deleteLeasingRecord("listing", l.id, reason)}
+                          onDeleted={() => removeListing(l.id)}
+                        />
+                      ) : null}
+                    </div>
                   </td>
                 </tr>
               ))}

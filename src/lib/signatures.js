@@ -30,7 +30,7 @@ export const SIG_FILTERS = [
 ];
 
 export const SIG_LIST_SELECT =
-  "id, kind, title, status, recipients, sent_at, completed_at, created_at, tenancy_id, property_id, application_id, unit_id, notice_id";
+  "id, kind, title, status, envelope_id, recipients, sent_at, completed_at, created_at, tenancy_id, property_id, application_id, unit_id, notice_id";
 
 export function statusTone(status) {
   if (status === "completed") return "ok";
