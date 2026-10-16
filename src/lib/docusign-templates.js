@@ -411,6 +411,12 @@ function consentTabs({ tenantName, tenantEmail, landlordName, unitAddress, signe
   };
 }
 
+// The "Administration" copy is in every template. Giving it the same recipientId in each
+// part of a lease envelope makes DocuSign count it once, not once per document.
+function adminCopy() {
+  return { recipientId: "30", roleName: "Administration", routingOrder: "3", name: IREP_SIGNER.name, email: IREP_SIGNER.email };
+}
+
 export function buildLease(f, ids, owner) {
   const tenants = (f.tenants || []).slice(0, MAX_TENANTS).map((t) => ({
     full_name: str(t.full_name),
@@ -554,7 +560,7 @@ export function buildLease(f, ids, owner) {
     {
       compositeTemplateId: "1",
       serverTemplates: [{ sequence: "1", templateId: ids.lease }],
-      inlineTemplates: [{ sequence: "2", recipients: { signers: leaseSigners } }],
+      inlineTemplates: [{ sequence: "2", recipients: { signers: leaseSigners, carbonCopies: [adminCopy()] } }],
     },
   ];
 
@@ -592,6 +598,7 @@ export function buildLease(f, ids, owner) {
                 tabs: tabs(c.landlordText),
               },
             ],
+            carbonCopies: [adminCopy()],
           },
         },
       ],
