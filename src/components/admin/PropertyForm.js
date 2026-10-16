@@ -4,7 +4,19 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getBrowserClient } from "@/lib/supabase";
-import { PACKAGE_LABEL, PROPERTY_SELECT, checkDollars, dollarsOrNull, orNull, text } from "@/lib/admin-properties";
+import {
+  FEE_RATE_KEYS,
+  PACKAGE_LABEL,
+  PROPERTY_SELECT,
+  checkDollars,
+  dollarsOrNull,
+  orNull,
+  standardFee,
+  text,
+} from "@/lib/admin-properties";
+import { money } from "@/lib/format";
+
+const unitWord = (n) => (n === 1 ? "unit" : "units");
 
 function toForm(p, initialOwnerId) {
   return {
@@ -13,6 +25,8 @@ function toForm(p, initialOwnerId) {
     postal_code: text(p?.postal_code),
     owner_id: text(initialOwnerId || p?.owner_id),
     management_package: text(p?.management_package),
+    unit_count: p?.unit_count ? String(p.unit_count) : "1",
+    custom_fee: Boolean(p?.custom_fee),
     monthly_fee: text(p?.monthly_fee),
     fee_billed_separately: Boolean(p?.fee_billed_separately),
     agreement_start: text(p?.agreement_start),
@@ -24,10 +38,21 @@ function toForm(p, initialOwnerId) {
   };
 }
 
-function validate(f) {
+function validUnits(value) {
+  const s = String(value).trim();
+  if (!/^\d+$/.test(s)) return null;
+  const n = parseInt(s, 10);
+  return n >= 1 && n <= 500 ? n : null;
+}
+
+function validate(f, isCustom) {
   if (!f.address.trim()) return "Add the street address.";
-  const fee = checkDollars(f.monthly_fee, "monthly management fee");
-  if (fee) return fee;
+  if (!validUnits(f.unit_count)) return "Enter the number of units we bill for, from 1 to 500.";
+  if (isCustom) {
+    if (!f.monthly_fee.trim()) return "Enter the custom monthly fee, or untick Use a custom fee.";
+    const fee = checkDollars(f.monthly_fee, "monthly management fee");
+    if (fee) return fee;
+  }
   if (f.agreement_start && f.agreement_renewal && f.agreement_renewal < f.agreement_start)
     return "The renewal date can't be before the agreement start date.";
   const lot = f.lot_size_sqft.trim();
@@ -35,14 +60,17 @@ function validate(f) {
   return "";
 }
 
-function toRow(f) {
+// When the fee isn't custom, monthly_fee is left out: the database sets it from the package and unit count.
+function toRow(f, isCustom) {
   return {
     address: f.address.trim(),
     city: f.city.trim() || "Windsor",
     postal_code: f.postal_code.trim() ? f.postal_code.trim().toUpperCase() : null,
     owner_id: f.owner_id || null,
     management_package: f.management_package || null,
-    monthly_fee: dollarsOrNull(f.monthly_fee),
+    unit_count: validUnits(f.unit_count),
+    custom_fee: isCustom,
+    ...(isCustom ? { monthly_fee: dollarsOrNull(f.monthly_fee) } : {}),
     fee_billed_separately: f.fee_billed_separately,
     agreement_start: f.agreement_start || null,
     agreement_renewal: f.agreement_renewal || null,
@@ -61,17 +89,32 @@ export default function PropertyForm({ property, initialOwnerId, onSaved }) {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState({ kind: "", text: "" });
 
+  const [rates, setRates] = useState(null);
+
   useEffect(() => {
     let alive = true;
-    getBrowserClient()
-      .from("owners")
+    const sb = getBrowserClient();
+    sb.from("owners")
       .select("id, name")
       .order("name")
       .then(({ data }) => alive && setOwners(data || []));
+    sb.from("service_rates")
+      .select("key, amount")
+      .in("key", FEE_RATE_KEYS)
+      .then(({ data }) => alive && setRates(Object.fromEntries((data || []).map((r) => [r.key, r.amount]))));
     return () => {
       alive = false;
     };
   }, []);
+
+  const units = validUnits(form.unit_count);
+  const hasListPrice = !["commercial", "leasing_only"].includes(form.management_package);
+  const standard = units && hasListPrice ? standardFee(rates, form.management_package, units) : null;
+  // Packages without a list price can only have a custom fee (the database enforces the same).
+  const isCustom = form.custom_fee || !hasListPrice;
+  const customAmount = Number(dollarsOrNull(form.monthly_fee));
+  const below =
+    isCustom && standard !== null && form.monthly_fee.trim() && customAmount < standard ? standard - customAmount : 0;
 
   const update = (key) => (e) => {
     const value = e.target.type === "checkbox" ? e.target.checked : e.target.value;
@@ -81,11 +124,11 @@ export default function PropertyForm({ property, initialOwnerId, onSaved }) {
 
   async function save(e) {
     e.preventDefault();
-    const problem = validate(form);
+    const problem = validate(form, isCustom);
     if (problem) return setMsg({ kind: "err", text: problem });
     setSaving(true);
     const sb = getBrowserClient();
-    const row = toRow(form);
+    const row = toRow(form, isCustom);
     const result = isNew
       ? await sb.from("properties").insert(row).select("id").single()
       : await sb.from("properties").update(row).eq("id", property.id).select(PROPERTY_SELECT).single();
@@ -170,9 +213,61 @@ export default function PropertyForm({ property, initialOwnerId, onSaved }) {
             </select>
           </div>
           <div className="field">
-            <label htmlFor="p-fee">Monthly fee before HST ($)</label>
-            <input id="p-fee" inputMode="decimal" value={form.monthly_fee} onChange={update("monthly_fee")} placeholder="175" />
+            <label htmlFor="p-units">Units (for the management fee)</label>
+            <input
+              id="p-units"
+              type="number"
+              min="1"
+              max="500"
+              step="1"
+              inputMode="numeric"
+              value={form.unit_count}
+              onChange={update("unit_count")}
+              aria-describedby="p-units-help"
+              required
+            />
+            <p id="p-units-help" className="small">
+              {"The number of units we bill for. Extra unit records, leases or tenants don't change the fee."}
+            </p>
           </div>
+        </div>
+
+        <div className="stack" style={{ gap: 10 }}>
+          <p aria-live="polite">
+            {!hasListPrice ? (
+              <span className="small">This package has no list price, so enter the agreed fee.</span>
+            ) : standard !== null ? (
+              <>
+                Standard fee: <b className="num">{money(standard)}/month</b> + HST for {units} {unitWord(units)}
+              </>
+            ) : (
+              <span className="small">{units ? "Loading the standard fee…" : "Enter the unit count to see the standard fee."}</span>
+            )}
+          </p>
+          {hasListPrice ? (
+            <label className="check">
+              <input type="checkbox" checked={form.custom_fee} onChange={update("custom_fee")} />
+              Use a custom fee
+            </label>
+          ) : null}
+          {isCustom ? (
+            <div className="field" style={{ maxWidth: 320 }}>
+              <label htmlFor="p-fee">Monthly fee before HST ($)</label>
+              <input
+                id="p-fee"
+                inputMode="decimal"
+                value={form.monthly_fee}
+                onChange={update("monthly_fee")}
+                placeholder={standard !== null ? String(standard) : "175"}
+                aria-describedby={below ? "p-fee-below" : undefined}
+              />
+              {below ? (
+                <p id="p-fee-below" className="small">
+                  {money(below)} below the standard fee.
+                </p>
+              ) : null}
+            </div>
+          ) : null}
         </div>
         <p className="small">The monthly fee is the all-in amount billed to the owner. Add-ons below show what it includes.</p>
         <label className="check">

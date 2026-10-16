@@ -38,7 +38,20 @@ export const OWNER_TYPES = {
 export const OWNER_FIELDS = "id, legacy_id, name, entity_type, email, phone, mailing_address, payout_method, notes";
 
 export const PROPERTY_FIELDS =
-  "id, address, city, postal_code, owner_id, management_package, notes, archived, monthly_fee, agreement_start, agreement_renewal, renewal_notice_sent_on, lot_size_sqft, fee_billed_separately";
+  "id, address, city, postal_code, owner_id, management_package, notes, archived, monthly_fee, agreement_start, agreement_renewal, renewal_notice_sent_on, lot_size_sqft, fee_billed_separately, unit_count, custom_fee";
+
+// Standard monthly fee before HST, mirroring public.standard_management_fee: the package's base fee
+// (property + first unit) plus the additional-unit rate for each unit after the first.
+// Returns null for packages with no list price (commercial, leasing only) or while rates load.
+const BASE_FEE_KEY = { standard: "base_fee", maintenance: "base_fee_maintenance", protection: "base_fee_protection" };
+export const FEE_RATE_KEYS = [...Object.values(BASE_FEE_KEY), "additional_unit"];
+
+export function standardFee(rates, pkg, units) {
+  const baseKey = BASE_FEE_KEY[pkg || "standard"];
+  if (!rates || !baseKey || rates[baseKey] == null || rates.additional_unit == null) return null;
+  const n = Math.max(1, parseInt(units, 10) || 1);
+  return Number(rates[baseKey]) + Number(rates.additional_unit) * (n - 1);
+}
 export const PROPERTY_SELECT = `${PROPERTY_FIELDS}, owner:owners(id, name, entity_type, email, phone)`;
 export const UNIT_FIELDS =
   "id, property_id, label, unit_type, beds, baths, market_rent, status, management_type, listing_id, notes";

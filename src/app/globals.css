@@ -277,6 +277,35 @@ label.btn[aria-disabled="true"] { opacity: .6; cursor: progress; }
 .admin-tabs a { display: inline-flex; align-items: center; gap: 8px; padding: 12px 16px; color: var(--muted); font-weight: 600; font-size: .9375rem; text-decoration: none; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; }
 .admin-tabs a:hover { color: var(--fg); }
 .admin-tabs a[aria-current="page"] { color: var(--fg); border-bottom-color: var(--red); }
+/* Grouped staff navigation */
+.staff-nav { position: relative; z-index: 20; }
+.staff-nav ul { list-style: none; margin: 0; padding: 0; }
+.staff-nav-row { display: flex; gap: 4px; border-bottom: 1px solid var(--line); }
+.staff-nav-group { position: relative; }
+.staff-nav-top { display: inline-flex; align-items: center; gap: 8px; padding: 12px 16px; background: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; color: var(--muted); font: inherit; font-weight: 600; font-size: .9375rem; text-decoration: none; white-space: nowrap; cursor: pointer; }
+.staff-nav-top:hover, .staff-nav-top[aria-expanded="true"] { color: var(--fg); }
+.staff-nav-group.is-active > .staff-nav-top { color: var(--fg); border-bottom-color: #b41710; }
+.staff-nav-top:focus-visible, .staff-nav-item:focus-visible, .staff-nav-menu-btn:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
+.staff-nav-caret { opacity: .7; transition: transform .15s; }
+[aria-expanded="true"] > .staff-nav-caret { transform: rotate(180deg); }
+.staff-nav-panel { position: absolute; top: 100%; left: 0; min-width: 240px; margin-top: 4px !important; padding: 6px !important; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 10px 30px rgb(0 0 0 / .14); display: grid; gap: 2px; }
+.staff-nav-panel[hidden], .staff-nav-sheet[hidden] { display: none; }
+.staff-nav-panel::before { content: ""; position: absolute; left: 0; right: 0; top: -6px; height: 6px; }
+.staff-nav-item { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 12px; border-radius: var(--radius); color: var(--fg); text-decoration: none; font-size: .9375rem; }
+.staff-nav-item:hover, .staff-nav-item:focus-visible { background: var(--surface-2); }
+.staff-nav-item[aria-current="page"] { font-weight: 700; box-shadow: inset 2px 0 0 var(--red); }
+.staff-nav-mobile { display: none; }
+.staff-nav-menu-btn { width: 100%; display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: var(--surface); color: var(--fg); border: 1px solid var(--line); border-radius: var(--radius); font: inherit; font-weight: 600; cursor: pointer; text-align: left; }
+.staff-nav-menu-btn > span:first-child { flex: 1; }
+.staff-nav-sheet { margin-top: 8px; padding: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); display: grid; gap: 14px; }
+.staff-nav-sheet-group { display: grid; gap: 4px; }
+.staff-nav-sheet-group h2 { margin: 0 0 2px; padding-inline: 12px; }
+@media (max-width: 759px) {
+  .staff-nav-row { display: none; }
+  .staff-nav-mobile { display: block; }
+}
+.staff-top { display: grid; gap: 12px; }
+.staff-top .admin-head { align-items: flex-end; }
 .tab-count { background: var(--red); color: var(--on-red); font-size: .75rem; font-weight: 700; min-width: 22px; padding: 2px 7px; border-radius: 999px; text-align: center; line-height: 1.4; }
 .tab-count.muted { background: var(--surface-2); color: var(--muted); }
 .req-list { list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
@@ -524,7 +553,7 @@ label.btn[aria-disabled="true"] { opacity: .6; cursor: progress; }
 .lease-fee-list li:last-child { border-bottom: 0; }
 
 @media print {
-  .site-header, .site-footer, .no-print, .admin-tabs { display: none !important; }
+  .site-header, .site-footer, .no-print, .admin-tabs, .staff-nav { display: none !important; }
   body { background: #fff; }
   .receipt { border: 0; padding: 0; max-width: none; }
   .editing-row td, .editing-row th { background: none; }
