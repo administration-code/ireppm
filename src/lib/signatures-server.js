@@ -74,6 +74,19 @@ async function readConsent(envelopeId, kind) {
   return tenants.some(tickedConsent);
 }
 
+// Leases now carry the Consent to Service pages for every tenant. Returns null when the
+// envelope has no consent boxes (leases sent before the merged template).
+async function readLeaseConsent(envelopeId) {
+  const data = await getRecipients(envelopeId, true);
+  const tenants = (data.signers || []).filter((s) => /^tenant/i.test(s.roleName || ""));
+  const hasBoxes = tenants.some((t) => (t.tabs?.checkboxTabs || []).some((x) => /^consent/i.test(x.tabLabel || "")));
+  if (!hasBoxes) return null;
+  return {
+    yes: tenants.filter(tickedConsent).map((t) => t.name),
+    no: tenants.filter((t) => !tickedConsent(t)).map((t) => t.name),
+  };
+}
+
 async function saveFiles(sb, row) {
   const changes = {};
   const base = `${row.kind}/${row.id}`;
@@ -97,8 +110,7 @@ async function saveFiles(sb, row) {
   return changes;
 }
 
-// Lease envelopes no longer carry the consent forms; each tenant's consent is its own envelope
-// linked by related_request_id. Work out the tenancy's consent from those.
+// Leases sent while consent forms went out as separate envelopes (linked by related_request_id).
 async function leaseConsentText(sb, leaseRow, when) {
   const { data: forms } = await sb
     .from("signature_requests")
@@ -128,7 +140,19 @@ async function onCompleted(sb, row) {
   }
 
   if (row.kind === "lease" && !row.terms?.email_service_consent) {
-    const text = await leaseConsentText(sb, row, when);
+    let text = null;
+    try {
+      const c = await readLeaseConsent(row.envelope_id);
+      if (c) {
+        text = c.yes.length
+          ? `Yes: consent signed with the lease in DocuSign (${when}) by ${c.yes.join(", ")}${c.no.length ? `; not by ${c.no.join(", ")}` : ""}`
+          : `No: tenants declined email service on the lease (${when})`;
+      }
+    } catch (err) {
+      console.error("[docusign] reading lease consent failed:", err?.message || err);
+    }
+    // Older leases: consent forms were separate envelopes.
+    if (!text) text = await leaseConsentText(sb, row, when);
     if (text) {
       changes.terms = { ...row.terms, email_service_consent: text };
       consent = text.startsWith("Yes");
@@ -165,7 +189,7 @@ async function onCompleted(sb, row) {
   return { applied, consent };
 }
 
-// When a lease that was reviewed as a draft is sent, send its consent forms too.
+// Leases drafted while consent forms were separate envelopes: send those drafts with the lease.
 async function sendLeaseConsents(sb, leaseRow) {
   const { data: drafts } = await sb
     .from("signature_requests")

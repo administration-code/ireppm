@@ -17,8 +17,9 @@ export const TEMPLATES = {
 };
 
 // Templates each kind of request needs. A stand-alone consent form is kind 'other'.
+// The lease template includes the Consent to Service by Email pages for every tenant.
 export const KIND_TEMPLATES = {
-  lease: ["lease", "consent"],
+  lease: ["lease"],
   consent: ["consent"],
   pm_contract: ["pm_contract"],
   N1: ["N1"],
@@ -125,6 +126,19 @@ const CONSENT_CHECKS = [
   "Consent Tenancy Communication",
 ];
 
+// Consent to Service by Email pages inside the lease template (page 1: LTB form for tenant 1
+// and the landlord; page 2: tenants 2-8). Box labels start with "Consent" so the server can read them.
+const LEASE_CONSENT_LANDLORD = [
+  "Consent Landlord Name",
+  "Consent Landlord Email",
+  "Consent Rental Unit Address",
+  "Consent Landlord First Name",
+  "Consent Landlord Last Name",
+];
+function leaseConsentChecks(n) {
+  return CONSENT_CHECKS.map((c) => `${c} (Tenant ${n})`);
+}
+
 const N_UNIT = ["Unit Street Number", "Unit Street Name", "Unit Number", "Unit City", "Unit Province", "Unit Postal Code"];
 const N_SIGNER = [
   "Signer First Name",
@@ -149,8 +163,13 @@ export const EXPECTED = {
   lease: {
     roles: ["Landlord", ...range(MAX_TENANTS).map((n) => `Tenant ${n}`), "Guarantor"],
     labels: {
-      Landlord: [...LEASE_TEXT, ...LEASE_CHECKS],
-      ...Object.fromEntries(range(MAX_TENANTS).map((n) => [`Tenant ${n}`, [`Tenant ${n} Signer Name`]])),
+      Landlord: [...LEASE_TEXT, ...LEASE_CHECKS, ...LEASE_CONSENT_LANDLORD],
+      ...Object.fromEntries(
+        range(MAX_TENANTS).map((n) => [
+          `Tenant ${n}`,
+          [`Tenant ${n} Signer Name`, `Tenant ${n} Consent Name`, `Tenant ${n} Consent Email`, ...leaseConsentChecks(n)],
+        ])
+      ),
     },
   },
   consent: {
@@ -524,6 +543,16 @@ export function buildLease(f, ids, owner) {
     checks.push(s.included ? `Other Service ${i + 1} Yes` : `Other Service ${i + 1} No`);
   });
 
+  // Consent to Service by Email, landlord part (locked on the form).
+  const cs = splitName(signer.name);
+  Object.assign(text, {
+    "Consent Landlord Name": `${landlordName || "The landlord"} c/o ${REP.company}`,
+    "Consent Landlord Email": LEASE_DEFAULTS.landlordEmail,
+    "Consent Rental Unit Address": unitAddress,
+    "Consent Landlord First Name": cs.first,
+    "Consent Landlord Last Name": cs.last,
+  });
+
   const prefill = prefillOf("Landlord", text, checks);
   const leaseSigners = [
     { recipientId: "1", roleName: "Landlord", routingOrder: "2", name: signer.name, email: signer.email, tabs: tabs(text, checks) },
@@ -532,15 +561,24 @@ export function buildLease(f, ids, owner) {
 
   tenants.forEach((t, i) => {
     const role = `Tenant ${i + 1}`;
-    const ttext = { [`Tenant ${i + 1} Signer Name`]: t.full_name };
-    prefillOf(role, ttext, [], prefill);
+    const n = i + 1;
+    const tn = splitName(t.full_name);
+    const ttext = {
+      [`Tenant ${n} Signer Name`]: t.full_name,
+      [`Tenant ${n} Consent Name`]: t.full_name,
+      [`Tenant ${n} Consent Email`]: t.email,
+      ...(n === 1 ? { "Tenant 1 Consent First Name": tn.first, "Tenant 1 Consent Last Name": tn.last } : {}),
+    };
+    // Consent boxes start ticked; each tenant can untick any they don't agree to before signing.
+    const tchecks = leaseConsentChecks(n);
+    prefillOf(role, ttext, tchecks, prefill);
     leaseSigners.push({
       recipientId: String(11 + i),
       roleName: role,
       routingOrder: "1",
       name: t.full_name,
       email: t.email,
-      tabs: tabs(ttext),
+      tabs: tabs(ttext, tchecks),
     });
     recipients.push({ role, name: t.full_name, email: t.email, routing_order: 1, status: "created" });
   });
@@ -556,29 +594,12 @@ export function buildLease(f, ids, owner) {
     recipients.push({ role: "Guarantor", name: str(f.guarantor_name), email: str(f.guarantor_email), routing_order: 1, status: "created" });
   }
 
-  // The lease goes out as its own envelope (like the N-forms). Each tenant's Consent to Service
-  // form goes out at the same time as a separate envelope, so no envelope carries more people
-  // than it needs. Roles left out of templateRoles (unused tenants, guarantor) are dropped.
+  // One envelope from the one lease template (lease, Schedule A and the consent pages).
+  // Roles left out of templateRoles (unused tenants, guarantor) are dropped.
   const definition = {
     templateId: ids.lease,
     templateRoles: leaseSigners.map(({ recipientId, ...role }) => role),
   };
-
-  const consents = tenants.map((t) => {
-    const c = buildConsent(
-      {
-        tenant_name: t.full_name,
-        tenant_email: t.email,
-        landlord_name: landlordName,
-        unit_address: unitAddress,
-        signer: f.signer,
-      },
-      ids,
-      owner
-    );
-    prefillOf(`Consent: ${t.full_name}`, { ...c.prefill.Tenant, ...c.prefill.Landlord }, [], prefill);
-    return { ...c, title: `Consent to Service by Email: ${t.full_name}` };
-  });
 
   const terms = {
     unit_id: f.unit_id,
@@ -592,7 +613,7 @@ export function buildLease(f, ids, owner) {
     tenants: tenants.map((t, i) => ({ ...t, is_primary: i === 0 })),
   };
 
-  return { definition, prefill, recipients, terms, consents };
+  return { definition, prefill, recipients, terms };
 }
 
 export function buildConsent(f, ids, owner) {

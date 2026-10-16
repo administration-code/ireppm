@@ -148,50 +148,6 @@ export async function POST(request) {
       })
       .eq("id", row.id);
 
-    // Lease: send each tenant's consent form alongside it. In review mode they wait as drafts
-    // and go out automatically when the lease is sent (see syncRequest).
-    if (kind === "lease" && built.consents?.length) {
-      for (const c of built.consents) {
-        const { data: crow } = await sb
-          .from("signature_requests")
-          .insert({
-            kind: "other",
-            title: c.title,
-            template_id: ids.consent,
-            status: "draft",
-            related_request_id: row.id,
-            application_id: f.application_id || null,
-            unit_id: f.unit_id || null,
-            property_id: f.property_id || null,
-            owner_id: f.owner_id || null,
-            recipients: c.recipients,
-            prefill: c.prefill,
-            terms: { ...c.terms, lease_request_id: row.id },
-            email_subject: `Please sign: ${c.title}`.slice(0, 100),
-            sent_by: staff.id,
-          })
-          .select("id")
-          .single();
-        try {
-          const cenv = await createEnvelope({
-            ...c.definition,
-            emailSubject: `Please sign: ${c.title}`.slice(0, 100),
-            status: mode === "send" ? "sent" : "created",
-          });
-          if (crow) {
-            await sb
-              .from("signature_requests")
-              .update({ envelope_id: cenv.envelopeId, status: mode === "send" ? "sent" : "draft", sent_at: mode === "send" ? now : null, status_changed_at: now })
-              .eq("id", crow.id);
-          }
-        } catch (cerr) {
-          if (crow) {
-            await sb.from("signature_requests").update({ status: "error", error: cerr.message, status_changed_at: now }).eq("id", crow.id);
-          }
-        }
-      }
-    }
-
     let url = null;
     if (mode === "review") {
       const origin = new URL(request.url).origin;

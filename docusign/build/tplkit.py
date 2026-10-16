@@ -108,7 +108,7 @@ def add(tabs, doc, rid, item):
         base["yPosition"] = str(round(top + max(0, hgt - 12)))
         tabs.setdefault("dateSignedTabs", []).append({**base, "tabLabel": label, "name": "DateSigned", "value": "",
             "font": "helvetica", "fontColor": "black", "fontSize": "size10",
-            "localePolicy": {"customDateFormat": DATE_FORMAT}, "tabId": tid})
+            "localePolicy": {"customDateFormat": getattr(doc, "date_format", None) or DATE_FORMAT}, "tabId": tid})
     else:
         raise SystemExit("unknown kind " + kind)
 

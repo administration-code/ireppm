@@ -255,7 +255,7 @@ Save the `signature_requests` row before redirecting. If DocuSign returns an err
 
 ## Flows
 
-### 1. Send lease (one envelope = lease + one consent form per tenant)
+### 1. Send lease (one envelope: lease + Schedule A + consent pages for every tenant)
 
 **Where:** an approved application in /admin/requests, or the unit page when the unit is vacant or in turnover.
 
@@ -271,16 +271,12 @@ Save the `signature_requests` row before redirecting. If DocuSign returns an err
 - Parking description, condo yes or no.
 - Landlord signer (IRep by default).
 
-**Build the envelope with compositeTemplates:**
-- First: `{serverTemplates: [{sequence: 1, templateId: LEASE}], inlineTemplates: [{sequence: 2, recipients: {signers: [...]}}]}`. Signers:
-  - Landlord: recipientId "1".
-  - Tenants: recipientIds "11"–"18".
-  - Guarantor: recipientId "20".
-  - Each signer has its roleName and tabs.
-- Then, for each tenant: `{serverTemplates: [{sequence: 1, templateId: CONSENT}], inlineTemplates: [{sequence: 2, recipients: {signers: [...]}}]}` with two signers:
-  - roleName "Tenant": same recipientId, name and email as that tenant on the lease (so it's the same person signing both).
-  - roleName "Landlord": recipientId "1".
-  - Fill in the consent fields.
+**Build the envelope from the one lease template** (`templateId` + `templateRoles`). The template already holds the lease, Schedule A and the Consent to Service by Email pages (LTB form for Tenant 1 and the landlord, an extra page for Tenants 2–8).
+- Landlord: lease fields plus "Consent Landlord Name", "Consent Landlord Email", "Consent Rental Unit Address", "Consent Landlord First Name", "Consent Landlord Last Name".
+- Tenant N: "Tenant N Signer Name", "Tenant N Consent Name", "Tenant N Consent Email" (Tenant 1 also "Tenant 1 Consent First Name" / "Last Name"), and the boxes "Consent Rent Increase (Tenant N)", "Consent Notice Of Entry (Tenant N)", "Consent LTB Documents (Tenant N)", "Consent Tenancy Communication (Tenant N)", prefilled ticked; the tenant can untick any.
+- Guarantor if given. Unused tenant roles are left out, so DocuSign drops them.
+
+When the lease completes, the server reads each tenant's consent boxes from the lease envelope and writes `email_service_consent` ("Yes: … by <names>; not by <names>", or "No: …").
 
 Save `terms` (lease shape). Set application_id, unit_id, property_id and owner_id.
 

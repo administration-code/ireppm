@@ -12,6 +12,28 @@ SUFFIX = sys.argv[2] if len(sys.argv) > 2 else ""
 
 osl = Doc(1, U + "7aecbb2e-osl.pdf", "Residential Tenancy Agreement (Standard Form of Lease) 2229E")
 sch = Doc(2, U + "a46d35bb-Tenant_-_Schedule_A.pdf", "Schedule A - Additional Terms")
+con = Doc(3, "consent_multi.pdf", "Consent to Service by Email (LTB form + additional tenants)")
+con.date_format = "dd/MM/yyyy"     # the LTB consent form asks for dd/mm/yyyy
+CONSENT = [("Rent Increase", "Doc1[0]"), ("Notice Of Entry", "Doc2[0]"), ("LTB Documents", "Doc3[0]"), ("Tenancy Communication", "Doc4[0]")]
+CONSENT_X = (308, 360, 412, 464)
+
+def consent_items(i):
+    """Tenant i's consent fields: the LTB form for tenant 1, the extra page for tenants 2-8."""
+    if i == 1:
+        items = [("text", "Tenant 1 Consent Name", 1, "NameTenant[0]"), ("text", "Tenant 1 Consent Email", 1, "EmailTenant[0]")]
+        items += [("check", f"Consent {lab} (Tenant 1)", 1, fld, "/1") for lab, fld in CONSENT]
+        items += [("text", "Tenant 1 Consent First Name", 1, "FirstName[0]", None, 0),
+                  ("text", "Tenant 1 Consent Last Name", 1, "LastName[0]", None, 0),
+                  ("sign", "Tenant 1 Consent Signature", 1, "Signature[0]", None, 0),
+                  ("date", "Tenant 1 Consent Date", 1, "DateSigned[0]", None, 0)]
+        return [(con, x) for x in items]
+    top = 150 + (i - 2) * 82
+    items = [("text", f"Tenant {i} Consent Name", 2, None, 68, top + 14, 220, 11),
+             ("text", f"Tenant {i} Consent Email", 2, None, 68, top + 34, 220, 11)]
+    items += [("check", f"Consent {lab} (Tenant {i})", 2, None, x, top + 19, 11, 11) for (lab, _), x in zip(CONSENT, CONSENT_X)]
+    items += [("sign", f"Tenant {i} Consent Signature", 2, None, 82, top + 62, 200, 1),
+              ("date", f"Tenant {i} Consent Date", 2, None, 472, top + 58, 104, 12)]
+    return [(con, x) for x in items]
 
 def T(label, page, x, top, w, h=12):
     return ("lockedtext", label, page, None, x, top, w, h)
@@ -89,6 +111,14 @@ landlord_items = [(osl, x) for x in L] + sign_row(osl, 7, 234, "Landlord")
 landlord_items += [(sch, T("Guarantor Name", 2, 167, 395, 87)),
                    (sch, ("sign", "Landlord Schedule A Signature", 2, None, 92, 458, 136, 1)),
                    (sch, ("date", "Landlord Schedule A Date", 2, None, 92, 532, 136, 14))]
+landlord_items += [(con, x) for x in [
+    ("lockedtext", "Consent Landlord Name", 1, "NameLandlord[0]"),
+    ("lockedtext", "Consent Landlord Email", 1, "EmailLandlord[0]"),
+    ("lockedtext", "Consent Rental Unit Address", 1, "AddressRentalUnit[0]"),
+    ("lockedtext", "Consent Landlord First Name", 1, "FirstName[0]", None, 1),
+    ("lockedtext", "Consent Landlord Last Name", 1, "LastName[0]", None, 1),
+    ("sign", "Landlord Consent Signature", 1, "Signature[0]", None, 1),
+    ("date", "Landlord Consent Date", 1, "DateSigned[0]", None, 1)]]
 
 roles = [{"role": "Landlord", "type": "signer", "routing": 2, "items": landlord_items}]
 tenant_rows = {1: 320, 2: 360, 3: 400, 4: 440, 5: 570, 6: 610, 7: 650, 8: 690}
@@ -105,6 +135,7 @@ for i in range(1, MAX_TENANTS + 1):
         items += [(sch, ("label", f"Tenant {i} Schedule A Label", 2, None, x, top, 60, 11, f"Tenant {i}:")),
                   (sch, ("sign", f"Tenant {i} Schedule A Signature", 2, None, x, top + 26, 136, 1)),
                   (sch, ("date", f"Tenant {i} Schedule A Date", 2, None, x + 140, top + 14, 80, 14))]
+    items += consent_items(i)
     roles.append({"role": f"Tenant {i}", "type": "signer", "routing": 1, "items": items})
 roles.append({"role": "Guarantor", "type": "signer", "routing": 1, "items": [
     (sch, ("sign", "Guarantor Signature", 2, None, 384, 458, 136, 1)),
@@ -113,5 +144,5 @@ roles.append({"role": "Administration", "type": "cc", "name": "Rishi Bakshi", "e
 
 build("Ontario Standard Lease" + SUFFIX,
       "Ontario Residential Tenancy Agreement (2229E) and IRep Schedule A. Fields are named so the IRep website can fill them in. "
-      "Send the Consent to Service by Email template with it (one per tenant).",
-      "Lease - [Address]", U + "f8aa02fb-MainLease.json", [osl, sch], roles, OUT)
+      "Includes the Consent to Service by Email (LTB form for tenant 1, extra page for tenants 2-8).",
+      "Lease - [Address]", U + "f8aa02fb-MainLease.json", [osl, sch, con], roles, OUT)
