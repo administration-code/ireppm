@@ -1,9 +1,13 @@
 import { getBrowserClient } from "@/lib/supabase";
 
 export async function loadDashboard() {
-  const { data, error } = await getBrowserClient().rpc("staff_dashboard");
+  const sb = getBrowserClient();
+  const [{ data, error }, awaiting] = await Promise.all([
+    sb.rpc("staff_dashboard"),
+    sb.from("signature_requests").select("id", { count: "exact", head: true }).in("status", ["draft", "sent", "delivered"]),
+  ]);
   if (error) throw error;
-  return data || {};
+  return { ...(data || {}), awaiting_signatures: awaiting.count || 0 };
 }
 
 export const num = (v) => Number(v || 0);

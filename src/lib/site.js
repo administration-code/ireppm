@@ -41,7 +41,7 @@ export const PACKAGES = [
     name: "Standard",
     price: "$175",
     unit: "/ month",
-    note: "Additional leases at the same property: $25 each.",
+    note: "Additional units at the same property: $25 each.",
     items: [
       "Rent collection",
       "Full tenant management",

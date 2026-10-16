@@ -61,6 +61,7 @@ export default function RequestsInbox() {
                 maintenanceNew: state.maintenanceNew,
                 unmatchedPayments: state.unmatchedPayments,
                 openTurnovers: state.openTurnovers,
+                awaitingSignatures: state.awaitingSignatures,
               }
         }
       />

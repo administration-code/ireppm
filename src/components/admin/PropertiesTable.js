@@ -126,13 +126,14 @@ export default function PropertiesTable() {
                     <th scope="col">Address</th>
                     <th scope="col">Owner</th>
                     <th scope="col">Package</th>
+                    <th scope="col" className="num">Units</th>
                     <th scope="col">Fee</th>
                     <th scope="col" aria-sort={sort === "renewal" ? "ascending" : undefined}>
                       <button type="button" className="th-sort" onClick={() => setSort(sort === "renewal" ? "address" : "renewal")}>
                         Renewal{sort === "renewal" ? " ↑" : ""}
                       </button>
                     </th>
-                    <th scope="col">Units</th>
+                    <th scope="col">Unit records</th>
                     <th scope="col" className="r">
                       <span className="visually-hidden">Actions</span>
                     </th>
@@ -155,11 +156,13 @@ export default function PropertiesTable() {
                           )}
                         </td>
                         <td>{PACKAGE_LABEL[p.management_package] || <span className="small">Not set</span>}</td>
+                        <td className="num">{p.unit_count ?? 1}</td>
                         <td className="num">
                           {p.monthly_fee !== null && p.monthly_fee !== undefined ? (
                             <>
                               {money(p.monthly_fee)}
                               <span className="small"> + HST</span>
+                              {p.custom_fee ? <span className="pill us-offline inline-pill">Custom</span> : null}
                             </>
                           ) : (
                             <span className="small">Not set</span>

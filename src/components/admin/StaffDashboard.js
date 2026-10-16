@@ -23,6 +23,7 @@ function navCounts(d) {
     maintenanceNew: num(d.maintenance?.new),
     unmatchedPayments: num(d.to_match?.count),
     openTurnovers: num(d.turnovers?.open),
+    awaitingSignatures: num(d.awaiting_signatures),
   };
 }
 
@@ -60,25 +61,25 @@ export default function StaffDashboard() {
 
   return (
     <div className="stack dash" style={{ gap: 24 }}>
-      <div className="admin-head">
-        <div style={{ display: "grid", gap: 8 }}>
+      <div className="staff-top">
+        <div style={{ display: "grid", gap: 6 }}>
           <span className="eyebrow">Staff</span>
           <h1 className="admin-title">Dashboard</h1>
-          <p className="small">
-            {d?.today ? `${shortDate(d.today)} · ${monthLabel(d.month || d.today)}` : "Today at IRep"}
-          </p>
+          <div className="dash-refresh" style={{ flexWrap: "wrap" }}>
+            <span className="small">
+              {d?.today ? `${shortDate(d.today)} · ${monthLabel(d.month || d.today)}` : "Today at IRep"}
+            </span>
+            <span className="small" aria-live="polite">
+              · {state.refreshing ? "Updating…" : updatedText(state.at, now)}
+            </span>
+            <button type="button" className="btn ghost sm" onClick={refresh} disabled={state.refreshing}>
+              Refresh
+            </button>
+          </div>
         </div>
-        <div className="dash-refresh">
-          <span className="small" aria-live="polite">
-            {state.refreshing ? "Updating…" : updatedText(state.at, now)}
-          </span>
-          <button type="button" className="btn ghost sm" onClick={refresh} disabled={state.refreshing}>
-            Refresh
-          </button>
-        </div>
-      </div>
 
-      <StaffNav active="dashboard" counts={navCounts(d)} />
+        <StaffNav active="dashboard" counts={navCounts(d)} />
+      </div>
 
       {state.error ? <div className="warnbox">{state.error}</div> : null}
 

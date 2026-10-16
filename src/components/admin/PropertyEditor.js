@@ -114,6 +114,16 @@ export default function PropertyEditor({ id, initialOwnerId }) {
           ) : null}
         </div>
 
+        {(() => {
+          const managed = units.filter((u) => u.management_type === "managed").length;
+          const billed = property.unit_count ?? 1;
+          return managed > billed ? (
+            <p className="small">
+              {managed} unit records, billed as {billed} {billed === 1 ? "unit" : "units"}.
+            </p>
+          ) : null;
+        })()}
+
         {adding ? (
           <div className="boxed stack">
             <h3 className="unit-label">New unit</h3>

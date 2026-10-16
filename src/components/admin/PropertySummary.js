@@ -41,7 +41,14 @@ export default function PropertySummary({ property }) {
           </div>
           <div>
             <dt>Monthly fee</dt>
-            <dd className="num">{feeWithHst(property.monthly_fee)}</dd>
+            <dd className="num">
+              {feeWithHst(property.monthly_fee)}
+              {property.custom_fee ? <span className="small"> (custom)</span> : null}
+            </dd>
+          </div>
+          <div>
+            <dt>Units</dt>
+            <dd className="num">{property.unit_count ?? 1}</dd>
           </div>
           <div>
             <dt>Start</dt>
