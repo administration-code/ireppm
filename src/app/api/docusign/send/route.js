@@ -75,6 +75,7 @@ export async function POST(request) {
   const mode = body?.mode === "send" ? "send" : "review";
   const f = body?.form || {};
   if (!KIND_TEMPLATES[kind]) return NextResponse.json({ error: "Unknown document type." }, { status: 400 });
+  if (kind === "N9") return NextResponse.json({ error: "Tenants give an N9 from their tenant portal." }, { status: 400 });
 
   const problem = validate(kind, f);
   if (problem) return NextResponse.json({ error: problem }, { status: 400 });

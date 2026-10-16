@@ -10,6 +10,10 @@ export const TEMPLATES = {
   N1: { names: ["N1 - Notice of Rent Increase (2022-04)"], env: "DOCUSIGN_TEMPLATE_N1" },
   N4: { names: ["N4 - Non-Payment of Rent (2026-09)"], env: "DOCUSIGN_TEMPLATE_N4" },
   N5: { names: ["N5 - Interfering, Damage or Overcrowding (2026-09)"], env: "DOCUSIGN_TEMPLATE_N5" },
+  N9: {
+    names: ["N9 - Tenant's Notice to End the Tenancy (2022-04)", "N9 - Tenant's Notice to End the Tenancy (2022-04) (test)"],
+    env: "DOCUSIGN_TEMPLATE_N9",
+  },
   certificate_of_service: {
     names: ["Certificate of Service (2022-04)", "Certificate of Service"],
     env: "DOCUSIGN_TEMPLATE_CERT_OF_SERVICE",
@@ -25,6 +29,7 @@ export const KIND_TEMPLATES = {
   N1: ["N1"],
   N4: ["N4"],
   N5: ["N5"],
+  N9: ["N9"],
   certificate_of_service: ["certificate_of_service"],
 };
 
@@ -164,6 +169,26 @@ const N_SIGNER = [
 const SIGNED_AS = ["Signed As Landlord", "Signed As Representative"];
 
 export const EXPECTED = {
+  N9: {
+    roles: range(MAX_TENANTS).map((n) => `Tenant ${n}`),
+    labels: {
+      "Tenant 1": [
+        "Landlord Name",
+        "Tenant Names",
+        "Rental Unit Address",
+        "Termination Day",
+        "Termination Month",
+        "Termination Year",
+        "Signed As Tenant",
+        "Tenant 1 First Name",
+        "Tenant 1 Last Name",
+        "Tenant 1 Phone Area",
+        "Tenant 1 Phone Prefix",
+        "Tenant 1 Phone Line",
+      ],
+      ...Object.fromEntries(range(MAX_TENANTS).slice(1).map((n) => [`Tenant ${n}`, [`Tenant ${n} Name`]])),
+    },
+  },
   lease: {
     roles: ["Landlord", ...range(MAX_TENANTS).map((n) => `Tenant ${n}`), "Guarantor"],
     labels: {
@@ -850,5 +875,50 @@ export function buildCertificate(f, ids) {
     prefill: prefillOf("Delivery By", text, checks),
     recipients: [{ role: "Delivery By", name: deliverer.name, email: deliverer.email, status: "created" }],
     terms: { served_on: str(f.date_served), method: f.method, notice_form: f.notice_form },
+  };
+}
+
+// N9: tenant's notice to end the tenancy, from the tenant portal. `prep` is what the
+// n9_prepare database function returns; every tenant on the tenancy signs.
+export function buildN9(prep, terminationISO, ids, phone = "") {
+  const tenants = (prep.tenants || []).filter((t) => str(t.full_name) && str(t.email)).slice(0, MAX_TENANTS);
+  const [y, m, d] = String(terminationISO).split("-");
+  const first = splitName(tenants[0]?.full_name);
+  const digits = String(phone || tenants[0]?.phone || "").replace(/\D/g, "").replace(/^1(?=\d{10}$)/, "");
+  const text = {
+    "Landlord Name": prep.landlord_name,
+    "Tenant Names": joinNames(tenants.map((t) => t.full_name)),
+    "Rental Unit Address": prep.address,
+    "Termination Day": d,
+    "Termination Month": m,
+    "Termination Year": y,
+    "Tenant 1 First Name": first.first,
+    "Tenant 1 Last Name": first.last,
+    "Tenant 1 Phone Area": digits.length === 10 ? digits.slice(0, 3) : "",
+    "Tenant 1 Phone Prefix": digits.length === 10 ? digits.slice(3, 6) : "",
+    "Tenant 1 Phone Line": digits.length === 10 ? digits.slice(6) : "",
+  };
+  const prefill = prefillOf("Tenant 1", text, ["Signed As Tenant"]);
+  const templateRoles = tenants.map((t, i) => {
+    const role = `Tenant ${i + 1}`;
+    const roleText = i === 0 ? text : { [`Tenant ${i + 1} Name`]: t.full_name };
+    if (i > 0) prefillOf(role, roleText, [], prefill);
+    return {
+      roleName: role,
+      routingOrder: "1",
+      name: t.full_name,
+      email: str(t.email).toLowerCase(),
+      tabs: tabs(roleText, i === 0 ? ["Signed As Tenant"] : []),
+    };
+  });
+  return {
+    definition: { templateId: ids.N9, templateRoles },
+    prefill,
+    recipients: tenants.map((t, i) => ({ role: `Tenant ${i + 1}`, name: t.full_name, email: t.email, routing_order: 1, status: "created" })),
+    terms: {
+      type: "N9",
+      termination_date: terminationISO,
+      tenants: tenants.map((t) => t.full_name),
+    },
   };
 }

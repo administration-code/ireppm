@@ -165,7 +165,7 @@ async function onCompleted(sb, row) {
   }
 
   let applied = null;
-  if (["lease", "pm_contract"].includes(row.kind) && !row.applied_at) {
+  if (["lease", "pm_contract", "N9"].includes(row.kind) && !row.applied_at) {
     const { data, error } = await sb.rpc("apply_signed_document", { p_request_id: row.id });
     if (error) throw new Error(`Couldn't update records: ${error.message}`);
     applied = data;
@@ -283,6 +283,10 @@ async function completedAlert(row, result) {
     if (result?.consent === false) lines.push("No tenant agreed to email service, so notices must be served on paper.");
   } else if (row.kind === "pm_contract") {
     lines.push("The property's agreement dates were updated.");
+  } else if (row.kind === "N9") {
+    lines.push(
+      `Every tenant signed. The tenancy is now on notice, moving out ${longDate(`${row.terms?.termination_date}T12:00:00`)}, and a turnover has been opened.`
+    );
   } else if (["N1", "N4", "N5"].includes(row.kind)) {
     lines.push("It's ready to serve. Open it to record how and when it was served.");
   } else if (row.terms?.type === "consent") {
