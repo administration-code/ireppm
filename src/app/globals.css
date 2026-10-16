@@ -749,6 +749,11 @@ label.btn[aria-disabled="true"] { opacity: .6; cursor: progress; }
   .dash-turnover-progress { grid-column: auto; }
 }
 
+.app-ctl { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.app-earlier { display: grid; gap: 6px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); }
+.app-earlier summary { cursor: pointer; font-size: .8125rem; color: var(--muted); }
+.linkbtn { background: none; border: 0; padding: 0; font: inherit; color: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; }
+
 .retention-note { color: var(--muted); margin: 0; }
 .privacy-cleanups { margin-top: 16px; }
 .privacy-cleanups th.num, .privacy-cleanups td.num { text-align: right; }
