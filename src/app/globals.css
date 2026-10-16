@@ -704,3 +704,18 @@ label.btn[aria-disabled="true"] { opacity: .6; cursor: progress; }
 .retention-note { color: var(--muted); margin: 0; }
 .privacy-cleanups { margin-top: 16px; }
 .privacy-cleanups th.num, .privacy-cleanups td.num { text-align: right; }
+
+/* Signatures */
+.sig-docs, .sig-events, .sig-missing { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.sig-docs li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.sig-docs li:last-child { border-bottom: 0; }
+.sig-events li { display: grid; grid-template-columns: minmax(140px, auto) 1fr; gap: 4px 16px; font-size: .875rem; }
+.sig-events time { color: var(--muted); }
+.sig-missing li { font-size: .875rem; color: var(--red); }
+.sig-labels { word-break: break-word; }
+.sig-links { flex-wrap: wrap; }
+.sig-period { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+@media (max-width: 640px) {
+  .sig-period { grid-template-columns: 1fr 1fr; }
+  .sig-events li { grid-template-columns: 1fr; }
+}

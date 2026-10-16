@@ -16,6 +16,7 @@ import {
 } from "@/lib/admin-properties";
 import CurrentTenancy from "./CurrentTenancy";
 import RentLedger from "./RentLedger";
+import RecordSignatures from "./signatures/RecordSignatures";
 
 // Past tenancies load their ledger only when opened, to keep the unit page quick.
 function PastLedger({ tenancy }) {
@@ -120,6 +121,7 @@ export default function UnitTenancy({ id }) {
           <CurrentTenancy key={`${current.id}-${current.status}`} tenancy={current} onChanged={reload} />
           <RentLedger tenancy={current} />
           <NoticesPanel tenancyId={current.id} />
+          <RecordSignatures type="tenancy" id={current.id} />
         </>
       ) : starting ? (
         <StartTenancyForm
@@ -134,9 +136,14 @@ export default function UnitTenancy({ id }) {
         <div className="empty">
           <h2>No current tenancy</h2>
           <p>Start a tenancy when a renter signs the lease. You&apos;ll add the dates, rent and at least one tenant.</p>
-          <button type="button" className="btn primary" onClick={() => setStarting(true)}>
-            Start tenancy
-          </button>
+          <div className="req-actions" style={{ justifyContent: "center" }}>
+            <button type="button" className="btn primary" onClick={() => setStarting(true)}>
+              Start tenancy
+            </button>
+            <Link className="btn ghost" href={`/admin/signatures/new?kind=lease&unit=${unit.id}`}>
+              Send a lease for signature
+            </Link>
+          </div>
         </div>
       )}
 

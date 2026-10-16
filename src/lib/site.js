@@ -19,7 +19,20 @@ export const SITE = {
     "Kingsville",
     "Leamington",
   ],
+  // The office address split up for LTB forms and the Standard Lease.
+  office: {
+    unit: "6, Suite 223",
+    streetNumber: "2557",
+    streetName: "Dougall Ave",
+    city: "Windsor",
+    province: "Ontario",
+    provinceCode: "ON",
+    postalCode: "N8X 1T5",
+  },
 };
+
+// Ontario rent increase guideline (%). Units first occupied after November 15, 2018 are exempt.
+export const RENT_GUIDELINE = { year: 2026, percent: 2.1 };
 
 // Monthly management packages, from "IRep PM - Fee Structure.pdf".
 export const PACKAGES = [
