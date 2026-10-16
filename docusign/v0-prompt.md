@@ -81,7 +81,7 @@ Fields are prefilled by **tabLabel** via `templateRoles[].tabs` (`textTabs: [{ta
 
 Roles:
 - "Landlord": IRep signer, routing order 2.
-- "Tenant 1" to "Tenant 4": routing order 1. **The lease supports at most 4 tenants**, because the government form has 4 rows.
+- "Tenant 1" to "Tenant 8": routing order 1. **The lease supports up to 8 tenants.**
 - "Guarantor": optional, routing order 1. Signs Schedule A only.
 - CC "Administration": fixed in the template; don't send it.
 
@@ -91,8 +91,8 @@ Text fields (all owned by Landlord):
 
 | Fields | Value |
 |---|---|
-| "Landlord Legal Name" | The owner's legal name. |
-| "Tenant 1 Last Name", "Tenant 1 First Name" … "Tenant 4 Last Name", "Tenant 4 First Name" | Each tenant's name. |
+| "Landlord Legal Name", "Landlord 2 Legal Name" | The owner's legal name; use the second line for a co-owner, if any. |
+| "Tenant 1 Last Name", "Tenant 1 First Name" … "Tenant 8 Last Name", "Tenant 8 First Name" | Each tenant's name. |
 | "Unit", "Street Number", "Street Name", "City", "Postal Code" | The rental unit. Province is printed on the form. |
 | "Parking" | Parking spaces and description. |
 | "Notice Unit", "Notice Street Number", "Notice Street Name", "Notice PO Box", "Notice City", "Notice Province", "Notice Postal Code" | IRep's office: 2557 / Dougall Ave / unit "6, Suite 223" / Windsor / Ontario / N8X 1T5. |
@@ -137,7 +137,7 @@ Checkboxes (Landlord):
 
 Fields owned by the Tenant roles:
 - Each Tenant N: "Tenant N Signer Name", set to the full name.
-- Tenants 2–4 also have "Tenant N Schedule A Label", which is preset in the template; leave it alone.
+- Tenants 2–8 also have "Tenant N Schedule A Label", and tenants 5–8 have "Tenant N Row Label". These are preset in the template; leave them alone.
 
 ### 2. Consent to Service by Email (LTB form), one copy per tenant
 
@@ -255,7 +255,8 @@ Save the `signature_requests` row before redirecting. If DocuSign returns an err
 - Rent, parking and up to 3 other charges. The total is calculated.
 - Rent due day.
 - Last month's rent deposit (default = total rent) and key deposit (with an optional description).
-- Tenants, 1 to 4: full name, email, phone. Every tenant needs an email.
+- Tenants, 1 to 8: full name, email, phone. Every tenant needs an email.
+- Optional co-owner name for "Landlord 2 Legal Name".
 - Optional guarantor: name and email.
 - Utilities (landlord or tenant, for electricity, heat and water) and services included (yes or no).
 - Parking description, condo yes or no.
@@ -264,7 +265,7 @@ Save the `signature_requests` row before redirecting. If DocuSign returns an err
 **Build the envelope with compositeTemplates:**
 - First: `{serverTemplates: [{sequence: 1, templateId: LEASE}], inlineTemplates: [{sequence: 2, recipients: {signers: [...]}}]}`. Signers:
   - Landlord: recipientId "1".
-  - Tenants: recipientIds "11"–"14".
+  - Tenants: recipientIds "11"–"18".
   - Guarantor: recipientId "20".
   - Each signer has its roleName and tabs.
 - Then, for each tenant: `{serverTemplates: [{sequence: 1, templateId: CONSENT}], inlineTemplates: [{sequence: 2, recipients: {signers: [...]}}]}` with two signers:
