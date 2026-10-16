@@ -23,6 +23,7 @@ function navCounts(d) {
     maintenanceNew: num(d.maintenance?.new),
     unmatchedPayments: num(d.to_match?.count),
     openTurnovers: num(d.turnovers?.open),
+    awaitingSignatures: num(d.awaiting_signatures),
   };
 }
 

@@ -67,7 +67,7 @@ export function sortNewest(list) {
 
 export async function loadInbox() {
   const sb = getBrowserClient();
-  const [showings, applications, inquiries, drafts, maintenanceNew, unmatchedPayments, openTurnovers, deletions] = await Promise.all([
+  const [showings, applications, inquiries, drafts, maintenanceNew, unmatchedPayments, openTurnovers, deletions, awaiting] = await Promise.all([
     sb
       .from("showing_requests")
       .select(
@@ -89,6 +89,7 @@ export async function loadInbox() {
     sb.from("payments").select("id", { count: "exact", head: true }).eq("status", "unmatched"),
     sb.from("turnovers").select("id", { count: "exact", head: true }).not("status", "in", "(leased,cancelled)"),
     sb.from("document_deletions").select("id, files_deleted, deleted_at").order("deleted_at", { ascending: false }).limit(20),
+    sb.from("signature_requests").select("id", { count: "exact", head: true }).in("status", ["draft", "sent", "delivered"]),
   ]);
 
   const failed = [showings, applications, inquiries].some((r) => r.error);
@@ -100,6 +101,7 @@ export async function loadInbox() {
     maintenanceNew: maintenanceNew.count || 0,
     unmatchedPayments: unmatchedPayments.count || 0,
     openTurnovers: openTurnovers.count || 0,
+    awaitingSignatures: awaiting.count || 0,
     deletions: deletions.data || [],
     deletionsError: Boolean(deletions.error),
     error: failed ? "Some requests couldn't load. Refresh the page to try again." : "",
