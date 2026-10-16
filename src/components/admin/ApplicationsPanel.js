@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import ContactLine from "@/components/admin/ContactLine";
 import MoveInForm from "@/components/admin/MoveInForm";
 import { getBrowserClient } from "@/lib/supabase";
@@ -176,7 +177,14 @@ function ApplicationItem({ app, onChange }) {
           </span>
         ) : null}
       </div>
-      {app.status === "approved" ? <MoveInForm app={app} /> : null}
+      {app.status === "approved" ? (
+        <>
+          <Link className="btn ghost sm" style={{ justifySelf: "start" }} href={`/admin/signatures/new?kind=lease&application=${app.id}`}>
+            Send lease for signature
+          </Link>
+          <MoveInForm app={app} />
+        </>
+      ) : null}
     </li>
   );
 }

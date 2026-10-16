@@ -9,6 +9,7 @@ const SECTIONS = [
   { key: "payouts", href: "/admin/payouts", label: "Landlord payouts" },
   { key: "letters", href: "/admin/letters", label: "Landlord letters" },
   { key: "notices", href: "/admin/notices", label: "Notices" },
+  { key: "signatures", href: "/admin/signatures", label: "Signatures" },
   { key: "properties", href: "/admin/properties", label: "Properties" },
   { key: "owners", href: "/admin/owners", label: "Owners" },
   { key: "partners", href: "/admin/partners", label: "Partners" },
