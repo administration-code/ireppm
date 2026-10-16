@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import DeleteRecord from "@/components/admin/DeleteRecord";
+import { canDeleteSignature, deleteSignatureRequest } from "@/lib/delete-records";
 import { getBrowserClient } from "@/lib/supabase";
 import { refreshStaffCounts } from "@/lib/admin-nav";
 import SigStatus from "@/components/admin/signatures/SigStatus";
@@ -29,6 +32,7 @@ const when = (iso) =>
   iso ? new Date(iso).toLocaleString("en-CA", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }) : "";
 
 export default function SignatureDetail({ id }) {
+  const router = useRouter();
   const [state, setState] = useState({ loading: true });
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState({ text: "", tone: "" });
@@ -143,6 +147,15 @@ export default function SignatureDetail({ id }) {
             <button type="button" className="link-btn small" onClick={() => setVoiding(true)}>
               Void
             </button>
+          ) : null}
+          {canDeleteSignature(row) ? (
+            <span className="req-actions-end">
+              <DeleteRecord
+                summary={`"${row.title}"`}
+                run={(r) => deleteSignatureRequest(row, r)}
+                onDeleted={() => router.push("/admin/signatures")}
+              />
+            </span>
           ) : null}
         </div>
         {voiding ? (

@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getBrowserClient } from "@/lib/supabase";
 import SigStatus from "@/components/admin/signatures/SigStatus";
+import DeleteRecord from "@/components/admin/DeleteRecord";
+import { canDeleteSignature, deleteSignatureRequest } from "@/lib/delete-records";
 import { SIG_FILTERS, SIG_KIND, SIG_LIST_SELECT, outTo, shortDate } from "@/lib/signatures";
 
 export default function SignaturesList() {
@@ -91,6 +93,9 @@ export default function SignaturesList() {
                 <th scope="col">Status</th>
                 <th scope="col">Sent</th>
                 <th scope="col">Completed</th>
+                <th scope="col" className="r">
+                  <span className="visually-hidden">Actions</span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -108,6 +113,15 @@ export default function SignaturesList() {
                   </td>
                   <td className="small">{shortDate(r.sent_at) || "—"}</td>
                   <td className="small">{shortDate(r.completed_at) || "—"}</td>
+                  <td className="r">
+                    {canDeleteSignature(r) ? (
+                      <DeleteRecord
+                        summary={`"${r.title}"`}
+                        run={(reason) => deleteSignatureRequest(r, reason)}
+                        onDeleted={() => setRows((list) => list.filter((x) => x.id !== r.id))}
+                      />
+                    ) : null}
+                  </td>
                 </tr>
               ))}
             </tbody>

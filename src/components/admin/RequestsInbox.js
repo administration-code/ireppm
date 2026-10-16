@@ -6,6 +6,7 @@ import ShowingsPanel from "@/components/admin/ShowingsPanel";
 import ApplicationsPanel from "@/components/admin/ApplicationsPanel";
 import InquiriesPanel from "@/components/admin/InquiriesPanel";
 import PrivacyCleanups from "@/components/admin/PrivacyCleanups";
+import DeletedRecords from "@/components/admin/DeletedRecords";
 import { TABS, loadInbox, sortShowings } from "@/lib/admin-requests";
 
 const replaceIn = (list, item) => list.map((x) => (x.id === item.id ? item : x));
@@ -33,6 +34,8 @@ export default function RequestsInbox() {
       return { ...s, [key]: key === "showings" ? sortShowings(next) : next };
     });
 
+  const remove = (key) => (id) => setState((s) => ({ ...s, [key]: s[key].filter((x) => x.id !== id) }));
+
   return (
     <div className="stack" style={{ gap: 24 }}>
       <div className="admin-head">
@@ -48,14 +51,15 @@ export default function RequestsInbox() {
       {state.loading ? (
         <p className="small">Loading requests…</p>
       ) : tab === "showings" ? (
-        <ShowingsPanel showings={state.showings} onChange={update("showings")} />
+        <ShowingsPanel showings={state.showings} onChange={update("showings")} onRemove={remove("showings")} />
       ) : tab === "applications" ? (
-        <ApplicationsPanel applications={state.applications} onChange={update("applications")} />
+        <ApplicationsPanel applications={state.applications} onChange={update("applications")} onRemove={remove("applications")} />
       ) : (
-        <InquiriesPanel inquiries={state.inquiries} onChange={update("inquiries")} />
+        <InquiriesPanel inquiries={state.inquiries} onChange={update("inquiries")} onRemove={remove("inquiries")} />
       )}
 
       {state.loading ? null : <PrivacyCleanups deletions={state.deletions || []} failed={state.deletionsError} />}
+      {state.loading ? null : <DeletedRecords records={state.deletedRecords || []} failed={state.deletedRecordsError} />}
     </div>
   );
 }

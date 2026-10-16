@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import ContactLine from "@/components/admin/ContactLine";
+import DeleteRecord from "@/components/admin/DeleteRecord";
+import { deleteLeasingRecord } from "@/lib/delete-records";
 import { listingTitle } from "@/lib/format";
 import { SHOWING_STATUS, prettyDateTime, prettyDay, updateRow } from "@/lib/admin-requests";
 
@@ -19,7 +21,7 @@ const ACTIONS = {
   cancelled: [],
 };
 
-function ShowingItem({ showing, onChange }) {
+function ShowingItem({ showing, onChange, onRemove }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const renter = showing.renter || {};
@@ -84,9 +86,8 @@ function ShowingItem({ showing, onChange }) {
 
       {showing.notes ? <p className="req-note">{showing.notes}</p> : null}
 
-      {ACTIONS[showing.status]?.length ? (
-        <div className="req-actions">
-          {ACTIONS[showing.status].map((a) => (
+      <div className="req-actions">
+          {(ACTIONS[showing.status] || []).map((a) => (
             <button
               key={a.to}
               type="button"
@@ -102,13 +103,19 @@ function ShowingItem({ showing, onChange }) {
               {error}
             </span>
           ) : null}
-        </div>
-      ) : null}
+          <span className="req-actions-end">
+            <DeleteRecord
+              summary={`the showing request from ${renter.full_name || renter.email || "this renter"}`}
+              run={(reason) => deleteLeasingRecord("showing_request", showing.id, reason)}
+              onDeleted={() => onRemove(showing.id)}
+            />
+          </span>
+      </div>
     </li>
   );
 }
 
-export default function ShowingsPanel({ showings, onChange }) {
+export default function ShowingsPanel({ showings, onChange, onRemove }) {
   if (!showings.length) {
     return (
       <div className="empty">
@@ -120,7 +127,7 @@ export default function ShowingsPanel({ showings, onChange }) {
   return (
     <ul className="req-list">
       {showings.map((s) => (
-        <ShowingItem key={s.id} showing={s} onChange={onChange} />
+        <ShowingItem key={s.id} showing={s} onChange={onChange} onRemove={onRemove} />
       ))}
     </ul>
   );

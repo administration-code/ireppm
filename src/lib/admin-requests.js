@@ -68,7 +68,7 @@ export function sortNewest(list) {
 
 export async function loadInbox() {
   const sb = getBrowserClient();
-  const [showings, applications, inquiries, deletions] = await Promise.all([
+  const [showings, applications, inquiries, deletions, deleted] = await Promise.all([
     sb
       .from("showing_requests")
       .select(
@@ -86,10 +86,18 @@ export async function loadInbox() {
       .select("id, name, email, phone, property_address, interest, message, status, created_at")
       .order("created_at", { ascending: false }),
     sb.from("document_deletions").select("id, files_deleted, deleted_at").order("deleted_at", { ascending: false }).limit(20),
+    sb.from("deleted_records").select("id, kind, summary, reason, deleted_by, deleted_at").order("deleted_at", { ascending: false }).limit(50),
   ]);
+
+  const deletedRows = deleted.data || [];
+  const staffIds = [...new Set(deletedRows.map((r) => r.deleted_by).filter(Boolean))];
+  const staff = staffIds.length ? await sb.from("profiles").select("id, full_name, email").in("id", staffIds) : { data: [] };
+  const staffName = Object.fromEntries((staff.data || []).map((p) => [p.id, p.full_name || p.email]));
 
   const failed = [showings, applications, inquiries].some((r) => r.error);
   return {
+    deletedRecords: deletedRows.map((r) => ({ ...r, who: staffName[r.deleted_by] || "Staff" })),
+    deletedRecordsError: Boolean(deleted.error),
     showings: sortShowings(showings.data || []),
     applications: sortNewest(applications.data || []),
     inquiries: sortNewest(inquiries.data || []),

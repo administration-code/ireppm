@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import ContactLine from "@/components/admin/ContactLine";
 import MoveInForm from "@/components/admin/MoveInForm";
+import DeleteRecord from "@/components/admin/DeleteRecord";
+import { deleteLeasingRecord } from "@/lib/delete-records";
 import { getBrowserClient } from "@/lib/supabase";
 import { listingTitle } from "@/lib/format";
 import { DOC_BUCKET, DOC_TYPES, INCOME_TYPES } from "@/lib/documents";
@@ -96,7 +98,7 @@ function shortDate(iso) {
   return new Date(iso).toLocaleDateString("en-CA", { month: "short", day: "numeric" });
 }
 
-function ApplicationItem({ app, onChange, earlier = [] }) {
+function ApplicationItem({ app, onChange, onRemove, earlier = [] }) {
   const [status, setStatus] = useState(app.status);
   const [notes, setNotes] = useState(app.staff_notes || "");
   const [saving, setSaving] = useState(false);
@@ -195,6 +197,13 @@ function ApplicationItem({ app, onChange, earlier = [] }) {
             {msg.text}
           </span>
         ) : null}
+        <span className="req-actions-end">
+          <DeleteRecord
+            summary={`the application from ${app.applicant_name || app.applicant_email || "this renter"}`}
+            run={(reason) => deleteLeasingRecord("application", app.id, reason)}
+            onDeleted={() => onRemove(app.id)}
+          />
+        </span>
       </div>
       {app.status === "approved" ? (
         <>
@@ -212,7 +221,7 @@ function ApplicationItem({ app, onChange, earlier = [] }) {
                 Earlier application ({(APPLICATION_STATUS[e.status] || e.status).toLowerCase()}, {shortDate(e.created_at)})
               </summary>
               <ul className="req-list">
-                <ApplicationItem app={e} onChange={onChange} />
+                <ApplicationItem app={e} onChange={onChange} onRemove={onRemove} />
               </ul>
             </details>
           ))}
@@ -222,7 +231,7 @@ function ApplicationItem({ app, onChange, earlier = [] }) {
   );
 }
 
-export default function ApplicationsPanel({ applications, onChange }) {
+export default function ApplicationsPanel({ applications, onChange, onRemove }) {
   if (!applications.length) {
     return (
       <div className="empty">
@@ -234,7 +243,7 @@ export default function ApplicationsPanel({ applications, onChange }) {
   return (
     <ul className="req-list">
       {groupApplications(applications).map(({ latest, earlier }) => (
-        <ApplicationItem key={latest.id} app={latest} earlier={earlier} onChange={onChange} />
+        <ApplicationItem key={latest.id} app={latest} earlier={earlier} onChange={onChange} onRemove={onRemove} />
       ))}
     </ul>
   );
