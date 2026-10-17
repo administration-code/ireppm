@@ -3,7 +3,7 @@
 import { useState } from "react";
 import SendButtons from "@/components/admin/signatures/SendButtons";
 import { MAX_TENANTS, leaseTotal } from "@/lib/docusign-templates";
-import { IREP_SIGNER, LEASE_DEFAULTS } from "@/lib/lease-defaults";
+import { LEASE_DEFAULTS } from "@/lib/lease-defaults";
 import { baseFields, tenantsOf } from "@/lib/signature-context";
 
 export default function LeaseForm({ ctx }) {
@@ -25,7 +25,7 @@ export default function LeaseForm({ ctx }) {
     guarantor_email: "",
     rent_payable_to: LEASE_DEFAULTS.rentPayableTo,
     payment_methods: LEASE_DEFAULTS.paymentMethods,
-    signer: { mode: "irep", name: "", email: "" },
+    signer: { mode: "owner", name: "", email: "" },
   }));
   const set = (k) => (e) => setF((s) => ({ ...s, [k]: e.target.type === "checkbox" ? e.target.checked : e.target.value }));
   const setTenant = (i, k) => (e) =>
@@ -130,14 +130,8 @@ export default function LeaseForm({ ctx }) {
             <label htmlFor="l-landlord">Landlord legal name</label>
             <input id="l-landlord" value={f.landlord_name} onChange={set("landlord_name")} />
           </div>
-          <div className="field">
-            <label htmlFor="l-signer">Who signs for the landlord</label>
-            <select id="l-signer" value={f.signer.mode} onChange={setSigner("mode")}>
-              <option value="irep">{IREP_SIGNER.name} (IRep, as agent)</option>
-              <option value="owner">The owner</option>
-            </select>
-          </div>
         </div>
+        <p className="small">The landlord signs the lease. Leave these blank to use the owner on file.</p>
         {f.signer.mode === "owner" ? (
           <div className="row2">
             <div className="field">

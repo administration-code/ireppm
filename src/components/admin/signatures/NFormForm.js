@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import SendButtons from "@/components/admin/signatures/SendButtons";
-import { IREP_SIGNER } from "@/lib/lease-defaults";
 import { addDays, todayIso } from "@/lib/signatures";
 import { baseFields, placeOf, tenantNamesOf } from "@/lib/signature-context";
 
@@ -21,7 +20,7 @@ export default function NFormForm({ kind, ctx }) {
     ...baseFields(ctx),
     tenant_names: tenantNamesOf(ctx),
     unit_address: [placeOf(ctx), ctx.property?.city, ctx.property?.postal_code].filter(Boolean).join(", "),
-    signing_as: "rep",
+    signing_as: "landlord",
     signer: { name: "", email: "", phone: "" },
     current_rent: rent,
     new_rent: "",
@@ -75,13 +74,7 @@ export default function NFormForm({ kind, ctx }) {
             <input id="n-landlord" value={f.landlord_name} onChange={set("landlord_name")} />
           </div>
         </div>
-        <div className="field">
-          <label htmlFor="n-signing">Signed by</label>
-          <select id="n-signing" value={f.signing_as} onChange={set("signing_as")}>
-            <option value="rep">{IREP_SIGNER.name} as representative (IRep)</option>
-            <option value="landlord">The landlord</option>
-          </select>
-        </div>
+        <p className="small">The landlord signs this notice. Leave these blank to use the owner on file.</p>
         {f.signing_as === "landlord" ? (
           <div className="row3">
             <div className="field">

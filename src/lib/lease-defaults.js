@@ -31,7 +31,7 @@ export const LEASE_DEFAULTS = {
   landlordEmail: SITE.email,
 };
 
-// Representative block on N1, N4, N5 when IRep signs as agent. The LSO number stays blank.
+// IRep's office details (letters, receipts). IRep never signs N-forms or agreements for a landlord.
 export const REP = {
   company: SITE.name,
   streetNumber: SITE.office.streetNumber,

@@ -7,7 +7,7 @@ import { KIND_TEMPLATES, buildN11 } from "@/lib/docusign-templates";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Staff approve a tenant's early move-out request: send the N11 to every tenant, then IRep.
+// Staff approve a tenant's early move-out request: send the N11 to every tenant, then the landlord.
 // POST { request_id }  with  Authorization: Bearer <staff token>
 // (Declining is the decline_n11_request database function.)
 export async function POST(request) {
@@ -31,6 +31,16 @@ export async function POST(request) {
     return NextResponse.json({ error: "No tenant on this tenancy has an email. Add one first." }, { status: 400 });
   }
 
+  const { data: owner } = prep.owner_id
+    ? await sb.from("owners").select("id, name, email, phone").eq("id", prep.owner_id).maybeSingle()
+    : { data: null };
+  if (!owner?.email) {
+    return NextResponse.json(
+      { error: "The landlord signs the N11, so they need an email. Add it on the owner's page first." },
+      { status: 400 }
+    );
+  }
+
   let ids;
   try {
     ids = await resolveTemplates(KIND_TEMPLATES.N11);
@@ -39,7 +49,7 @@ export async function POST(request) {
   }
   if (!ids.N11) return NextResponse.json({ error: "DocuSign template not found: N11." }, { status: 400 });
 
-  const built = buildN11(prep, req, ids);
+  const built = buildN11(prep, req, ids, owner);
   const place = [prep.property_address, prep.unit_label].filter(Boolean).join(", ");
   const title = `N11: ${place}`;
   const emailSubject = `Please sign: Agreement to end your tenancy (${place})`.slice(0, 100);

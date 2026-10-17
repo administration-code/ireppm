@@ -300,7 +300,7 @@ From the tenancy page. For N4, also from the arrears list on the /admin dashboar
 
 Form fields:
 - Termination or increase date, amounts, and reasons and events (N5).
-- The signing party: "Representative" by default (IRep as agent), or "Landlord".
+- The signing party is always the landlord (the owner on file, or a name and email staff type in). IRep never signs for a landlord.
 
 When "Representative" is chosen, fill the Rep fields from SITE and leave "Rep LSO Number" blank.
 
@@ -312,7 +312,7 @@ Warnings:
   - the increase date is less than 12 months after the tenancy start or the last N1's effective date;
   - the increase is above the guideline. The 2026 guideline is 2.1%; keep it in src/lib/site.js. Add a note that units first occupied after November 15, 2018 are exempt from the guideline.
 
-The landlord (or IRep as representative) signs in DocuSign. Tenants don't sign N-forms.
+The landlord signs in DocuSign (never IRep). Tenants don't sign N-forms.
 
 ### 5. Serve a signed N-form
 

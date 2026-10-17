@@ -431,10 +431,12 @@ function prefillOf(role, text = {}, checks = [], into = {}) {
   return into;
 }
 
-function signerOf(f, owner) {
-  if (f?.mode === "owner" && str(f.email)) return { name: str(f.name), email: str(f.email).toLowerCase(), isIrep: false };
-  if (f?.mode === "owner" && owner?.email) return { name: owner.name, email: owner.email.toLowerCase(), isIrep: false };
-  return { name: IREP_SIGNER.name, email: IREP_SIGNER.email, isIrep: true };
+// The landlord always signs. IRep drafts and sends, but never signs for a landlord.
+// Staff can type a different owner contact (e.g. a co-owner); otherwise the property's owner.
+export function signerOf(f, owner) {
+  const name = str(f?.name) || str(owner?.name);
+  const email = (str(f?.email) || str(owner?.email)).toLowerCase();
+  return { name, email, phone: str(f?.phone) || str(owner?.phone), isIrep: false };
 }
 
 // Prorated first month: rent × days remaining ÷ days in month.
@@ -544,9 +546,7 @@ export function buildLease(f, ids, owner) {
     "Key Deposit Amount": Number(f.key_deposit) > 0 ? amount(f.key_deposit) : "",
     "Key Deposit Details": Number(f.key_deposit) > 0 ? f.key_deposit_details : "",
     "Smoking Rules Details": LEASE_DEFAULTS.smokingRules,
-    "Landlord Signer Name": signer.isIrep
-      ? `${IREP_SIGNER.name}, ${REP.company} (agent for ${landlordName || "the landlord"})`
-      : signer.name,
+    "Landlord Signer Name": signer.name,
     "Guarantor Name": f.guarantor_name,
   };
   tenants.forEach((t, i) => {
@@ -718,12 +718,10 @@ export function buildPmContract(f, ids) {
   };
 }
 
+// N-forms are always signed by the landlord (never IRep as representative).
 function nFormSigner(f, owner) {
-  const rep = f.signing_as !== "landlord";
-  const s = rep
-    ? { name: IREP_SIGNER.name, email: IREP_SIGNER.email, phone: IREP_SIGNER.phone }
-    : { name: str(f.signer?.name) || owner?.name || "", email: str(f.signer?.email) || owner?.email || "", phone: str(f.signer?.phone) || owner?.phone || "" };
-  return { rep, ...s, ...splitName(s.name) };
+  const s = signerOf(f.signer, owner);
+  return { rep: false, name: s.name, email: s.email, phone: s.phone, ...splitName(s.name) };
 }
 
 function nUnitText(f) {
@@ -890,7 +888,8 @@ export function buildCertificate(f, ids) {
     "Served To Tenant",
     names.length > 1 ? "More Than One Tenant" : "",
     method.tab,
-    "Signed As Representative",
+    // The person who delivered it signs as "Other": IRep is never the landlord's representative.
+    "Signed As Other",
   ];
   return {
     definition: {
@@ -953,14 +952,16 @@ function phoneParts(phone) {
   return digits.length === 10 ? [digits.slice(0, 3), digits.slice(3, 6), digits.slice(6)] : ["", "", ""];
 }
 
-// N11: agreement to end the tenancy early. Every tenant signs first, then IRep for the landlord.
+// N11: agreement to end the tenancy early. Every tenant signs first, then the landlord.
 // `prep` is what n9_prepare returns; `request` is the n11_requests row.
-export function buildN11(prep, request, ids) {
+export function buildN11(prep, request, ids, owner) {
   const tenants = (prep.tenants || []).filter((t) => str(t.full_name) && str(t.email)).slice(0, MAX_TENANTS);
   const [y, m, d] = String(request.termination_date).split("-");
   const first = splitName(tenants[0]?.full_name);
   const [ta, tp, tl] = phoneParts(request.phone || tenants[0]?.phone);
-  const [la, lp, ll] = phoneParts(IREP_SIGNER.phone);
+  const landlord = signerOf(null, owner);
+  const ln = splitName(landlord.name);
+  const [la, lp, ll] = phoneParts(landlord.phone);
   const text = {
     "Tenant Names": joinNames(tenants.map((t) => t.full_name)),
     "Landlord Name": prep.landlord_name,
@@ -975,8 +976,8 @@ export function buildN11(prep, request, ids) {
     "Tenant 1 Phone Line": tl,
   };
   const landlordText = {
-    "Landlord First Name": IREP_SIGNER.firstName,
-    "Landlord Last Name": IREP_SIGNER.lastName,
+    "Landlord First Name": ln.first,
+    "Landlord Last Name": ln.last,
     "Landlord Phone Area": la,
     "Landlord Phone Prefix": lp,
     "Landlord Phone Line": ll,
@@ -988,13 +989,13 @@ export function buildN11(prep, request, ids) {
     if (i > 0) prefillOf(`Tenant ${i + 1}`, roleText, [], prefill);
     return { roleName: `Tenant ${i + 1}`, routingOrder: "1", name: t.full_name, email: str(t.email).toLowerCase(), tabs: tabs(roleText) };
   });
-  templateRoles.push({ roleName: "Landlord", routingOrder: "2", name: IREP_SIGNER.name, email: IREP_SIGNER.email, tabs: tabs(landlordText) });
+  templateRoles.push({ roleName: "Landlord", routingOrder: "2", name: landlord.name, email: landlord.email, tabs: tabs(landlordText) });
   return {
     definition: { templateId: ids.N11, templateRoles },
     prefill,
     recipients: [
       ...tenants.map((t, i) => ({ role: `Tenant ${i + 1}`, name: t.full_name, email: t.email, routing_order: 1, status: "created" })),
-      { role: "Landlord", name: IREP_SIGNER.name, email: IREP_SIGNER.email, routing_order: 2, status: "created" },
+      { role: "Landlord", name: landlord.name, email: landlord.email, routing_order: 2, status: "created" },
     ],
     terms: {
       type: "N11",

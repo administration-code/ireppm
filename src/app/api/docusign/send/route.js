@@ -40,9 +40,7 @@ function validate(kind, f) {
     if (!f.termination_date) return "Add the termination date.";
     if (!(f.reasons || []).length) return "Choose at least one reason.";
   }
-  if (["N1", "N4", "N5"].includes(kind) && f.signing_as === "landlord" && !EMAIL.test(str(f.signer?.email))) {
-    return "The landlord signer needs an email.";
-  }
+
   if (kind === "certificate_of_service") {
     if (!f.related_request_id) return "Missing the notice this certificate is for.";
     if (!str(f.deliverer_name) || !EMAIL.test(str(f.deliverer_email))) return "Add the name and email of the person who delivered it.";
@@ -97,6 +95,17 @@ export async function POST(request) {
   if (f.owner_id) {
     const { data } = await sb.from("owners").select("id, name, email, phone").eq("id", f.owner_id).maybeSingle();
     owner = data;
+  }
+
+  // The landlord signs leases, consent forms and N-forms; IRep never signs for them.
+  if (["lease", "consent", "N1", "N4", "N5"].includes(kind)) {
+    const email = str(f.signer?.email) || str(owner?.email);
+    if (!EMAIL.test(email)) {
+      return NextResponse.json(
+        { error: "The landlord signs this, so they need an email. Add it on the owner's page, or type the signer's email." },
+        { status: 400 }
+      );
+    }
   }
 
   let built;
