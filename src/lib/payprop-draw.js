@@ -2,10 +2,9 @@ import "server-only";
 import { randomInt } from "node:crypto";
 import { sendMail, staffEmails, SITE_URL } from "@/lib/application-review";
 
-// Monthly $100 gift card draw. Tenants were told: pay through PayProp *before the 7th* (so by the
-// 6th) and you're entered; payments on or after the 7th aren't. The "paid by the 7th" list is the
-// on-time list used for payouts (on or before the 7th).
-export const DRAW_LAST_DAY = 6;
+// Monthly $100 gift card draw: tenants who pay in full through PayProp on or before the 7th are entered.
+// The "paid by the 7th" list (on or before the 7th) is also the on-time list used for payouts.
+export const DRAW_LAST_DAY = 7;
 export const ON_TIME_LAST_DAY = 7;
 export const DRAW_PRIZE = "$100 Visa or Mastercard gift card";
 
@@ -93,7 +92,7 @@ export async function emailWinner(admin, periodIso) {
     subject: `You won this month's ${DRAW_PRIZE}!`,
     lines: [
       `Hi ${String(d.winner_name || "").split(/[ ,]/)[0] || "there"},`,
-      `Congratulations! You paid your ${monthName(period)} rent through PayProp before the 7th, and your name was drawn for this month's ${DRAW_PRIZE}.`,
+      `Congratulations! You paid your ${monthName(period)} rent through PayProp by the 7th, and your name was drawn for this month's ${DRAW_PRIZE}.`,
       "We'll be in touch shortly to get it to you. Thanks for paying on time through PayProp. Keep it up and you're entered again every month.",
     ],
   });
@@ -115,7 +114,7 @@ export async function drawDigest(admin, todayIso) {
     lines: [
       `Paid in full on or before the 7th: ${onTime.length} of ${rows.length} tenancies.`,
       onTime.length ? `Paid by the 7th:\n${onTime.map(line).join("\n")}` : "",
-      `In the ${DRAW_PRIZE} draw (paid through PayProp before the 7th): ${entered.length}.`,
+      `In the ${DRAW_PRIZE} draw (paid through PayProp on or before the 7th): ${entered.length}.`,
       "Next: check any PayProp payments still to import, then draw the winner on the draw page.",
     ],
     link: `${SITE_URL}/admin/rent/draw?month=${period.slice(0, 7)}`,

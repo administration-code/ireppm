@@ -155,7 +155,7 @@ export default function PaypropDraw() {
             <button type="button" className="btn primary" disabled={Boolean(busy) || !entered.length} onClick={() => act("draw", (r) => `${r.winner.tenant} was drawn from ${r.entries} entries.`)}>
               {busy === "draw" ? "Drawing…" : `Draw a winner from ${entered.length} ${entered.length === 1 ? "entry" : "entries"}`}
             </button>
-            <span className="small">Picked at random. Entries: paid in full by the 7th, through PayProp before the 7th.</span>
+            <span className="small">Picked at random. Entries: paid in full through PayProp on or before the 7th.</span>
           </div>
         )}
       </section>
