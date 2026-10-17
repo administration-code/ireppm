@@ -54,7 +54,7 @@ export default function YearPrint({ year }) {
 
       <section className="stmt-section stack">
         <h2 className="sec-title">IRep income</h2>
-        <IncomeTable rows={data.irep_income} year={year} />
+        <IncomeTable rows={data.irep_income} year={year} hst={data.hst_collected} />
       </section>
 
       <section className="stmt-section stack">

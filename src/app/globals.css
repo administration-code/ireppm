@@ -829,3 +829,28 @@ label.btn[aria-disabled="true"] { opacity: .6; cursor: progress; }
   .acct-print { border: 0; padding: 0; }
   .acct-print .no-print { display: none; }
 }
+
+/* Year-end reports, commissions, tenant notice */
+.mutedbox { background: var(--surface-2); color: var(--muted); padding: 12px 14px; border-radius: var(--radius); margin: 0; }
+.moveout { display: grid; gap: 12px; border-top: 1px solid var(--line); padding-top: 16px; }
+.acct-st tfoot th, .acct-st tfoot td { font-weight: 600; border-top: 2px solid var(--fg); border-bottom: 0; }
+.acct-st tbody th { font-weight: 500; }
+.ly-report { display: grid; gap: 24px; }
+.ly-head { display: grid; gap: 4px; }
+.ly-head p { margin: 0; }
+.ly-table-wrap { overflow-x: auto; }
+.ly-table { min-width: 980px; }
+.ly-t776 { max-width: 720px; }
+.acct-rule { margin: 0; padding: 12px 14px; border-left: 3px solid var(--red); background: var(--surface); font-size: .9375rem; }
+.acct-loans { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.acct-bar { height: 10px; background: var(--surface-2); border-radius: 999px; overflow: hidden; }
+.acct-bar > span { display: block; height: 100%; background: var(--red); border-radius: 999px; }
+.btn-sm { padding: 6px 12px; font-size: .8125rem; }
+details.boxed > summary { cursor: pointer; }
+@media print {
+  .ly-report { break-after: page; gap: 14px; }
+  .ly-property { break-inside: avoid-page; }
+  .ly-table-wrap { overflow: visible; }
+  .ly-table { min-width: 0; font-size: .625rem; }
+  .ly-table th, .ly-table td { padding: 3px 4px; }
+}

@@ -117,37 +117,61 @@ export function AccountSummary({ account }) {
   );
 }
 
-export function IncomeTable({ rows, year }) {
+export const INCOME_COLS = [
+  ["management_fees", "Management fees"],
+  ["management_hst", "HST on management"],
+  ["leasing_fees", "Leasing fees"],
+  ["leasing_hst", "HST on leasing"],
+  ["commissions_paid", "Commissions paid"],
+  ["loan_repaid", "Loan repaid"],
+];
+
+export function IncomeTable({ rows, year, hst }) {
+  const mgmt = Number(hst?.management || 0);
+  const leasing = Number(hst?.leasing || 0);
   return (
-    <div className="table-wrap">
-      <table className="data-table">
-        <thead>
-          <tr>
-            <th scope="col">Month</th>
-            <th scope="col" className="num">Management fees</th>
-            <th scope="col" className="num">HST on management fees</th>
-            <th scope="col" className="num">Leasing fees incl. HST</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={r.period}>
-              <th scope="row">{monthOnly(r.period)}</th>
-              <td className="num">{dollars(r.management_fees)}</td>
-              <td className="num">{dollars(r.management_hst)}</td>
-              <td className="num">{dollars(r.leasing_fees_incl_hst)}</td>
+    <div className="stack" style={{ gap: 8 }}>
+      <div className="table-wrap" style={{ marginTop: 0 }}>
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th scope="col">Month</th>
+              {INCOME_COLS.map(([k, label]) => (
+                <th key={k} scope="col" className="num">
+                  {label}
+                </th>
+              ))}
             </tr>
-          ))}
-        </tbody>
-        <tfoot>
-          <tr>
-            <th scope="row">{year} total</th>
-            <td className="num">{dollars(sum(rows, "management_fees"))}</td>
-            <td className="num">{dollars(sum(rows, "management_hst"))}</td>
-            <td className="num">{dollars(sum(rows, "leasing_fees_incl_hst"))}</td>
-          </tr>
-        </tfoot>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.period}>
+                <th scope="row">{monthOnly(r.period)}</th>
+                {INCOME_COLS.map(([k]) => (
+                  <td key={k} className="num">
+                    {dollars(r[k])}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr>
+              <th scope="row">{year} total</th>
+              {INCOME_COLS.map(([k]) => (
+                <td key={k} className="num">
+                  {dollars(sum(rows, k))}
+                </td>
+              ))}
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      {hst ? (
+        <p className="small">
+          HST collected: management {dollars(mgmt)}, leasing {dollars(leasing)}, total {dollars(mgmt + leasing)}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -229,13 +253,16 @@ async function downloadPackage(data) {
   await wait(400);
   downloadCsv(
     `irep-${y}-irep-income.csv`,
-    ["month", "management_fees", "management_hst", "leasing_fees_incl_hst"],
-    data.irep_income.map((r) => [
-      String(r.period).slice(0, 7),
-      money(r.management_fees),
-      money(r.management_hst),
-      money(r.leasing_fees_incl_hst),
-    ])
+    ["month", ...INCOME_COLS.map(([k]) => k)],
+    [
+      ...data.irep_income.map((r) => [String(r.period).slice(0, 7), ...INCOME_COLS.map(([k]) => money(r[k]))]),
+      ["hst_collected_management", money(data.hst_collected?.management)],
+      ["hst_collected_leasing", money(data.hst_collected?.leasing)],
+      [
+        "hst_collected_total",
+        money(Number(data.hst_collected?.management || 0) + Number(data.hst_collected?.leasing || 0)),
+      ],
+    ]
   );
   await wait(400);
   downloadCsv(
@@ -371,7 +398,7 @@ export default function YearBoard({ initialYear }) {
             <h2 id={`${id}-income`} className="sec-title">
               IRep income
             </h2>
-            <IncomeTable rows={data.irep_income} year={year} />
+            <IncomeTable rows={data.irep_income} year={year} hst={data.hst_collected} />
           </section>
 
           <section className="boxed stack" aria-labelledby={`${id}-owners`}>

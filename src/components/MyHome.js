@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { getBrowserClient } from "@/lib/supabase";
 import { SITE } from "@/lib/site";
+import MovingOut from "@/components/MovingOut";
 import {
   CATEGORIES,
   MAX_PHOTOS,
@@ -109,6 +110,10 @@ export default function MyHome({ user }) {
           <p className="small">No maintenance requests yet.</p>
         )}
       </div>
+
+      {homes.map((h) => (
+        <MovingOut key={h.tenancy_id} home={h} user={user} showAddress={homes.length > 1} />
+      ))}
     </section>
   );
 }

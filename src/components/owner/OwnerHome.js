@@ -120,6 +120,18 @@ export default function OwnerHome() {
           </ul>
         )}
       </section>
+
+      <section className="boxed stack" aria-labelledby="sec-own-year">
+        <h2 id="sec-own-year" className="sec-title">
+          Year-end summary
+        </h2>
+        <p className="small">Your rental income and expenses for the year, ready for your accountant and your T776.</p>
+        <div>
+          <Link href="/owner/year-end" className="btn ghost">
+            Year-end summary
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }

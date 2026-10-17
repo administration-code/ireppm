@@ -41,6 +41,19 @@ export function dollars(n) {
   return v < 0 ? `−${text}` : text;
 }
 
+// Year-end reports: last year in January to March, this year otherwise.
+export function defaultReportYear(today = todayISO()) {
+  const [y, m] = today.split("-").map(Number);
+  return m <= 3 ? y - 1 : y;
+}
+
+export function reportYears(today = todayISO(), back = 5) {
+  const y = Number(today.slice(0, 4));
+  return Array.from({ length: back + 1 }, (_, i) => y - i);
+}
+
+export const PAY_METHOD_LABEL = { etransfer: "e-Transfer", cheque: "Cheque", cash: "Cash", other: "Other" };
+
 export const isMonth = (value) => /^\d{4}-(0[1-9]|1[0-2])$/.test(String(value || ""));
 
 export function lastMonth(today = todayISO()) {
