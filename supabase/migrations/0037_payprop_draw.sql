@@ -16,3 +16,8 @@ alter table public.payprop_draws enable row level security;
 drop policy if exists "payprop_draws: staff all" on public.payprop_draws;
 create policy "payprop_draws: staff all" on public.payprop_draws
   for all using (public.is_staff()) with check (public.is_staff());
+
+-- 2027 rent increase guideline (Ontario: 1.9%).
+insert into public.service_rates (key, name, category, amount, unit, notes, sort_order)
+values ('rent_guideline_2027', '2027 Ontario rent increase guideline', 'rent_control', 1.9, 'percent', 'Units first occupied on or before Nov 15, 2018', 111)
+on conflict (key) do update set amount = excluded.amount, name = excluded.name, notes = excluded.notes;

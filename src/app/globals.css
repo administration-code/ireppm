@@ -932,3 +932,81 @@ details.boxed > summary { cursor: pointer; }
 .owner-app-head { display: grid; gap: 2px; }
 .privacy-note { border-top: 1px solid var(--line); padding-top: 12px; }
 .boxed.attention { box-shadow: inset 3px 0 0 var(--red); }
+
+/* Landlords page */
+.promises { list-style: none; margin: 32px 0 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; }
+.promises li { display: grid; gap: 8px; align-content: start; border-top: 3px solid var(--red); padding-top: 14px; }
+.promises b { font-family: var(--display); font-size: 1.375rem; font-weight: 600; line-height: 1.15; }
+.promises span { color: var(--muted); font-size: .9375rem; }
+.portal-preview, .estimate { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 40px; align-items: start; }
+.tick-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.tick-list li { padding-left: 26px; position: relative; }
+.tick-list li::before { content: "✓"; position: absolute; left: 0; color: var(--red); font-weight: 700; }
+.mock-portal { margin: 0; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
+.mock-portal figcaption { padding: 6px 14px 10px; font-size: .75rem; }
+.mock-bar { display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: var(--surface-2); border-bottom: 1px solid var(--line); font-size: .75rem; color: var(--muted); }
+.mock-bar i { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
+.mock-bar span { margin-left: 6px; font-family: ui-monospace, Menlo, monospace; }
+.mock-body { padding: 16px; display: grid; gap: 12px; }
+.mock-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.mock-table { width: 100%; border-collapse: collapse; font-size: .9375rem; font-variant-numeric: tabular-nums; }
+.mock-table td { padding: 7px 0; border-bottom: 1px solid var(--line); }
+.mock-table td.num { text-align: right; }
+.mock-table tr.tot td { font-weight: 700; border-bottom: 0; }
+.protect-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.protect-grid li { border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; background: var(--surface); font-weight: 500; }
+.calc { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+.calc-form { display: grid; gap: 18px; }
+.calc fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 8px; }
+.calc legend { font-weight: 600; margin-bottom: 8px; padding: 0; }
+.calc-pkgs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.calc-pkg { display: grid; gap: 2px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); cursor: pointer; }
+.calc-pkg input { position: absolute; opacity: 0; pointer-events: none; }
+.calc-pkg span { font-weight: 600; }
+.calc-pkg small { color: var(--muted); }
+.calc-pkg.on { border-color: var(--red); box-shadow: inset 0 0 0 1px var(--red); }
+.calc-pkg:focus-within { outline: 2px solid var(--red); outline-offset: 2px; }
+.calc-out { border: 1px solid var(--line); border-top: 4px solid var(--red); border-radius: var(--radius); background: var(--surface); padding: 22px; display: grid; gap: 12px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); }
+.calc-total { font-family: var(--display); font-size: 2.75rem; font-weight: 600; line-height: 1; }
+.calc-total small { font-family: inherit; font-size: 1rem; color: var(--muted); font-weight: 500; }
+.calc-lines { margin: 0; display: grid; gap: 6px; font-size: .9375rem; }
+.calc-lines div { display: flex; justify-content: space-between; gap: 12px; }
+.calc-lines dt { color: var(--muted); }
+.calc-lines dd { margin: 0; }
+.calc-lines .calc-hst { border-top: 1px solid var(--line); padding-top: 6px; font-weight: 600; }
+.calc-lines .calc-hst dt { color: inherit; }
+.calc-note { font-size: .875rem; margin: 0; }
+.landlord-strip { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.landlord-strip li { display: grid; gap: 4px; }
+.landlord-strip b { font-weight: 700; }
+.landlord-strip span { color: var(--muted); font-size: .875rem; }
+@media (max-width: 900px) {
+  .promises, .landlord-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .portal-preview, .estimate, .calc { grid-template-columns: 1fr; }
+  .protect-grid { grid-template-columns: 1fr 1fr; }
+  .calc-out { position: static; }
+}
+@media (max-width: 560px) {
+  .promises, .landlord-strip, .protect-grid, .calc-pkgs { grid-template-columns: 1fr; }
+}
+
+/* Guides */
+.guide-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.guide-list a { display: grid; gap: 6px; padding: 20px; border: 1px solid var(--line); border-top: 3px solid var(--red); border-radius: var(--radius); background: var(--surface); color: inherit; text-decoration: none; height: 100%; }
+.guide-list a:hover b { text-decoration: underline; }
+.guide-list b { font-family: var(--display); font-size: 1.5rem; font-weight: 600; line-height: 1.15; }
+.guide-list span { color: var(--muted); }
+.guide { display: grid; gap: 14px; max-width: 860px; }
+.guide h1 { text-wrap: balance; }
+.guide-body { display: grid; gap: 12px; }
+.guide-body h2 { font-family: var(--display); font-size: 1.75rem; margin: 18px 0 0; }
+.guide-body p, .guide-body li { max-width: 68ch; }
+.guide-body ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+.guide-note { color: var(--muted); font-size: .9375rem; border-left: 3px solid var(--red); padding: 4px 0 4px 14px; }
+.guide-table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: .9375rem; }
+.guide-table th, .guide-table td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+.guide-table thead th { font-size: .75rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.guide-table tbody th { font-weight: 700; }
+.guide-cta { display: grid; gap: 10px; margin-top: 12px; }
+@media (max-width: 700px) { .guide-list { grid-template-columns: 1fr; } }
+.guide-body .table-wrap { margin-top: 0; }

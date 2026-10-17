@@ -11,7 +11,9 @@ import { useOwner } from "@/lib/useOwner";
 const NAV = [
   ["/", "Home"],
   ["/properties", "Properties"],
+  ["/landlords", "For landlords"],
   ["/pricing", "Pricing"],
+  ["/guides", "Guides"],
   ["/about", "About"],
 ];
 

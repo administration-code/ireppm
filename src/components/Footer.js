@@ -25,7 +25,10 @@ export default function Footer() {
         </div>
         <div>
           <b>Landlords</b>
+          <Link href="/landlords">Why landlords choose IRep</Link>
           <Link href="/pricing">Packages and pricing</Link>
+          <Link href="/landlords#estimate">Free rent estimate</Link>
+          <Link href="/guides">Landlord guides</Link>
           <Link href="/about#inquiry">Talk to us</Link>
         </div>
         <div className="legal">

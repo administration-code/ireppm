@@ -1,10 +1,11 @@
 import { getListings } from "@/lib/listings";
 import { SITE } from "@/lib/site";
+import { GUIDES } from "@/lib/guides";
 
 export const revalidate = 3600;
 
 export default async function sitemap() {
-  const pages = ["", "/properties", "/pricing", "/about", "/privacy"].map((p) => ({
+  const pages = ["", "/properties", "/landlords", "/pricing", "/guides", "/resources", "/about", "/privacy", ...GUIDES.map((g) => `/guides/${g.slug}`)].map((p) => ({
     url: `${SITE.url}${p}`,
     changeFrequency: p === "/properties" ? "daily" : "monthly",
   }));

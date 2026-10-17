@@ -1,4 +1,5 @@
 import Link from "next/link";
+import FeeCalculator from "@/components/FeeCalculator";
 import { COMPARISON, PACKAGES } from "@/lib/site";
 
 export const metadata = {
@@ -15,8 +16,8 @@ export default function PricingPage() {
           <span className="eyebrow">Packages and pricing</span>
           <h1>Simple monthly management fees</h1>
           <p className="lead">
-            Pick the level of care your property needs. Every package includes rent collection and full tenant
-            management.
+            Pick the level of care your property needs. Every package includes rent collection, full tenant management
+            and your owner portal. One year to start, then month to month at the same rate: no long lock-in.
           </p>
         </div>
 
@@ -59,7 +60,13 @@ export default function PricingPage() {
           </Link>
         </div>
 
-        <div className="table-wrap">
+        <div className="head" id="calculator" style={{ marginTop: 56 }}>
+          <span className="eyebrow">Fee calculator</span>
+          <h2>Work out your monthly fee</h2>
+        </div>
+        <FeeCalculator />
+
+        <div className="table-wrap" style={{ marginTop: 56 }}>
           <table className="cmp">
             <thead>
               <tr>

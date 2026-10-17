@@ -1,7 +1,7 @@
 import Link from "next/link";
 import HomeSearch from "@/components/HomeSearch";
 import { getListings } from "@/lib/listings";
-import { SITE } from "@/lib/site";
+import { LANDLORD_PROMISES, SITE } from "@/lib/site";
 
 export const revalidate = 60;
 
@@ -42,14 +42,17 @@ export default async function HomePage() {
               <span className="eyebrow">For landlords</span>
               <h3>Hand us the keys, keep the income.</h3>
               <ul>
-                <li>Tenant placement for half of one month's rent</li>
-                <li>Rent collection and full tenant management</li>
-                <li>Twice-yearly inspections, scheduled in advance</li>
-                <li>Optional lawn, snow, gutter and appliance coverage</li>
+                <li>Every applicant screened, and you approve every tenant</li>
+                <li>Rent received by the 7th is paid out to you by the 7th</li>
+                <li>Your own owner portal with monthly statements and a T776-ready year end</li>
+                <li>One year to start, then month to month at the same rate</li>
               </ul>
-              <div>
-                <Link className="btn primary" href="/pricing">
-                  Compare packages
+              <div className="row">
+                <Link className="btn primary" href="/landlords">
+                  Why landlords choose IRep
+                </Link>
+                <Link className="btn ghost" href="/landlords#estimate">
+                  Free rent estimate
                 </Link>
               </div>
             </div>
@@ -73,6 +76,28 @@ export default async function HomePage() {
       </section>
 
       <section className="block">
+        <div className="wrap stack" style={{ gap: 24 }}>
+          <div className="head" style={{ marginBottom: 0 }}>
+            <span className="eyebrow">Our promises to landlords</span>
+            <h2>What you can count on</h2>
+          </div>
+          <ul className="landlord-strip">
+            {LANDLORD_PROMISES.map(([t, d]) => (
+              <li key={t}>
+                <b>{t}</b>
+                <span>{d}</span>
+              </li>
+            ))}
+          </ul>
+          <div>
+            <Link className="btn ghost" href="/landlords#calculator">
+              Work out your monthly fee
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="block">
         <div className="wrap">
           <div className="head">
             <span className="eyebrow">How placement works</span>
@@ -85,11 +110,11 @@ export default async function HomePage() {
             </li>
             <li>
               <b>Show</b>
-              <span>Renters book showings online; we run every viewing.</span>
+              <span>Renters book showings online; every request is answered within 24 hours and we run every viewing.</span>
             </li>
             <li>
               <b>Screen</b>
-              <span>ID, income and a credit check through a screening service.</span>
+              <span>ID, income and a credit check through a screening service, then you approve the tenant.</span>
             </li>
             <li>
               <b>Lease</b>
