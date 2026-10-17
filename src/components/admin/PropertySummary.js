@@ -60,7 +60,7 @@ export default function PropertySummary({ property }) {
             <dd>{property.agreement_start ? prettyDate(property.agreement_start) : "Not set"}</dd>
           </div>
           <div>
-            <dt>Renewal</dt>
+            <dt>Term</dt>
             <dd>
               <RenewalBadge date={property.agreement_renewal} />
             </dd>

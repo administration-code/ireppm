@@ -3,8 +3,8 @@ import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { applicationEmail, landlordEmail, maintenanceEmail, showingEmail } from "@/lib/staff-alerts";
-import { prettyDay, respondLink, showingsInbox } from "@/lib/showings";
-import { sendSms, showingsPhones } from "@/lib/sms";
+import { prettyDay, respondLink, showingAgents } from "@/lib/showings";
+import { sendSms } from "@/lib/sms";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -92,13 +92,15 @@ export async function POST(request) {
 
   // From here on, always answer 200 so the database webhook doesn't retry endlessly.
   try {
-    const to = table === "showing_requests" ? [...new Set([...staffRecipients(), ...showingsInbox()])] : staffRecipients();
+    // Showing requests go to the property's showing agent(s) (or the default contact) and staff.
+    const agents = table === "showing_requests" ? await showingAgents(getSupabaseAdmin(), record.listing_id) : null;
+    const to = agents ? [...new Set([...staffRecipients(), ...agents.emails])] : staffRecipients();
     if (!to.length) throw new Error("STAFF_ALERT_EMAIL is not set");
     if (!process.env.RESEND_API_KEY) throw new Error("RESEND_API_KEY is not set");
 
     const email = await buildEmail(table, record);
     // Chuck gets new showing requests by text, with the link to approve, decline or suggest a time.
-    if (table === "showing_requests" && showingsPhones()) {
+    if (table === "showing_requests" && agents?.phones.length) {
       const sb = getSupabaseAdmin();
       const [{ data: tok }, listing] = await Promise.all([
         sb.from("showing_action_tokens").select("token").eq("showing_id", record.id).maybeSingle(),
@@ -106,7 +108,7 @@ export async function POST(request) {
       ]);
       const place = [listing?.address, listing?.unit].filter(Boolean).join(", ");
       if (tok?.token)
-        await sendSms(showingsPhones(), `IRep showing request: ${place}, ${prettyDay(record.preferred_date)}, ${record.preferred_time}. Approve, decline or suggest a time: ${respondLink(tok.token)}`);
+        await sendSms(agents.phones, `IRep showing request: ${place}, ${prettyDay(record.preferred_date)}, ${record.preferred_time}. Approve, decline or suggest a time: ${respondLink(tok.token)}`);
     }
     const resend = new Resend(process.env.RESEND_API_KEY);
     const { error } = await resend.emails.send({ from: FROM, to, ...email });

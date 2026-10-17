@@ -91,7 +91,7 @@ export default function OwnerHome() {
                 <th scope="col" className="r">
                   Units occupied
                 </th>
-                <th scope="col">Agreement renewal</th>
+                <th scope="col">Agreement</th>
               </tr>
             </thead>
             <tbody>
@@ -104,7 +104,13 @@ export default function OwnerHome() {
                   <td className="r num">
                     {p.occupied ?? 0} of {p.units ?? 0}
                   </td>
-                  <td>{p.agreement_renewal ? shortDate(p.agreement_renewal) : "—"}</td>
+                  <td>
+                    {!p.agreement_renewal
+                      ? "—"
+                      : p.agreement_renewal < new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" })
+                        ? "Month to month"
+                        : `First year ends ${shortDate(p.agreement_renewal)}`}
+                  </td>
                 </tr>
               ))}
             </tbody>

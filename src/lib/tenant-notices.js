@@ -3,8 +3,8 @@ import { sendMail, staffEmails, SITE_URL } from "@/lib/application-review";
 import { PAYMENT_INFO } from "@/lib/payment-info";
 import { SITE } from "@/lib/site";
 
-// Automatic emails: welcome letters, tenant insurance reminders, lease-end choices and
-// management agreement renewals (migration 0033). Each job marks what it sent so it never repeats.
+// Automatic emails: welcome letters, tenant insurance reminders and lease-end choices
+// (migration 0033). Each job marks what it sent so it never repeats.
 
 const PORTAL = `${SITE_URL}/account`;
 const RESOURCES = `${SITE_URL}/resources`;
@@ -166,61 +166,4 @@ export async function leaseEndPrompts(sb) {
     }
   }
   return { prompted, reminded };
-}
-
-// ---------------------------------------------------------------------------
-// Management agreement renewals: staff 90 days ahead, the landlord 60 days ahead.
-// ---------------------------------------------------------------------------
-export async function agreementRenewalNotices(sb) {
-  const now = today();
-  const { data: props } = await sb
-    .from("properties")
-    .select("id, address, city, agreement_renewal, renewal_notice_sent_on, renewal_staff_alerted_for, renewal_landlord_notified_for, archived, owner:owners(name, email)")
-    .eq("archived", false)
-    .not("agreement_renewal", "is", null)
-    .gte("agreement_renewal", now)
-    .lte("agreement_renewal", addDays(now, 90));
-  const staffList = [];
-  let landlords = 0;
-  for (const p of props || []) {
-    if (p.renewal_staff_alerted_for !== p.agreement_renewal) {
-      staffList.push(`${p.address}: renews ${longDay(p.agreement_renewal)} (${p.owner?.name || "no owner on file"})`);
-      await sb.from("properties").update({ renewal_staff_alerted_for: p.agreement_renewal }).eq("id", p.id);
-    }
-    // Skip landlords already sent a renewal notice by hand for this renewal.
-    const alreadySent = p.renewal_notice_sent_on && p.renewal_notice_sent_on >= addDays(p.agreement_renewal, -120);
-    if (alreadySent && p.renewal_landlord_notified_for !== p.agreement_renewal) {
-      await sb.from("properties").update({ renewal_landlord_notified_for: p.agreement_renewal }).eq("id", p.id);
-      continue;
-    }
-    if (p.owner?.email && p.renewal_landlord_notified_for !== p.agreement_renewal && p.agreement_renewal <= addDays(now, 60)) {
-      await sendMail({
-        to: p.owner.email,
-        subject: `Your management agreement for ${p.address} is up for renewal`,
-        lines: [
-          `Hi ${String(p.owner.name || "").split(" ")[0] || "there"},`,
-          `Your property management agreement with IRep for ${p.address} is up for renewal on ${longDay(p.agreement_renewal)}.`,
-          "We'll be in touch with your renewal options. If you have questions in the meantime, or anything you'd like to change, just reply to this email.",
-          "Thank you for trusting us with your property.",
-        ],
-        link: `${SITE_URL}/owner`,
-        linkLabel: "Open your owner portal",
-      });
-      await sb.from("properties").update({ renewal_landlord_notified_for: p.agreement_renewal, renewal_notice_sent_on: now }).eq("id", p.id);
-      landlords += 1;
-    }
-  }
-  if (staffList.length) {
-    await sendMail({
-      to: staffEmails(),
-      subject: `${staffList.length} management agreement${staffList.length === 1 ? "" : "s"} up for renewal`,
-      lines: [
-        "These agreements renew within the next 90 days. Each landlord is emailed automatically 60 days before; prepare their renewal options.",
-        staffList.join("\n"),
-      ],
-      link: `${SITE_URL}/admin/properties`,
-      linkLabel: "Open properties",
-    });
-  }
-  return { staff: staffList.length, landlords };
 }

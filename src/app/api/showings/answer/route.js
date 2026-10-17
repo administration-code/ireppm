@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { bearer, sendMail, userClient } from "@/lib/application-review";
-import { loadShowing, placeOf, prettyDay, respondLink, sendTenantNotice, showingsInbox } from "@/lib/showings";
-import { sendSms, showingsPhones } from "@/lib/sms";
+import { loadShowing, placeOf, prettyDay, respondLink, sendTenantNotice, showingAgents } from "@/lib/showings";
+import { sendSms } from "@/lib/sms";
+import { staffEmails } from "@/lib/application-review";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,8 +30,9 @@ export async function POST(request) {
   if (s) {
     const { data: tok } = await admin.from("showing_action_tokens").select("token").eq("showing_id", s.id).maybeSingle();
     const who = s.renter?.full_name || s.renter?.email || "The renter";
+    const agents = await showingAgents(admin, s.listing_id);
     await sendMail({
-      to: showingsInbox(),
+      to: [...new Set([...agents.emails, ...staffEmails()])],
       subject: `Showing ${result === "confirmed" ? "accepted" : "cancelled"}: ${placeOf(s.listing)}`,
       lines: [
         result === "confirmed"
@@ -41,9 +43,9 @@ export async function POST(request) {
       link: tok ? respondLink(tok.token) : undefined,
       linkLabel: "Open the showing",
     });
-    if (showingsPhones())
+    if (agents.phones.length)
       await sendSms(
-        showingsPhones(),
+        agents.phones,
         result === "confirmed"
           ? `IRep showing confirmed: ${placeOf(s.listing)}, ${prettyDay(s.preferred_date)}, ${s.preferred_time}. ${who} accepted your suggested time.`
           : `IRep showing cancelled: ${placeOf(s.listing)}. ${who} declined the suggested time.`

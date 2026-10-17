@@ -183,30 +183,30 @@ export default function SignatureDetail({ id }) {
             </div>
           </form>
         ) : null}
-        <ul className="pill-row sig-links">
+        <ul className="row" style={{ listStyle: "none", padding: 0, margin: 0, flexWrap: "wrap", gap: 8 }} aria-label="Related records">
           {unitId ? (
             <li>
-              <Link href={`/admin/units/${unitId}${row.tenancy_id ? `#tenancy-${row.tenancy_id}` : ""}`}>{row.tenancy_id ? "Tenancy" : "Unit"}</Link>
+              <Link className="btn ghost sm" href={`/admin/units/${unitId}${row.tenancy_id ? `#tenancy-${row.tenancy_id}` : ""}`}>{row.tenancy_id ? "Open tenancy" : "Open unit"}</Link>
             </li>
           ) : null}
           {row.property_id ? (
             <li>
-              <Link href={`/admin/properties/${row.property_id}`}>Property</Link>
+              <Link className="btn ghost sm" href={`/admin/properties/${row.property_id}`}>Open property</Link>
             </li>
           ) : null}
           {row.application_id ? (
             <li>
-              <Link href="/admin/requests?tab=applications">Application</Link>
+              <Link className="btn ghost sm" href="/admin/requests?tab=applications">Open application</Link>
             </li>
           ) : null}
           {row.notice_id ? (
             <li>
-              <Link href="/admin/notices">Notice</Link>
+              <Link className="btn ghost sm" href="/admin/notices">Open notice</Link>
             </li>
           ) : null}
           {parent ? (
             <li>
-              <Link href={`/admin/signatures/${parent.id}`}>For: {parent.title}</Link>
+              <Link className="btn ghost sm" href={`/admin/signatures/${parent.id}`}>For: {parent.title}</Link>
             </li>
           ) : null}
         </ul>

@@ -107,13 +107,14 @@ export function daysUntil(dateStr) {
   return Math.round((Date.parse(dateStr + "T00:00:00Z") - Date.parse(todayISO() + "T00:00:00Z")) / DAY);
 }
 
+// The agreement's first-year (initial) term. Afterwards it continues month to month at the same rate.
 export function renewalBadge(dateStr) {
   const days = daysUntil(dateStr);
   if (days === null) return { kind: "none", text: "Not set" };
-  if (days < 0) return { kind: "lapsed", text: `Lapsed ${-days} ${days === -1 ? "day" : "days"} ago` };
-  if (days === 0) return { kind: "soon", text: "Renews today" };
-  if (days <= 60) return { kind: "soon", text: `Renews in ${days} ${days === 1 ? "day" : "days"}` };
-  return { kind: "later", text: prettyDate(dateStr) };
+  if (days < 0) return { kind: "later", text: "Month to month" };
+  if (days === 0) return { kind: "soon", text: "First year ends today" };
+  if (days <= 60) return { kind: "soon", text: `First year ends in ${days} ${days === 1 ? "day" : "days"}` };
+  return { kind: "later", text: `First year ends ${prettyDate(dateStr)}` };
 }
 export const TENANT_FIELDS = "id, tenancy_id, profile_id, full_name, email, phone, is_primary, created_at";
 

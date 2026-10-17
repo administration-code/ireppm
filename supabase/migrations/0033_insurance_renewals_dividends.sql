@@ -4,7 +4,7 @@
 --      landlord review it. Private bucket 'tenant-insurance'.
 --   2. Lease-end choice: tenants on a fixed term say whether they'll stay month to month, want a
 --      new lease, or are moving out (then the N9 flow).
---   3. Renewal notices: when staff and the landlord were told a management agreement is up.
+--   3. (No renewal notices: agreements continue month to month after the first year.)
 --   4. Rent reporting: a log of FrontLobby credit-bureau reports for late rent.
 --   5. Dividends: a ledger for Rishi, Chuck (or their holding companies) and the T5 totals.
 --   6. Fees billed separately use the month's fee (so a first-year promo is respected).
@@ -182,12 +182,6 @@ with (security_invoker = false) as
                 where tt.tenancy_id = t.id and tt.profile_id = auth.uid());
 revoke all on public.my_homes from anon;
 grant select on public.my_homes to authenticated;
-
--- ---------------------------------------------------------------------------
--- 3. Management agreement renewal notices
--- ---------------------------------------------------------------------------
-alter table public.properties add column if not exists renewal_staff_alerted_for date;      -- renewal date we alerted staff about
-alter table public.properties add column if not exists renewal_landlord_notified_for date;  -- renewal date we emailed the landlord about
 
 -- ---------------------------------------------------------------------------
 -- 4. Rent reporting (FrontLobby)

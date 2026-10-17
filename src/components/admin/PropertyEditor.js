@@ -5,6 +5,7 @@ import Link from "next/link";
 import { getBrowserClient } from "@/lib/supabase";
 import { PROPERTY_SELECT, UNIT_FIELDS, propertyTitle } from "@/lib/admin-properties";
 import PropertyAddons from "./PropertyAddons";
+import PropertyAgents from "./PropertyAgents";
 import PropertyForm from "./PropertyForm";
 import PropertyMaintenance from "./PropertyMaintenance";
 import PropertyTurnovers from "./PropertyTurnovers";
@@ -95,6 +96,7 @@ export default function PropertyEditor({ id, initialOwnerId }) {
       />
 
       <PropertyAddons propertyId={property.id} />
+      <PropertyAgents propertyId={property.id} />
 
       <PropertyTurnovers unitIds={units.map((u) => u.id)} />
 

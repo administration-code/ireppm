@@ -11,6 +11,27 @@ export function showingsInbox() {
   return list.length ? list : staffEmails();
 }
 
+// The showing agent(s) assigned to the listing's property (Partners), or the default contact.
+export async function showingAgents(admin, listingId) {
+  const { data: propertyId } = await admin.rpc("listing_property_id", { p_listing_id: listingId });
+  if (propertyId) {
+    const { data } = await admin
+      .from("property_agents")
+      .select("partner:partners(name, email, phone, active)")
+      .eq("property_id", propertyId)
+      .eq("role", "showings");
+    const agents = (data || []).map((r) => r.partner).filter((p) => p && p.active);
+    if (agents.length)
+      return {
+        assigned: true,
+        names: agents.map((a) => a.name),
+        emails: agents.map((a) => a.email).filter(Boolean),
+        phones: agents.map((a) => a.phone).filter(Boolean),
+      };
+  }
+  return { assigned: false, names: [], emails: showingsInbox(), phones: (process.env.SHOWINGS_SMS || "").split(",").filter(Boolean) };
+}
+
 export const respondLink = (token) => `${SITE_URL}/showings/respond?t=${token}`;
 
 export function prettyDay(iso) {

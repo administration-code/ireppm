@@ -51,10 +51,11 @@ export default function ComingUp({ upcoming, today }) {
         />
 
         <Group
-          title="Management agreement renewals"
-          items={u.agreement_renewals || []}
+          title="First-year terms ending"
+          note="After the first year, agreements carry on month to month at the same rate; a first-year discount ends on its own."
+          items={(u.agreement_renewals || []).filter((x) => !today || !x.renewal || x.renewal >= today)}
           render={(x, i) => {
-            const lapsed = x.renewal && today && x.renewal < today;
+            const lapsed = false;
             return (
               <li key={`ar-${x.property_id || i}`} className="dash-item">
                 <span>
@@ -62,7 +63,6 @@ export default function ComingUp({ upcoming, today }) {
                     {x.address || "Property"}
                   </Link>
                   {x.owner ? <span className="small"> · {x.owner}</span> : null}
-                  {x.notice_sent_on ? <span className="small dash-block">Notice sent {shortDate(x.notice_sent_on)}</span> : null}
                 </span>
                 <span className="dash-item-end">
                   {lapsed ? <span className="pill dash-lapsed">Lapsed</span> : null}

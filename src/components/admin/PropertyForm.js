@@ -149,6 +149,24 @@ export default function PropertyForm({ property, initialOwnerId, onSaved }) {
   const listPrice = standard !== null && addonsTotal !== null ? standard + addonsTotal : null;
   const feePreview = listPrice !== null ? Math.max(listPrice - discount, 0) : null;
 
+  const [lotNote, setLotNote] = useState("");
+  // Lot size (for the lawn & snow price) from the City of Windsor's parcel data.
+  async function lookUpLot() {
+    setLotNote("Looking up…");
+    const { data } = await getBrowserClient().auth.getSession();
+    const res = await fetch(`/api/lot-size?address=${encodeURIComponent(form.address)}`, {
+      headers: { Authorization: `Bearer ${data?.session?.access_token || ""}` },
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) return setLotNote(json.error || "Lookup failed.");
+    if (json.lot) setForm((f) => ({ ...f, lot_size_sqft: String(json.lot) }));
+    setLotNote(
+      json.found
+        ? `${json.lot ? `${json.lot.toLocaleString("en-CA")} sq ft` : "Area not recorded"}${json.frontage ? `, ${json.frontage} ft frontage` : ""}${json.depth ? ` × ${json.depth} ft deep` : ""}. ${json.advice}`
+        : `Not found in the City's data. ${json.advice}`
+    );
+  }
+
   const update = (key) => (e) => {
     const value = e.target.type === "checkbox" ? e.target.checked : e.target.value;
     setForm((f) => ({ ...f, [key]: value }));
@@ -210,6 +228,10 @@ export default function PropertyForm({ property, initialOwnerId, onSaved }) {
           <div className="field">
             <label htmlFor="p-lot">Lot size (sq. ft.)</label>
             <input id="p-lot" inputMode="numeric" value={form.lot_size_sqft} onChange={update("lot_size_sqft")} placeholder="4500" />
+            <button type="button" className="link-btn small" onClick={lookUpLot} disabled={!form.address.trim()}>
+              Look up from City of Windsor data
+            </button>
+            {lotNote ? <span className="small">{lotNote}</span> : null}
           </div>
         </div>
       </section>
@@ -331,7 +353,7 @@ export default function PropertyForm({ property, initialOwnerId, onSaved }) {
           <input type="checkbox" checked={form.fee_billed_separately} onChange={update("fee_billed_separately")} />
           Owner pays the management fee separately (not taken from rent)
         </label>
-        <div className="row3">
+        <div className="row2">
           <div className="field">
             <label htmlFor="p-start">Agreement start</label>
             <input
@@ -357,13 +379,9 @@ export default function PropertyForm({ property, initialOwnerId, onSaved }) {
             />
           </div>
           <div className="field">
-            <label htmlFor="p-renewal">Agreement renewal</label>
+            <label htmlFor="p-renewal">First year (initial term) ends</label>
             <input id="p-renewal" type="date" value={form.agreement_renewal} onChange={update("agreement_renewal")} aria-describedby="p-renewal-help" />
-            <span id="p-renewal-help" className="small">Set to one year after the start. Change it if the agreement says otherwise.</span>
-          </div>
-          <div className="field">
-            <label htmlFor="p-notice">Renewal notice sent on</label>
-            <input id="p-notice" type="date" value={form.renewal_notice_sent_on} onChange={update("renewal_notice_sent_on")} />
+            <span id="p-renewal-help" className="small">One year after the start. After that the agreement continues month to month at the same rate (no renewal contract).</span>
           </div>
         </div>
         <fieldset className="field boxed stack" style={{ gap: 10 }}>
