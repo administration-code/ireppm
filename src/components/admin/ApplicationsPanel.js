@@ -130,6 +130,7 @@ function ApplicationItem({ app, onChange, onRemove, earlier = [] }) {
         <div className="req-who">
           <h3>{app.applicant_name}</h3>
           <ContactLine phone={app.applicant_phone} email={app.applicant_email} />
+          {app.applicant_address ? <span className="small">Current address: {app.applicant_address}</span> : null}
         </div>
         <span className={`pill as-${app.status}`}>{APPLICATION_STATUS[app.status] || app.status}</span>
       </div>
