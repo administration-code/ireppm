@@ -833,6 +833,18 @@ label.btn[aria-disabled="true"] { opacity: .6; cursor: progress; }
 /* Year-end reports, commissions, tenant notice */
 .mutedbox { background: var(--surface-2); color: var(--muted); padding: 12px 14px; border-radius: var(--radius); margin: 0; }
 .moveout { display: grid; gap: 12px; border-top: 1px solid var(--line); padding-top: 16px; }
+.notebox { background: var(--surface-2); border-left: 3px solid var(--fg); padding: 12px 14px; border-radius: var(--radius); margin: 0; }
+.notebox strong { display: block; margin-bottom: 4px; }
+.n11-list { display: grid; gap: 12px; }
+.n11-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; display: grid; gap: 10px; }
+.n11-card h3 { font-size: 1rem; margin: 0; }
+.n11-facts { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 0; font-size: .9375rem; }
+.n11-facts dt { color: var(--muted); }
+.n11-facts dd { margin: 0; }
+.n11-reason { white-space: pre-wrap; }
+.n11-recent summary { cursor: pointer; font-weight: 600; }
+.linkbtn { background: none; border: 0; padding: 0; color: var(--red); text-decoration: underline; cursor: pointer; font: inherit; }
+.linkbtn:hover { color: var(--fg); }
 .acct-st tfoot th, .acct-st tfoot td { font-weight: 600; border-top: 2px solid var(--fg); border-bottom: 0; }
 .acct-st tbody th { font-weight: 500; }
 .ly-report { display: grid; gap: 24px; }

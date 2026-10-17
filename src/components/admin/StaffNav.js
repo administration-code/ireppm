@@ -26,7 +26,7 @@ export const NAV_GROUPS = [
     items: [
       { key: "rent", label: "Rent", href: "/admin/rent", count: "unmatchedPayments", note: "to match" },
       { key: "maintenance", label: "Maintenance", href: "/admin/maintenance", count: "maintenanceNew", note: "new" },
-      { key: "notices", label: "Notices", href: "/admin/notices" },
+      { key: "notices", label: "Notices", href: "/admin/notices", count: "earlyMoveOuts", note: "early move-out" },
       { key: "signatures", label: "Signatures", href: "/admin/signatures", count: "awaitingSignatures", note: "awaiting signature" },
     ],
   },

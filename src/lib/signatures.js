@@ -16,6 +16,8 @@ export const SIG_KIND = {
   N1: "N1",
   N4: "N4",
   N5: "N5",
+  N9: "N9",
+  N11: "N11",
   certificate_of_service: "Certificate of Service",
   other: "Consent form",
 };
