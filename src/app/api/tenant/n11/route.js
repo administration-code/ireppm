@@ -73,7 +73,7 @@ export async function POST(request) {
   await alertStaff(`Early move-out request: ${place}`, [
     `${user.email} asked to end the tenancy at ${place} on ${date}, earlier than an N9 allows (earliest N9 date: ${prep.earliest}).`,
     body?.reason ? `Reason: ${String(body.reason).slice(0, 500)}` : "",
-    "Approve it to send the N11 Agreement to End the Tenancy to every tenant and then to IRep to sign, or decline it with a note.",
+    "Approve it to send the N11 Agreement to End the Tenancy to every tenant and then to the landlord to sign, or decline it with a note.",
   ].filter(Boolean));
 
   return NextResponse.json({ id: row.id, status: "requested" });
