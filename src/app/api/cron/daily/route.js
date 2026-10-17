@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { insuranceReminders, leaseEndPrompts } from "@/lib/tenant-notices";
 import { showingReminders } from "@/lib/showings";
+import { drawDigest } from "@/lib/payprop-draw";
 import { Resend } from "resend";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { sendMail, staffEmails } from "@/lib/application-review";
@@ -179,6 +180,7 @@ export async function GET(request) {
     ["insurance", insuranceReminders],
     ["leaseEnd", leaseEndPrompts],
     ["showings", showingReminders],
+    ["drawDigest", (db) => drawDigest(db, new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" }))],
   ]) {
     try {
       result[key] = await job(sb);

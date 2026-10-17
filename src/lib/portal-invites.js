@@ -38,6 +38,7 @@ export function tenantInviteEmail(person, tenancy) {
       `IRep Property Management looks after ${place} for your landlord. We've opened a tenant account for you on our website to make things easier.`,
       "In your account you can:\n• Report repairs with photos and follow them until they're fixed\n• See your lease, rent and payment details\n• Upload proof of tenant insurance\n• Tell us your plans when your lease is coming up for its end date",
       `Rent: ${PAYMENT_INFO.preferred} is our preferred way to pay. If you haven't set it up yet, watch for PayProp's welcome letter. Can't use PayProp? Ask us about Interac e-Transfer to ${PAYMENT_INFO.etransferEmail}.`,
+      `Monthly draw: ${PAYMENT_INFO.draw}`,
       `To get in, click "Open your tenant account" below. Your email (${person.email}) is filled in for you: add your mobile number and we'll email you a one-time sign-in link. There's no password to remember.`,
       `Questions? Reply to this email or call ${SITE.phone}. For emergencies (flooding, no heat in winter, gas smell, fire), call us right away, and call 911 first if anyone is in danger.`,
     ],

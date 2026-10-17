@@ -54,6 +54,9 @@ export function PayRentCard({ homes = [] }) {
       <p className="small" style={{ margin: 0 }}>
         <b>{PAYMENT_INFO.preferred} (preferred).</b> {PAYMENT_INFO.preferredSteps.join(" ")}
       </p>
+      <p className="small" style={{ margin: 0 }}>
+        <b>Monthly $100 draw.</b> {PAYMENT_INFO.draw}
+      </p>
       {homes.map((h) => (
         <PaypropLetterLink key={h.tenancy_id} tenancyId={h.tenancy_id} label={homes.length > 1 ? h.address : ""} />
       ))}

@@ -52,6 +52,7 @@ export async function sendWelcome(sb, tenancyId) {
       `Rent: ${money(t.rent)} a month, due on day ${t.rent_due_day || 1} of each month.`,
       attachments ? "Your PayProp welcome letter is attached: follow it to set up your rent payments. It's also saved in your account." : "",
       `How to pay: ${PAYMENT_INFO.preferred} is our preferred way.\n• ${PAYMENT_INFO.preferredSteps.join("\n• ")}\nIf you can't use PayProp, ask us and we'll set you up for ${PAYMENT_INFO.fallback.replace(", on request", "")}.`,
+      `Monthly draw: ${PAYMENT_INFO.draw}`,
       `Tenant insurance: please upload proof of your tenant insurance by ${longDay(due)} (within a week of moving in). You can upload it in your account.`,
       "Repairs: report anything that needs fixing from your account, with photos. For emergencies (flooding, no heat in winter, gas smell, fire), call us right away and, if anyone is in danger, call 911 first.",
       `Your account: sign in with this email address to see your home, report problems and keep your documents in one place.`,
@@ -93,8 +94,9 @@ export async function emailPaypropLetter(sb, tenancyId) {
     lines: [
       `Hi ${firstNames(t)},`,
       `Attached is your PayProp welcome letter for ${placeOf(t)}. PayProp is how we collect rent: it has your sign-up details and the payment reference for your home.`,
-      "What to do:\n• Open the attached letter and follow the steps to create your PayProp account\n• Set up your rent payment (pre-authorized debit is easiest)\n• Keep the letter: it's also saved in your IRep account any time you need it",
+      "What to do:\n• Find your Bill Payment Reference ID in the attached letter\n• In your online or mobile banking, set up a bill payment to the payee shown in the letter, using that reference ID as the account number (or pay at your branch, or sign up for pre-authorized debit)\n• Keep the letter: it's also saved in your IRep account any time you need it",
       `Rent: ${money(t.rent)} a month, due on day ${t.rent_due_day || 1}.`,
+      `Monthly draw: ${PAYMENT_INFO.draw}`,
       `Questions? Reply to this email or call ${SITE.phone}.`,
     ],
     link: PORTAL,
