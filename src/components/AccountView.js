@@ -7,6 +7,7 @@ import MyHome from "./MyHome";
 import { getBrowserClient } from "@/lib/supabase";
 import { ACCEPT, CONSENT_TEXT, DOC_BUCKET, DOC_TYPES, INCOME_TYPES, MAX_FILE_MB } from "@/lib/documents";
 import { listingTitle, money } from "@/lib/format";
+import AddressInput from "@/components/AddressInput";
 
 const STATUS_LABEL = {
   requested: "Requested",
@@ -203,6 +204,7 @@ export default function AccountView() {
       applicant_name: profile.full_name,
       applicant_email: profile.email || user.email,
       applicant_phone: profile.phone,
+      applicant_address: profile.current_address || null,
       income_type: incomeType,
       documents: attached,
       credit_consent: true,
@@ -492,12 +494,14 @@ export default function AccountView() {
 function ProfileFields({ profile, onSave }) {
   const [name, setName] = useState(profile?.full_name || "");
   const [phone, setPhone] = useState(profile?.phone || "");
+  const [address, setAddress] = useState(profile?.current_address || "");
   const [saved, setSaved] = useState(false);
-  const dirty = name !== (profile?.full_name || "") || phone !== (profile?.phone || "");
+  const dirty =
+    name !== (profile?.full_name || "") || phone !== (profile?.phone || "") || address !== (profile?.current_address || "");
 
   async function save(e) {
     e.preventDefault();
-    await onSave({ full_name: name.trim() || null, phone: phone.trim() || null });
+    await onSave({ full_name: name.trim() || null, phone: phone.trim() || null, current_address: address.trim() || null });
     setSaved(true);
   }
 
@@ -512,6 +516,19 @@ function ProfileFields({ profile, onSave }) {
           <label htmlFor="p-phone">Mobile number</label>
           <input id="p-phone" type="tel" value={phone} autoComplete="tel" onChange={(e) => { setPhone(e.target.value); setSaved(false); }} />
         </div>
+      </div>
+      <div className="field">
+        <label htmlFor="p-address">Current address</label>
+        <AddressInput
+          id="p-address"
+          fill="formatted"
+          value={address}
+          onChange={(v) => {
+            setAddress(v);
+            setSaved(false);
+          }}
+          placeholder="Start typing your street address"
+        />
       </div>
       <div className="row">
         <button className="btn ghost sm" type="submit" disabled={!dirty}>

@@ -59,6 +59,9 @@ export default function AuthProvider({ children }) {
           localStorage.removeItem(PENDING_PHONE);
         } catch {}
       }
+      // Phone typed at sign-in (kept on the server, so it works even if the email link was opened
+      // in another browser) and the name from Google, when the profile doesn't have them yet.
+      await sb.rpc("claim_signin_details");
       const { data } = await sb.from("profiles").select("phone").eq("id", userId).maybeSingle();
       if (!cancelled && data && !data.phone) setAskPhone(true);
     })();
@@ -90,10 +93,16 @@ export default function AuthProvider({ children }) {
 
 const GOOGLE_ON = process.env.NEXT_PUBLIC_GOOGLE_SIGNIN === "on";
 
-function GoogleButton({ next, onError }) {
+function GoogleButton({ next, onError, phone }) {
   const [busy, setBusy] = useState(false);
   async function go() {
     setBusy(true);
+    // Google doesn't share a phone number: keep the one typed above for after the redirect.
+    if (String(phone || "").replace(/\D/g, "").length >= 10) {
+      try {
+        localStorage.setItem(PENDING_PHONE, phone.trim());
+      } catch {}
+    }
     const sb = getBrowserClient();
     const { error } = await sb.auth.signInWithOAuth({
       provider: "google",
@@ -183,6 +192,7 @@ function SignInModal({ next, onClose }) {
     try {
       localStorage.setItem(PENDING_PHONE, phone.trim());
     } catch {}
+    await sb.rpc("remember_signin_phone", { p_email: em, p_phone: phone.trim() });
     const { error: err } = await sb.auth.signInWithOtp({
       email: em,
       options: { emailRedirectTo: window.location.origin + next, data: { phone: phone.trim() } },
@@ -233,9 +243,22 @@ function SignInModal({ next, onClose }) {
                 No password to remember. We use your phone number to confirm showings.
               </p>
             </div>
+            <div className="field">
+              <label htmlFor="signin-phone">Mobile number</label>
+              <input
+                id="signin-phone"
+                type="tel"
+                autoComplete="tel"
+                placeholder="519-555-0123"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                autoFocus
+                required
+              />
+            </div>
             {GOOGLE_ON ? (
               <>
-                <GoogleButton next={next} onError={setError} />
+                <GoogleButton next={next} onError={setError} phone={phone} />
                 <div className="or-rule">
                   <span>or get a sign-in link by email</span>
                 </div>
@@ -249,19 +272,6 @@ function SignInModal({ next, onClose }) {
                 autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                autoFocus
-                required
-              />
-            </div>
-            <div className="field">
-              <label htmlFor="signin-phone">Mobile number</label>
-              <input
-                id="signin-phone"
-                type="tel"
-                autoComplete="tel"
-                placeholder="519-555-0123"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
                 required
               />
             </div>
