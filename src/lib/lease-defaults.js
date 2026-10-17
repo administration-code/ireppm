@@ -15,7 +15,8 @@ export const DEFAULT_DELIVERER = { name: "Zan Greksa", email: "chuckfixedmyhouse
 
 export const LEASE_DEFAULTS = {
   rentPayableTo: "IRep Property Management, agent for the landlord",
-  paymentMethods: "Interac e-Transfer to payment@ireppm.ca",
+  // PayProp is the preferred way to pay; e-Transfer only when the tenant asks for it.
+  paymentMethods: "PayProp (preferred). Interac e-Transfer to payment@ireppm.ca on request.",
   nsfCharge: "20.00",
   smokingRules: "See Schedule A.",
   emergencyContact: `${SITE.name} ${SITE.phone}, ${SITE.email}`,

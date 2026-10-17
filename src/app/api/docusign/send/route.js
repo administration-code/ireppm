@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { createEnvelope, resolveTemplates, senderViewUrl } from "@/lib/docusign";
+import { createEnvelope, removeEmptyRecipients, resolveTemplates, sendDraftEnvelope, senderViewUrl } from "@/lib/docusign";
 import { staffUser } from "@/lib/signatures-server";
 import {
   KIND_TEMPLATES,
@@ -143,11 +143,11 @@ export async function POST(request) {
   if (insertError) return NextResponse.json({ error: insertError.message }, { status: 500 });
 
   try {
-    const env = await createEnvelope({
-      ...built.definition,
-      emailSubject,
-      status: mode === "send" ? "sent" : "created",
-    });
+    // Always start as a draft, drop the blank template roles (unused tenants, no guarantor),
+    // then send it or open it for review.
+    const env = await createEnvelope({ ...built.definition, emailSubject, status: "created" });
+    await removeEmptyRecipients(env.envelopeId);
+    if (mode === "send") await sendDraftEnvelope(env.envelopeId);
     const now = new Date().toISOString();
     await sb
       .from("signature_requests")

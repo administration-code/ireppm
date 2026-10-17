@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import ContactLine from "@/components/admin/ContactLine";
 import MoveInForm from "@/components/admin/MoveInForm";
@@ -74,8 +74,16 @@ function ApplicationItem({ app, onChange, onRemove, earlier = [] }) {
   const [msg, setMsg] = useState({ kind: "", text: "" });
   const docs = Array.isArray(app.documents) ? app.documents : [];
   const dirty = status !== app.status || notes !== (app.staff_notes || "");
+  // Keep the drop-down in step when the status changes elsewhere (e.g. sending to the landlord).
+  useEffect(() => {
+    setStatus(app.status);
+  }, [app.status]);
 
   async function save(nextStatus = status) {
+    if (nextStatus === app.status && notes === (app.staff_notes || "")) {
+      setMsg({ kind: "ok", text: `Nothing to save: it's already "${APPLICATION_STATUS[app.status] || app.status}". Pick a different status or change the notes.` });
+      return;
+    }
     if (nextStatus === "approved" && app.status !== "approved" && app.owner_review_status !== "approved") {
       if (!window.confirm(UNAPPROVED_WARNING)) return;
     }
@@ -165,7 +173,7 @@ function ApplicationItem({ app, onChange, onRemove, earlier = [] }) {
         </div>
       </div>
       <div className="req-actions">
-        <button type="button" className="btn primary sm" onClick={() => save()} disabled={saving || !dirty}>
+        <button type="button" className="btn primary sm" onClick={() => save()} disabled={saving}>
           {saving ? "Saving…" : "Save"}
         </button>
         {msg.text ? (

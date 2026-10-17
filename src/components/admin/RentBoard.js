@@ -17,23 +17,28 @@ import {
   todayISO,
 } from "@/lib/rent";
 import RentNav, { RentHead } from "./RentNav";
+import FrontLobbyReport from "./FrontLobbyReport";
 
 async function loadBoard(month) {
   const sb = getBrowserClient();
   const period = `${month}-01`;
   const gen = await sb.rpc("generate_rent_charges", { p_month: period });
-  const [collection, balances, tenancies, unmatched] = await Promise.all([
+  const [collection, balances, tenancies, unmatched, reports] = await Promise.all([
     sb.from("rent_collection").select("*").eq("period", period),
     sb.from("tenancy_balances").select("tenancy_id, charged, paid, balance, last_paid_on"),
     sb.from("tenancies").select(RENT_TENANCY_SELECT),
     countUnmatched(),
+    sb.from("rent_reports").select("tenancy_id, reported_at").order("reported_at", { ascending: false }),
   ]);
+  const lastReported = {};
+  for (const r of reports.data || []) if (!lastReported[r.tenancy_id]) lastReported[r.tenancy_id] = r.reported_at;
   const failed = gen.error || collection.error || balances.error || tenancies.error;
   return {
     collection: collection.data || [],
     balances: balances.data || [],
     tenancies: tenancies.data || [],
     unmatched,
+    lastReported,
     error: failed ? "Some rent figures couldn't load. Refresh the page to try again." : "",
   };
 }
@@ -229,6 +234,7 @@ export default function RentBoard() {
                   <th scope="col">Rental unit</th>
                   <th scope="col">Last paid</th>
                   <th scope="col" className="r">Balance owing</th>
+                  <th scope="col">Credit reporting</th>
                 </tr>
               </thead>
               <tbody>
@@ -245,6 +251,17 @@ export default function RentBoard() {
                     </td>
                     <td>{shortDate(a.last_paid_on)}</td>
                     <td className="r num owing">{money(a.balance)}</td>
+                    <td>
+                      {a.tenancy ? (
+                        <FrontLobbyReport
+                          tenancy={a.tenancy}
+                          balance={a.balance}
+                          lastPaid={a.last_paid_on}
+                          lastReported={state.lastReported?.[a.tenancy_id]}
+                          onReported={(at) => setState((s) => ({ ...s, lastReported: { ...(s.lastReported || {}), [a.tenancy_id]: at } }))}
+                        />
+                      ) : null}
+                    </td>
                   </tr>
                 ))}
               </tbody>

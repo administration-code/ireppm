@@ -29,7 +29,7 @@ export default function Footer() {
           <Link href="/about#inquiry">Talk to us</Link>
         </div>
         <div className="legal">
-          © {new Date().getFullYear()} {SITE.name} · <Link href="/privacy" style={{ display: "inline" }}>Privacy policy</Link>
+          © {new Date().getFullYear()} {SITE.name} · <Link href="/resources" style={{ display: "inline" }}>Resources</Link> · <Link href="/privacy" style={{ display: "inline" }}>Privacy policy</Link>
         </div>
       </div>
     </footer>

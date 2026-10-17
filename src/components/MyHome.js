@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { getBrowserClient } from "@/lib/supabase";
 import { SITE } from "@/lib/site";
 import MovingOut from "@/components/MovingOut";
+import { GettingStarted, InsuranceCard, LeaseEndCard, PayRentCard } from "@/components/tenant/TenantCards";
 import {
   CATEGORIES,
   MAX_PHOTOS,
@@ -29,11 +30,12 @@ export default function MyHome({ user }) {
   const load = useCallback(async () => {
     const sb = getBrowserClient();
     const [h, r] = await Promise.all([
-      sb.from("my_homes").select("tenancy_id, unit_id, unit_label, address, city, postal_code"),
+      sb.from("my_homes").select("tenancy_id, unit_id, unit_label, address, city, postal_code, status, start_date, end_date, insurance_due, renewal_choice"),
       sb.from("my_maintenance").select(MY_FIELDS).order("created_at", { ascending: false }),
     ]);
-    setState({ loading: false, homes: h.data || [], requests: r.data || [] });
-  }, []);
+    const { data: prof } = await sb.from("profiles").select("tour_dismissed_at").eq("id", user.id).maybeSingle();
+    setState({ loading: false, homes: h.data || [], requests: r.data || [], tourDismissed: prof?.tour_dismissed_at || null });
+  }, [user.id]);
 
   useEffect(() => {
     load();
@@ -43,6 +45,8 @@ export default function MyHome({ user }) {
   if (loading || homes.length === 0) return null;
 
   return (
+    <>
+    <GettingStarted role="tenant" dismissedAt={state.tourDismissed} />
     <section className="boxed stack" aria-labelledby="my-home-title" style={{ gap: 16 }}>
       <div className="admin-head">
         <div style={{ display: "grid", gap: 6 }}>
@@ -91,6 +95,15 @@ export default function MyHome({ user }) {
         />
       ) : null}
 
+      {homes.map((h) => (
+        <div key={`extras-${h.tenancy_id}`} className="stack" style={{ gap: 16 }}>
+          {homes.length > 1 ? <p className="eyebrow" style={{ margin: 0 }}>{homeLabel(h)}</p> : null}
+          <LeaseEndCard home={h} />
+          <InsuranceCard home={h} />
+        </div>
+      ))}
+      <PayRentCard />
+
       <div className="stack" style={{ gap: 10 }}>
         <h3>My requests</h3>
         {requests.length ? (
@@ -115,6 +128,7 @@ export default function MyHome({ user }) {
         <MovingOut key={h.tenancy_id} home={h} user={user} showAddress={homes.length > 1} />
       ))}
     </section>
+    </>
   );
 }
 

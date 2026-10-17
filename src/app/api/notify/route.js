@@ -3,7 +3,8 @@ import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { applicationEmail, landlordEmail, maintenanceEmail, showingEmail } from "@/lib/staff-alerts";
-import { respondLink, showingsInbox } from "@/lib/showings";
+import { prettyDay, respondLink, showingsInbox } from "@/lib/showings";
+import { sendSms, showingsPhones } from "@/lib/sms";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -96,6 +97,17 @@ export async function POST(request) {
     if (!process.env.RESEND_API_KEY) throw new Error("RESEND_API_KEY is not set");
 
     const email = await buildEmail(table, record);
+    // Chuck gets new showing requests by text, with the link to approve, decline or suggest a time.
+    if (table === "showing_requests" && showingsPhones()) {
+      const sb = getSupabaseAdmin();
+      const [{ data: tok }, listing] = await Promise.all([
+        sb.from("showing_action_tokens").select("token").eq("showing_id", record.id).maybeSingle(),
+        fetchListing(sb, record.listing_id),
+      ]);
+      const place = [listing?.address, listing?.unit].filter(Boolean).join(", ");
+      if (tok?.token)
+        await sendSms(showingsPhones(), `IRep showing request: ${place}, ${prettyDay(record.preferred_date)}, ${record.preferred_time}. Approve, decline or suggest a time: ${respondLink(tok.token)}`);
+    }
     const resend = new Resend(process.env.RESEND_API_KEY);
     const { error } = await resend.emails.send({ from: FROM, to, ...email });
     if (error) throw new Error(`Resend: ${error.name || ""} ${error.message || ""}`.trim());

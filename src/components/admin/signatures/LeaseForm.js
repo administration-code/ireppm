@@ -21,6 +21,7 @@ export default function LeaseForm({ ctx }) {
     rent_deposit: t?.last_month_deposit ?? t?.rent ?? "",
     key_deposit: t?.key_deposit ?? "",
     condo: false,
+    guarantor_needed: false,
     guarantor_name: "",
     guarantor_email: "",
     rent_payable_to: LEASE_DEFAULTS.rentPayableTo,
@@ -34,7 +35,10 @@ export default function LeaseForm({ ctx }) {
 
   const getForm = () => {
     if (!f.unit_id) throw new Error("This lease isn't linked to a unit. Start it from the unit page.");
-    return { ...f, tenants: f.tenants.filter((x) => x.full_name.trim() || x.email.trim()) };
+    if (f.guarantor_needed && (!f.guarantor_name.trim() || !f.guarantor_email.trim()))
+      throw new Error("Add the guarantor's name and email, or untick the guarantor box.");
+    const g = f.guarantor_needed ? {} : { guarantor_name: "", guarantor_email: "" };
+    return { ...f, ...g, tenants: f.tenants.filter((x) => x.full_name.trim() || x.email.trim()) };
   };
 
   return (
@@ -144,16 +148,22 @@ export default function LeaseForm({ ctx }) {
             </div>
           </div>
         ) : null}
-        <div className="row2">
-          <div className="field">
-            <label htmlFor="l-gname">Guarantor name (optional)</label>
-            <input id="l-gname" value={f.guarantor_name} onChange={set("guarantor_name")} />
+        <label className="check">
+          <input type="checkbox" checked={f.guarantor_needed} onChange={set("guarantor_needed")} />
+          This tenancy needs a guarantor (only when the application didn&apos;t show enough on its own)
+        </label>
+        {f.guarantor_needed ? (
+          <div className="row2">
+            <div className="field">
+              <label htmlFor="l-gname">Guarantor name</label>
+              <input id="l-gname" value={f.guarantor_name} onChange={set("guarantor_name")} />
+            </div>
+            <div className="field">
+              <label htmlFor="l-gemail">Guarantor email</label>
+              <input id="l-gemail" type="email" value={f.guarantor_email} onChange={set("guarantor_email")} />
+            </div>
           </div>
-          <div className="field">
-            <label htmlFor="l-gemail">Guarantor email</label>
-            <input id="l-gemail" type="email" value={f.guarantor_email} onChange={set("guarantor_email")} />
-          </div>
-        </div>
+        ) : null}
         <div className="row2">
           <div className="field">
             <label htmlFor="l-payto">Rent payable to</label>

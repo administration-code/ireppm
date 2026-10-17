@@ -528,7 +528,7 @@ export function buildLease(f, ids, owner) {
     "Notice City": LEASE_DEFAULTS.noticeAddress.city,
     "Notice Province": LEASE_DEFAULTS.noticeAddress.province,
     "Notice Postal Code": LEASE_DEFAULTS.noticeAddress.postalCode,
-    "Notice Emails": `Landlord: ${LEASE_DEFAULTS.landlordEmail}; Tenant(s): ${tenants.map((t) => t.email).filter(Boolean).join(", ")}`,
+    "Notice Emails": `Landlord's Representative: ${LEASE_DEFAULTS.landlordEmail}; Tenant(s): ${tenants.map((t) => t.email).filter(Boolean).join(", ")}`,
     "Emergency Contact": LEASE_DEFAULTS.emergencyContact,
     "Start Date": ymd(f.start_date),
     "End Date": monthly ? "" : ymd(f.end_date),

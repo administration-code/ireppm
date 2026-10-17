@@ -8,6 +8,9 @@ import { money } from "@/lib/format";
 import { monthLabel, shortDate } from "@/lib/rent";
 import { letterProperties, letterTotals } from "@/lib/letters";
 import { SITE } from "@/lib/site";
+import OwnerMonthly from "@/components/owner/OwnerMonthly";
+import InsuranceReview from "@/components/InsuranceReview";
+import { GettingStarted } from "@/components/tenant/TenantCards";
 
 async function loadPortal() {
   const sb = getBrowserClient();
@@ -20,6 +23,10 @@ async function loadPortal() {
       .order("period", { ascending: false }),
     sb.rpc("owner_applications"),
   ]);
+  const { data: auth } = await sb.auth.getUser();
+  const { data: prof } = auth?.user
+    ? await sb.from("profiles").select("tour_dismissed_at").eq("id", auth.user.id).maybeSingle()
+    : { data: null };
   if (props.error || letters.error) throw props.error || letters.error;
   const list = Array.isArray(apps.data) ? apps.data : [];
   return {
@@ -27,6 +34,7 @@ async function loadPortal() {
     letters: letters.data || [],
     applicants: list.length,
     toReview: list.filter((a) => a.review_status === "pending").length,
+    tourDismissed: prof?.tour_dismissed_at || null,
   };
 }
 
@@ -69,6 +77,8 @@ export default function OwnerHome() {
         <p className="small">Signed in as {user?.email}.</p>
       </div>
 
+      <GettingStarted role="owner" dismissedAt={state.tourDismissed} />
+
       <section className="boxed stack" aria-labelledby="sec-own-props">
         <h2 id="sec-own-props" className="sec-title">
           Properties we manage for you
@@ -102,9 +112,24 @@ export default function OwnerHome() {
         </div>
       </section>
 
+      <section className="boxed stack" aria-labelledby="sec-own-monthly">
+        <h2 id="sec-own-monthly" className="sec-title">
+          Monthly rental summary
+        </h2>
+        <OwnerMonthly />
+      </section>
+
+      <section className="boxed stack" aria-labelledby="sec-own-ins" id="insurance">
+        <h2 id="sec-own-ins" className="sec-title">
+          Tenant insurance
+        </h2>
+        <p className="small">Your tenants upload proof of insurance within a week of moving in. You can approve it here, or leave it to IRep.</p>
+        <InsuranceReview mode="owner" />
+      </section>
+
       <section className="boxed stack" aria-labelledby="sec-own-letters">
         <h2 id="sec-own-letters" className="sec-title">
-          Monthly statements
+          Monthly statement letters
         </h2>
         {!letters.length ? (
           <p className="small">Your first monthly statement will appear here once we send it.</p>

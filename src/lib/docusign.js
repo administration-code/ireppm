@@ -148,6 +148,22 @@ export const getRecipients = (id, includeTabs = false) =>
   ds(`/envelopes/${id}/recipients${includeTabs ? "?include_tabs=true" : ""}`);
 export const getDocument = (id, which) => ds(`/envelopes/${id}/documents/${which}`, { binary: true });
 
+// Template roles we didn't fill (unused tenant slots, no guarantor) stay on a draft envelope as
+// blank placeholders, and DocuSign then refuses to send ("missing valid contact information").
+export async function removeEmptyRecipients(id) {
+  const data = await getRecipients(id);
+  const groups = ["signers", "carbonCopies", "certifiedDeliveries", "agents", "editors", "intermediaries", "inPersonSigners"];
+  const body = {};
+  for (const g of groups) {
+    const empty = (data?.[g] || []).filter((r) => !String(r.email || "").trim()).map((r) => ({ recipientId: r.recipientId }));
+    if (empty.length) body[g] = empty;
+  }
+  if (Object.keys(body).length) await ds(`/envelopes/${id}/recipients`, { method: "DELETE", body });
+  return body;
+}
+
+export const sendDraftEnvelope = (id) => ds(`/envelopes/${id}`, { method: "PUT", body: { status: "sent" } });
+
 export async function senderViewUrl(id, returnUrl) {
   const data = await ds(`/envelopes/${id}/views/sender`, { method: "POST", body: { returnUrl } });
   return data.url;

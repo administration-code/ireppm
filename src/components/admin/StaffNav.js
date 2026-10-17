@@ -28,6 +28,7 @@ export const NAV_GROUPS = [
       { key: "maintenance", label: "Maintenance", href: "/admin/maintenance", count: "maintenanceNew", note: "new" },
       { key: "notices", label: "Notices", href: "/admin/notices", count: "earlyMoveOuts", note: "early move-out" },
       { key: "signatures", label: "Signatures", href: "/admin/signatures", count: "awaitingSignatures", note: "awaiting signature" },
+      { key: "insurance", label: "Tenant insurance", href: "/admin/insurance", count: "insuranceToReview", note: "to review" },
     ],
   },
   {
@@ -50,6 +51,7 @@ export const NAV_GROUPS = [
       { key: "year-end", label: "Year end", href: "/admin/accounting/year" },
       { key: "landlord-year-end", label: "Landlord year-end", href: "/admin/accounting/landlords" },
       { key: "commissions", label: "Commissions & loans", href: "/admin/accounting/commissions" },
+      { key: "dividends", label: "Dividends & T5", href: "/admin/accounting/dividends" },
     ],
   },
   {

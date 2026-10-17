@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { agreementRenewalNotices, insuranceReminders, leaseEndPrompts } from "@/lib/tenant-notices";
 import { Resend } from "resend";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { sendMail, staffEmails } from "@/lib/application-review";
@@ -173,6 +174,18 @@ export async function GET(request) {
   result.documentCleanup = await deleteExpiredDocuments(sb);
   result.screeningCleanup = await deleteExpiredScreeningReports(sb);
   result.creditReminders = await remindOverdueCreditChecks(sb);
+  for (const [key, job] of [
+    ["insurance", insuranceReminders],
+    ["leaseEnd", leaseEndPrompts],
+    ["agreementRenewals", agreementRenewalNotices],
+  ]) {
+    try {
+      result[key] = await job(sb);
+    } catch (err) {
+      console.error(`[cron] ${key} failed:`, err?.message || err);
+      result[key] = { error: err?.message || "failed" };
+    }
+  }
 
   if (digestFailed) {
     return NextResponse.json({ ...result, error: "The rent digest didn't send" }, { status: 500 });

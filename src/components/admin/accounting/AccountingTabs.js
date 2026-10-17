@@ -9,6 +9,7 @@ const TABS = [
   { href: "/admin/accounting/year", label: "Year end" },
   { href: "/admin/accounting/landlords", label: "Landlord year-end" },
   { href: "/admin/accounting/commissions", label: "Commissions & loans" },
+  { href: "/admin/accounting/dividends", label: "Dividends & T5" },
 ];
 
 const isCurrent = (pathname, href) =>

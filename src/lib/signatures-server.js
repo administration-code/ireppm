@@ -1,4 +1,5 @@
 import "server-only";
+import { sendWelcome } from "@/lib/tenant-notices";
 import { Resend } from "resend";
 import { escapeHtml } from "@/lib/staff-alerts";
 import { ds, getDocument, getEnvelope, getRecipients, summarizeRecipients } from "@/lib/docusign";
@@ -263,7 +264,17 @@ export async function syncRequest(sb, row, { eventStatus } = {}) {
       }
       throw err;
     }
-    if (before !== "completed") await completedAlert(current, result);
+    if (before !== "completed") {
+      await completedAlert(current, result);
+      if (current.kind === "lease") {
+        try {
+          const { data: done } = await sb.from("signature_requests").select("tenancy_id").eq("id", row.id).maybeSingle();
+          await sendWelcome(sb, done?.tenancy_id || current.tenancy_id);
+        } catch (err) {
+          console.error("[docusign] welcome email failed:", err?.message || err);
+        }
+      }
+    }
   } else if (status !== before && (status === "declined" || status === "voided")) {
     const who = (recipients || []).find((r) => r.status === "declined");
     await alertStaff(`${status === "declined" ? "Declined" : "Voided"}: ${current.title}`, [
