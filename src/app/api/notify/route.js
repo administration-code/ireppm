@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { applicationEmail, landlordEmail, maintenanceEmail, showingEmail } from "@/lib/staff-alerts";
+import { respondLink, showingsInbox } from "@/lib/showings";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -58,8 +59,14 @@ async function buildEmail(table, record) {
     return maintenanceEmail(record, await fetchUnit(sb, record.unit_id));
   }
   if (table === "showing_requests") {
-    const [listing, renter] = await Promise.all([fetchListing(sb, record.listing_id), fetchRenter(sb, record.user_id)]);
-    return showingEmail(record, listing, renter);
+    const [listing, renter, tok, vacant] = await Promise.all([
+      fetchListing(sb, record.listing_id),
+      fetchRenter(sb, record.user_id),
+      sb.from("showing_action_tokens").select("token").eq("showing_id", record.id).maybeSingle(),
+      sb.rpc("listing_is_vacant", { p_listing_id: record.listing_id }),
+    ]);
+    const url = tok?.data?.token ? respondLink(tok.data.token) : null;
+    return showingEmail(record, listing, renter, url, vacant?.error ? undefined : Boolean(vacant?.data));
   }
   const listing = await fetchListing(sb, record.listing_id);
   return applicationEmail(record, listing);
@@ -84,7 +91,7 @@ export async function POST(request) {
 
   // From here on, always answer 200 so the database webhook doesn't retry endlessly.
   try {
-    const to = staffRecipients();
+    const to = table === "showing_requests" ? [...new Set([...staffRecipients(), ...showingsInbox()])] : staffRecipients();
     if (!to.length) throw new Error("STAFF_ALERT_EMAIL is not set");
     if (!process.env.RESEND_API_KEY) throw new Error("RESEND_API_KEY is not set");
 

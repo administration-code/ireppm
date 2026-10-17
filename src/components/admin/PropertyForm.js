@@ -19,6 +19,14 @@ import AddressInput from "@/components/AddressInput";
 
 const unitWord = (n) => (n === 1 ? "unit" : "units");
 
+// End of a one-year term: Oct 1, 2026 -> Sep 30, 2027; Feb 29 -> Feb 28 next year.
+export function oneYearTermEnd(iso) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso || "")) return "";
+  const [y, m, d] = iso.split("-").map(Number);
+  const end = m === 2 && d === 29 ? new Date(Date.UTC(y + 1, 1, 28)) : new Date(Date.UTC(y + 1, m - 1, d - 1));
+  return end.toISOString().slice(0, 10);
+}
+
 function toForm(p, initialOwnerId) {
   return {
     address: text(p?.address),
@@ -32,6 +40,10 @@ function toForm(p, initialOwnerId) {
     fee_billed_separately: Boolean(p?.fee_billed_separately),
     agreement_start: text(p?.agreement_start),
     agreement_renewal: text(p?.agreement_renewal),
+    promo_discount: p?.promo_discount != null ? String(Number(p.promo_discount)) : "0",
+    promo_start: text(p?.promo_start),
+    promo_end: text(p?.promo_end),
+    promo_note: text(p?.promo_note),
     renewal_notice_sent_on: text(p?.renewal_notice_sent_on),
     lot_size_sqft: text(p?.lot_size_sqft),
     notes: text(p?.notes),
@@ -58,6 +70,9 @@ function validate(f, isCustom) {
   } else if (!validDiscount(f.fee_discount)) {
     return "Enter the discount in dollars, like 25 or 0. Use a minus sign for a surcharge.";
   }
+  if (!/^\d+(\.\d{1,2})?$/.test(String(f.promo_discount).trim() || "0"))
+    return "Enter the promo discount in dollars, like 25, or 0 for none.";
+  if (f.promo_start && f.promo_end && f.promo_end < f.promo_start) return "The promo can't end before it starts.";
   if (f.agreement_start && f.agreement_renewal && f.agreement_renewal < f.agreement_start)
     return "The renewal date can't be before the agreement start date.";
   const lot = f.lot_size_sqft.trim();
@@ -79,7 +94,11 @@ function toRow(f, isCustom) {
     ...(isCustom ? { monthly_fee: dollarsOrNull(f.monthly_fee) } : { fee_discount: Number(String(f.fee_discount).trim() || 0) }),
     fee_billed_separately: f.fee_billed_separately,
     agreement_start: f.agreement_start || null,
-    agreement_renewal: f.agreement_renewal || null,
+    agreement_renewal: f.agreement_renewal || (f.agreement_start ? oneYearTermEnd(f.agreement_start) : null),
+    promo_discount: Number(String(f.promo_discount).trim() || 0),
+    promo_start: Number(f.promo_discount) > 0 ? f.promo_start || null : null,
+    promo_end: Number(f.promo_discount) > 0 ? f.promo_end || null : null,
+    promo_note: Number(f.promo_discount) > 0 ? orNull(f.promo_note) : null,
     renewal_notice_sent_on: f.renewal_notice_sent_on || null,
     lot_size_sqft: f.lot_size_sqft.trim() ? parseInt(f.lot_size_sqft, 10) : null,
     notes: orNull(f.notes),
@@ -315,17 +334,87 @@ export default function PropertyForm({ property, initialOwnerId, onSaved }) {
         <div className="row3">
           <div className="field">
             <label htmlFor="p-start">Agreement start</label>
-            <input id="p-start" type="date" value={form.agreement_start} onChange={update("agreement_start")} />
+            <input
+              id="p-start"
+              type="date"
+              value={form.agreement_start}
+              onChange={(e) => {
+                const start = e.target.value;
+                setForm((f) => {
+                  // Keep the renewal in step unless staff typed a different one.
+                  const auto = !f.agreement_renewal || f.agreement_renewal === oneYearTermEnd(f.agreement_start);
+                  const promoAuto = !f.promo_start || f.promo_start === f.agreement_start;
+                  return {
+                    ...f,
+                    agreement_start: start,
+                    agreement_renewal: auto ? oneYearTermEnd(start) : f.agreement_renewal,
+                    promo_start: Number(f.promo_discount) > 0 && promoAuto ? start : f.promo_start,
+                    promo_end: Number(f.promo_discount) > 0 && promoAuto ? oneYearTermEnd(start) : f.promo_end,
+                  };
+                });
+                setMsg({ kind: "", text: "" });
+              }}
+            />
           </div>
           <div className="field">
             <label htmlFor="p-renewal">Agreement renewal</label>
-            <input id="p-renewal" type="date" value={form.agreement_renewal} onChange={update("agreement_renewal")} />
+            <input id="p-renewal" type="date" value={form.agreement_renewal} onChange={update("agreement_renewal")} aria-describedby="p-renewal-help" />
+            <span id="p-renewal-help" className="small">Set to one year after the start. Change it if the agreement says otherwise.</span>
           </div>
           <div className="field">
             <label htmlFor="p-notice">Renewal notice sent on</label>
             <input id="p-notice" type="date" value={form.renewal_notice_sent_on} onChange={update("renewal_notice_sent_on")} />
           </div>
         </div>
+        <fieldset className="field boxed stack" style={{ gap: 10 }}>
+          <legend>First-year promo (optional)</legend>
+          <div className="row3">
+            <div className="field">
+              <label htmlFor="p-promo">Promo discount ($/month off the fee)</label>
+              <input
+                id="p-promo"
+                inputMode="decimal"
+                value={form.promo_discount}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setForm((f) => ({
+                    ...f,
+                    promo_discount: v,
+                    promo_start: Number(v) > 0 && !f.promo_start ? f.agreement_start : f.promo_start,
+                    promo_end: Number(v) > 0 && !f.promo_end && f.agreement_start ? oneYearTermEnd(f.agreement_start) : f.promo_end,
+                  }));
+                }}
+              />
+            </div>
+            {Number(form.promo_discount) > 0 ? (
+              <>
+                <div className="field">
+                  <label htmlFor="p-promo-start">Promo starts</label>
+                  <input id="p-promo-start" type="date" value={form.promo_start} onChange={update("promo_start")} />
+                </div>
+                <div className="field">
+                  <label htmlFor="p-promo-end">Promo ends</label>
+                  <input id="p-promo-end" type="date" value={form.promo_end} onChange={update("promo_end")} />
+                </div>
+              </>
+            ) : null}
+          </div>
+          {Number(form.promo_discount) > 0 ? (
+            <>
+              <div className="field">
+                <label htmlFor="p-promo-note">Promo note (optional)</label>
+                <input id="p-promo-note" value={form.promo_note} onChange={update("promo_note")} placeholder="e.g. Fall 2026 sign-up offer" />
+              </div>
+              <p className="small">
+                Statements charge {feePreview !== null ? money(Math.max(feePreview - Number(form.promo_discount), 0)) : "the lower fee"} + HST
+                during the promo, then go back to {feePreview !== null ? money(feePreview) : "the regular fee"}. It defaults to the first
+                year of the agreement.
+              </p>
+            </>
+          ) : (
+            <p className="small">A dollar amount off the monthly fee for a set time, usually the first year.</p>
+          )}
+        </fieldset>
         <div className="field">
           <label htmlFor="p-notes">Staff notes</label>
           <textarea id="p-notes" value={form.notes} onChange={update("notes")} placeholder="Access, lockbox, owner preferences…" />

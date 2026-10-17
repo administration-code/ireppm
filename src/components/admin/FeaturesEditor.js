@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { COMMON_FEATURES } from "@/lib/listing-details";
 
 export default function FeaturesEditor({ features, onChange }) {
   const [draft, setDraft] = useState("");
@@ -12,11 +13,28 @@ export default function FeaturesEditor({ features, onChange }) {
     setDraft("");
   }
 
+  const presets = COMMON_FEATURES.filter((p) => !features.some((f) => f.toLowerCase() === p.toLowerCase()));
+
   return (
     <div className="stack" style={{ gap: 12 }}>
+      <div className="field">
+        <label htmlFor="f-feature-pick">Common features</label>
+        <select
+          id="f-feature-pick"
+          value=""
+          onChange={(e) => {
+            if (e.target.value) onChange([...features, e.target.value]);
+          }}
+        >
+          <option value="">Pick one to add…</option>
+          {presets.map((p) => (
+            <option key={p}>{p}</option>
+          ))}
+        </select>
+      </div>
       <div className="feature-add">
         <div className="field">
-          <label htmlFor="f-feature">Add a feature</label>
+          <label htmlFor="f-feature">Or type your own</label>
           <input
             id="f-feature"
             value={draft}

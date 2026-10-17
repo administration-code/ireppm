@@ -10,6 +10,8 @@ export const TABS = [
 export const SHOWING_STATUS = {
   requested: "Requested",
   confirmed: "Confirmed",
+  rescheduled: "New time suggested",
+  declined: "Declined",
   completed: "Completed",
   cancelled: "Cancelled",
 };
@@ -72,7 +74,7 @@ export async function loadInbox() {
     sb
       .from("showing_requests")
       .select(
-        "id, preferred_date, preferred_time, notes, status, confirmed_at, created_at, listing:listings(address, unit, slug), renter:profiles(full_name, email, phone)"
+        "id, preferred_date, preferred_time, notes, status, confirmed_at, created_at, proposed_date, proposed_time, staff_note, listing:listings(address, unit, slug), renter:profiles(full_name, email, phone)"
       )
       .order("created_at", { ascending: false }),
     sb

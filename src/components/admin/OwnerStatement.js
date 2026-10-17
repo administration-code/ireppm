@@ -29,14 +29,16 @@ const EMPTY_TOTALS = {
 };
 
 // "Base $175 + 1 extra unit $25 + Snow/Lawn $50 − discount $25" (current fee set-up).
-function feePartsText(f) {
+function feePartsText(f, charged) {
   if (!f || !f.has_list_price) return "Monthly management fee";
+  const promo = Number(f.fee) - Number(charged || 0);
   const parts = [`Base ${money(f.base)}`];
   if (Number(f.extra_units)) parts.push(`${f.extra_units} extra unit${f.extra_units === 1 ? "" : "s"} ${money(f.extra_units_amount)}`);
   for (const a of f.addons || []) parts.push(`${a.name} ${money(a.amount)}`);
   let text = parts.join(" + ");
   if (Number(f.discount) > 0) text += ` − discount ${money(f.discount)}`;
   if (Number(f.discount) < 0) text += ` + adjustment ${money(-f.discount)}`;
+  if (promo > 0.004) text += ` − promo ${money(promo)}`;
   return text;
 }
 
@@ -322,7 +324,7 @@ export default function OwnerStatement({ propertyId, period }) {
                   <>
                     <tr>
                       <td>Management fee</td>
-                      <td>{cents(t.mgmt_fee) ? feePartsText(state.feeParts) : "No rent due, so no fee this month"}</td>
+                      <td>{cents(t.mgmt_fee) ? feePartsText(state.feeParts, t.mgmt_fee) : "No rent due, so no fee this month"}</td>
                       <td className="r num">{signedMoney(-Number(t.mgmt_fee || 0))}</td>
                       <td className="no-print" />
                     </tr>

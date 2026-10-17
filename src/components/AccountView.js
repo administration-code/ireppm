@@ -10,10 +10,12 @@ import { listingTitle, money } from "@/lib/format";
 import AddressInput from "@/components/AddressInput";
 import ReferencesEditor from "@/components/ReferencesEditor";
 import MyApplicationExtras from "@/components/MyApplicationExtras";
+import ShowingAnswer from "@/components/ShowingAnswer";
 
 const STATUS_LABEL = {
   requested: "Requested",
   confirmed: "Confirmed",
+  rescheduled: "New time suggested",
   completed: "Completed",
   cancelled: "Cancelled",
   submitted: "Submitted",
@@ -31,6 +33,10 @@ const ALREADY_TEXT = "You already have an application in for this listing.";
 export default function AccountView() {
   const { user, ready, configured, openSignIn, signOut } = useAuth();
   const [tab, setTab] = useState("docs");
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get("tab");
+    if (t === "showings" || t === "apps") setTab(t);
+  }, []);
   const [profile, setProfile] = useState(null);
   const [docs, setDocs] = useState([]);
   const [showings, setShowings] = useState([]);
@@ -54,7 +60,7 @@ export default function AccountView() {
       sb.from("applicant_documents").select("*").eq("user_id", user.id),
       sb
         .from("showing_requests")
-        .select("id, preferred_date, preferred_time, status, created_at, listings(address, unit, slug)")
+        .select("id, preferred_date, preferred_time, status, proposed_date, proposed_time, staff_note, created_at, listings(address, unit, slug)")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false }),
       sb
@@ -459,7 +465,25 @@ export default function AccountView() {
                         {s.preferred_time.toLowerCase()}
                       </div>
                     </div>
-                    <span className="pill sub">{STATUS_LABEL[s.status] || s.status}</span>
+                    <span className="pill sub">{s.status === "declined" ? "Not available" : STATUS_LABEL[s.status] || s.status}</span>
+                    {s.status === "rescheduled" ? (
+                      <div style={{ flexBasis: "100%" }}>
+                        <ShowingAnswer
+                          showing={s}
+                          onDone={(status) =>
+                            setShowings((list) =>
+                              list.map((x) =>
+                                x.id === s.id
+                                  ? status === "confirmed"
+                                    ? { ...x, status, preferred_date: x.proposed_date, preferred_time: x.proposed_time }
+                                    : { ...x, status }
+                                  : x
+                              )
+                            )
+                          }
+                        />
+                      </div>
+                    ) : null}
                   </div>
                 ))}
               </div>

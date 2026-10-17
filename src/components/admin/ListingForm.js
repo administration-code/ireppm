@@ -16,6 +16,14 @@ import {
 import PhotoManager from "./PhotoManager";
 import FeaturesEditor from "./FeaturesEditor";
 import AddressInput from "@/components/AddressInput";
+import {
+  LAUNDRY_OPTIONS,
+  PARKING_OPTIONS,
+  UTILITIES,
+  laundryText,
+  parkingText,
+  utilitiesText,
+} from "@/lib/listing-details";
 
 const text = (v) => (v === null || v === undefined ? "" : String(v));
 
@@ -34,6 +42,11 @@ function toForm(l) {
     utilities: text(l?.utilities),
     parking: text(l?.parking),
     laundry: text(l?.laundry),
+    utilities_included: l?.utilities_included || [],
+    parking_option: text(l?.parking_option),
+    parking_spots: text(l?.parking_spots),
+    parking_instructions: text(l?.parking_instructions),
+    laundry_option: text(l?.laundry_option),
     description: text(l?.description),
     features: l?.features || [],
     photos: l?.photos || [],
@@ -54,6 +67,8 @@ function validate(f) {
   }
   if (f.sqft.trim() && (!/^\d+$/.test(f.sqft.trim()) || Number(f.sqft) <= 0))
     return "Square feet must be a whole number, or leave it blank.";
+  if (f.parking_spots.trim() && (!/^\d+$/.test(f.parking_spots.trim()) || Number(f.parking_spots) > 50))
+    return "Parking spots must be a whole number from 0 to 50.";
   return "";
 }
 
@@ -69,9 +84,15 @@ function toRow(f, status) {
     sqft: f.sqft.trim() ? parseInt(f.sqft, 10) : null,
     rent: parseInt(f.rent, 10),
     available_on: f.available_on || null,
-    utilities: orNull(f.utilities),
-    parking: orNull(f.parking),
-    laundry: orNull(f.laundry),
+    // The public page shows these words; the structured choices are kept for editing.
+    utilities: f.utilities_included.length ? utilitiesText(f.utilities_included) : orNull(f.utilities),
+    parking: f.parking_option ? parkingText(f.parking_option, f.parking_spots) : orNull(f.parking),
+    laundry: f.laundry_option ? laundryText(f.laundry_option) : orNull(f.laundry),
+    utilities_included: f.utilities_included,
+    parking_option: f.parking_option || null,
+    parking_spots: ["included", "assigned"].includes(f.parking_option) && f.parking_spots.trim() ? parseInt(f.parking_spots, 10) : null,
+    parking_instructions: ["included", "assigned"].includes(f.parking_option) ? orNull(f.parking_instructions) : null,
+    laundry_option: f.laundry_option || null,
     description: orNull(f.description),
     features: f.features,
     photos: f.photos,
@@ -254,20 +275,86 @@ export default function ListingForm({ listing, saved, prefill, unitId }) {
             <span className="small">Leave empty if it&apos;s available now.</span>
           </div>
         </div>
+        <fieldset className="field">
+          <legend>Utilities included in the rent</legend>
+          <div className="row" style={{ flexWrap: "wrap", gap: "6px 18px" }}>
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={form.utilities_included.includes("none")}
+                onChange={(e) => setField("utilities_included", e.target.checked ? ["none"] : [])}
+              />
+              None included (plus utilities)
+            </label>
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={["Heat", "Hydro", "Water"].every((u) => form.utilities_included.includes(u))}
+                onChange={(e) =>
+                  setField("utilities_included", (cur) =>
+                    e.target.checked
+                      ? [...new Set([...cur.filter((u) => u !== "none"), "Heat", "Hydro", "Water"])]
+                      : cur.filter((u) => !["Heat", "Hydro", "Water"].includes(u))
+                  )
+                }
+              />
+              All inclusive
+            </label>
+            {UTILITIES.map((u) => (
+              <label key={u} className="check">
+                <input
+                  type="checkbox"
+                  checked={form.utilities_included.includes(u)}
+                  onChange={(e) =>
+                    setField("utilities_included", (cur) =>
+                      e.target.checked ? [...cur.filter((x) => x !== "none"), u] : cur.filter((x) => x !== u)
+                    )
+                  }
+                />
+                {u}
+              </label>
+            ))}
+          </div>
+          <span className="small">
+            {form.utilities_included.length ? `Shown as: ${utilitiesText(form.utilities_included)}` : form.utilities ? `Currently shown as: ${form.utilities}` : "Tick what the rent covers."}
+          </span>
+        </fieldset>
         <div className="row3">
           <div className="field">
-            <label htmlFor="f-utilities">Utilities</label>
-            <input id="f-utilities" value={form.utilities} onChange={update("utilities")} placeholder="Water included; tenant pays hydro and gas" />
-          </div>
-          <div className="field">
             <label htmlFor="f-parking">Parking</label>
-            <input id="f-parking" value={form.parking} onChange={update("parking")} placeholder="1 driveway spot" />
+            <select id="f-parking" value={form.parking_option} onChange={update("parking_option")}>
+              <option value="">Not set</option>
+              {Object.entries(PARKING_OPTIONS).map(([k, v]) => (
+                <option key={k} value={k}>
+                  {v}
+                </option>
+              ))}
+            </select>
           </div>
+          {["included", "assigned"].includes(form.parking_option) ? (
+            <div className="field">
+              <label htmlFor="f-spots">How many spots</label>
+              <input id="f-spots" type="number" inputMode="numeric" min="0" max="50" step="1" value={form.parking_spots} onChange={update("parking_spots")} />
+            </div>
+          ) : null}
           <div className="field">
             <label htmlFor="f-laundry">Laundry</label>
-            <input id="f-laundry" value={form.laundry} onChange={update("laundry")} placeholder="In-suite" />
+            <select id="f-laundry" value={form.laundry_option} onChange={update("laundry_option")}>
+              <option value="">Not set</option>
+              {Object.entries(LAUNDRY_OPTIONS).map(([k, v]) => (
+                <option key={k} value={k}>
+                  {v}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
+        {["included", "assigned"].includes(form.parking_option) ? (
+          <div className="field">
+            <label htmlFor="f-park-notes">Parking instructions (for the tenant; not shown on the listing)</label>
+            <textarea id="f-park-notes" rows={2} value={form.parking_instructions} onChange={update("parking_instructions")} placeholder="e.g. Left side of the driveway, spot 2. No parking on the lawn." />
+          </div>
+        ) : null}
         <div className="field">
           <label htmlFor="f-description">Description</label>
           <textarea id="f-description" rows={6} value={form.description} onChange={update("description")} />

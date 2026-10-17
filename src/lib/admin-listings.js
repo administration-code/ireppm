@@ -21,7 +21,7 @@ export const SAVED_MESSAGE = {
 };
 
 export const LISTING_FIELDS =
-  "id, slug, address, unit, neighbourhood, city, property_type, beds, baths, sqft, rent, available_on, utilities, parking, laundry, description, features, photos, status";
+  "id, slug, address, unit, neighbourhood, city, property_type, beds, baths, sqft, rent, available_on, utilities, parking, laundry, description, features, photos, status, utilities_included, parking_option, parking_spots, parking_instructions, laundry_option";
 
 export function slugify(text) {
   return String(text || "")

@@ -7,19 +7,26 @@ import DeleteRecord from "@/components/admin/DeleteRecord";
 import { deleteLeasingRecord } from "@/lib/delete-records";
 import { listingTitle } from "@/lib/format";
 import { SHOWING_STATUS, prettyDateTime, prettyDay, updateRow } from "@/lib/admin-requests";
+import { getBrowserClient } from "@/lib/supabase";
 
+// Approving, declining and suggesting a time happen on the respond page (the same page Chuck
+// gets by email), so renters and tenants are emailed the same way whoever answers.
 const ACTIONS = {
-  requested: [
-    { to: "confirmed", label: "Confirm", kind: "primary" },
-    { to: "cancelled", label: "Cancel", kind: "ghost" },
-  ],
+  requested: [{ to: "cancelled", label: "Cancel", kind: "ghost" }],
+  rescheduled: [{ to: "cancelled", label: "Cancel", kind: "ghost" }],
   confirmed: [
     { to: "completed", label: "Mark completed", kind: "primary" },
     { to: "cancelled", label: "Cancel", kind: "ghost" },
   ],
+  declined: [],
   completed: [],
   cancelled: [],
 };
+
+async function openRespondPage(id) {
+  const { data } = await getBrowserClient().from("showing_action_tokens").select("token").eq("showing_id", id).maybeSingle();
+  if (data?.token) window.open(`/showings/respond?t=${data.token}`, "_blank", "noopener");
+}
 
 function ShowingItem({ showing, onChange, onRemove }) {
   const [busy, setBusy] = useState(false);
@@ -86,7 +93,19 @@ function ShowingItem({ showing, onChange, onRemove }) {
 
       {showing.notes ? <p className="req-note">{showing.notes}</p> : null}
 
+      {showing.status === "rescheduled" && showing.proposed_date ? (
+        <p className="small">
+          Suggested: {prettyDay(showing.proposed_date)}, {showing.proposed_time}. Waiting for the renter.
+        </p>
+      ) : null}
+      {showing.staff_note ? <p className="small">Note to renter: {showing.staff_note}</p> : null}
+
       <div className="req-actions">
+          {["requested", "rescheduled", "confirmed"].includes(showing.status) ? (
+            <button type="button" className="btn primary sm" onClick={() => openRespondPage(showing.id)}>
+              {showing.status === "confirmed" ? "Change or decline" : "Approve, decline or suggest a time"}
+            </button>
+          ) : null}
           {(ACTIONS[showing.status] || []).map((a) => (
             <button
               key={a.to}

@@ -120,7 +120,7 @@ export function maintenanceEmail(record, unit) {
   };
 }
 
-export function showingEmail(record, listing, renter) {
+export function showingEmail(record, listing, renter, respondUrl, vacant) {
   const place = listingLabel(listing);
   const rows = [
     ["Name", renter?.full_name || "Not provided"],
@@ -130,12 +130,14 @@ export function showingEmail(record, listing, renter) {
     ["Preferred day", prettyDate(record.preferred_date)],
     ["Time window", record.preferred_time],
     ["Notes", record.notes],
+    ["Unit", vacant === undefined ? null : vacant ? "Vacant: same-day showings are fine" : "Occupied: tenants need 24 hours' written notice"],
   ];
   const heading = "New showing request";
+  const link = respondUrl ? { href: respondUrl, label: "Approve, decline or suggest a time" } : undefined;
   return {
     subject: `New showing request – ${place}`,
-    html: renderEmail({ heading, intro: "A renter has asked to see a property.", rows }),
-    text: renderText({ heading, rows }),
+    html: renderEmail({ heading, intro: "A renter has asked to see a property.", rows, ...(link ? { link } : {}) }),
+    text: renderText({ heading, rows, ...(link ? { link } : {}) }),
   };
 }
 
