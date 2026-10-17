@@ -15,13 +15,48 @@ async function authHeader() {
   return { Authorization: `Bearer ${data?.session?.access_token || ""}` };
 }
 
-export function PayRentCard() {
+function PaypropLetterLink({ tenancyId, label }) {
+  const [available, setAvailable] = useState(false);
+  const [err, setErr] = useState("");
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const res = await fetch(`/api/tenancy/payprop-letter?tenancy=${tenancyId}&check=1`, { headers: await authHeader() });
+      const json = await res.json().catch(() => ({}));
+      if (alive) setAvailable(Boolean(json.available));
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [tenancyId]);
+  if (!available) return null;
+  async function open() {
+    setErr("");
+    const res = await fetch(`/api/tenancy/payprop-letter?tenancy=${tenancyId}`, { headers: await authHeader() });
+    const json = await res.json().catch(() => ({}));
+    if (json.url) window.open(json.url, "_blank", "noopener");
+    else setErr(json.error || "We couldn't open it. Try again.");
+  }
+  return (
+    <div className="row" style={{ gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+      <button type="button" className="btn ghost sm" onClick={open}>
+        Your PayProp welcome letter{label ? ` (${label})` : ""}
+      </button>
+      {err ? <span className="err">{err}</span> : null}
+    </div>
+  );
+}
+
+export function PayRentCard({ homes = [] }) {
   return (
     <div className="stack" style={{ gap: 8 }}>
       <h3>Paying rent</h3>
       <p className="small" style={{ margin: 0 }}>
         <b>{PAYMENT_INFO.preferred} (preferred).</b> {PAYMENT_INFO.preferredSteps.join(" ")}
       </p>
+      {homes.map((h) => (
+        <PaypropLetterLink key={h.tenancy_id} tenancyId={h.tenancy_id} label={homes.length > 1 ? h.address : ""} />
+      ))}
       <p className="small" style={{ margin: 0 }}>
         <b>Can&apos;t use PayProp?</b> {PAYMENT_INFO.fallbackNote}
       </p>

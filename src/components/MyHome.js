@@ -102,7 +102,7 @@ export default function MyHome({ user }) {
           <InsuranceCard home={h} />
         </div>
       ))}
-      <PayRentCard />
+      <PayRentCard homes={homes} />
 
       <div className="stack" style={{ gap: 10 }}>
         <h3>My requests</h3>

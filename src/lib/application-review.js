@@ -51,6 +51,16 @@ function paragraphHtml(line) {
   return `<div style="margin:0 0 14px;">${out.join("<br>").replace(/<br>(<ul)/g, "$1").replace(/(<\/ul>)<br>/g, "$1")}</div>`;
 }
 
+// A button that shows in every mail app (Gmail and Outlook drop styling on a bare link),
+// with the address written out underneath in case the button is blocked.
+export function emailButton(href, label) {
+  const h = escapeHtml(href);
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:22px 0 8px;"><tr>
+<td bgcolor="#B41710" style="background:#B41710;border-radius:3px;"><a href="${h}" target="_blank" style="display:inline-block;padding:12px 22px;font-family:Arial,sans-serif;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;">${escapeHtml(label)} &rarr;</a></td>
+</tr></table>
+<p style="margin:0 0 6px;font-size:12px;color:#6b6b6b;">Or open this link: <a href="${h}" style="color:#B41710;word-break:break-all;">${h}</a></p>`;
+}
+
 function brandedHtml(body, link, linkLabel) {
   return `<!doctype html><html lang="en-CA"><body style="margin:0;padding:0;background:#F7F4EE;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F7F4EE;padding:28px 12px;"><tr><td align="center">
@@ -58,7 +68,7 @@ function brandedHtml(body, link, linkLabel) {
 <tr><td style="padding:24px 32px 4px;"><p style="margin:0;font-family:Arial,sans-serif;font-size:12px;letter-spacing:.12em;color:#B41710;font-weight:700;">IREP PROPERTY MANAGEMENT</p></td></tr>
 <tr><td style="padding:12px 32px 8px;font-family:Arial,sans-serif;font-size:15px;line-height:1.55;color:#161616;">
 ${body.map(paragraphHtml).join("\n")}
-${link ? `<p style="margin:22px 0 6px;"><a href="${link}" style="background:#B41710;color:#ffffff;padding:12px 22px;text-decoration:none;display:inline-block;font-weight:600;">${escapeHtml(linkLabel || "Open")}</a></p>` : ""}
+${link ? emailButton(link, linkLabel || "Open") : ""}
 </td></tr>
 <tr><td style="padding:16px 32px 24px;border-top:1px solid #E6E1D8;font-family:Arial,sans-serif;font-size:12px;line-height:1.5;color:#6b6b6b;">
 ${escapeHtml(SITE.name)}<br>${escapeHtml(SITE.address || "")}<br>${escapeHtml(SITE.phone)} · <a href="mailto:${SITE.email}" style="color:#6b6b6b;">${escapeHtml(SITE.email)}</a> · <a href="${SITE.url}" style="color:#6b6b6b;">ireppm.ca</a>
@@ -66,7 +76,7 @@ ${escapeHtml(SITE.name)}<br>${escapeHtml(SITE.address || "")}<br>${escapeHtml(SI
 }
 
 // Branded email: a few paragraphs and one button.
-export async function sendMail({ to, subject, lines, link, linkLabel, replyTo }) {
+export async function sendMail({ to, subject, lines, link, linkLabel, replyTo, attachments }) {
   const list = (Array.isArray(to) ? to : [to]).filter(Boolean);
   if (!process.env.RESEND_API_KEY || !list.length) return { skipped: true };
   const body = lines.filter(Boolean);
@@ -79,6 +89,7 @@ export async function sendMail({ to, subject, lines, link, linkLabel, replyTo })
       subject,
       html,
       text: `${body.join("\n\n")}${link ? `\n\n${linkLabel || "Open"}: ${link}` : ""}`,
+      ...(attachments?.length ? { attachments } : {}),
     });
     if (error) console.error("[applications] email failed:", error.message || error);
     return { sent: !error };

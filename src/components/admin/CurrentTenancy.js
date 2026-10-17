@@ -14,6 +14,7 @@ import {
 } from "@/lib/admin-properties";
 import TenancyFields from "./TenancyFields";
 import TenantsEditor from "./TenantsEditor";
+import PaypropLetter from "./PaypropLetter";
 
 async function updateTenancy(id, changes) {
   const { data, error } = await getBrowserClient().from("tenancies").update(changes).eq("id", id).select("id");
@@ -143,6 +144,7 @@ export default function CurrentTenancy({ tenancy, onChanged }) {
       )}
 
       <TenantsEditor tenancyId={tenancy.id} tenants={tenancy.tenancy_tenants || []} onChanged={onChanged} />
+      <PaypropLetter tenancyId={tenancy.id} />
 
       {mode === "notice" ? (
         <form className="confirm-box stack" onSubmit={recordNotice} noValidate aria-label="Record notice">

@@ -29,16 +29,28 @@ const firstNames = (t) =>
 // ---------------------------------------------------------------------------
 export async function sendWelcome(sb, tenancyId) {
   if (!tenancyId) return { sent: false };
-  const { data: t } = await sb.from("tenancies").select(TENANCY_SELECT).eq("id", tenancyId).maybeSingle();
+  const { data: t } = await sb
+    .from("tenancies")
+    .select(`${TENANCY_SELECT}, payprop_letter_path, payprop_letter_name`)
+    .eq("id", tenancyId)
+    .maybeSingle();
   if (!t || !tenantEmails(t).length) return { sent: false };
   const due = t.insurance_due || addDays(t.start_date, 7);
+  // If staff already uploaded the PayProp welcome letter, attach it.
+  let attachments;
+  if (t.payprop_letter_path) {
+    const { data: file } = await sb.storage.from("tenancy-documents").download(t.payprop_letter_path);
+    if (file) attachments = [{ filename: t.payprop_letter_name || "PayProp welcome letter.pdf", content: Buffer.from(await file.arrayBuffer()).toString("base64") }];
+  }
   const r = await sendMail({
+    attachments,
     to: tenantEmails(t),
     subject: `Welcome to ${placeOf(t)}`,
     lines: [
       `Hi ${firstNames(t)},`,
       `Welcome home! Your lease for ${placeOf(t)} is signed. We're IRep Property Management, and we look after the property for your landlord. Here's what to know before you move in on ${longDay(t.start_date)}.`,
       `Rent: ${money(t.rent)} a month, due on day ${t.rent_due_day || 1} of each month.`,
+      attachments ? "Your PayProp welcome letter is attached: follow it to set up your rent payments. It's also saved in your account." : "",
       `How to pay: ${PAYMENT_INFO.preferred} is our preferred way.\n• ${PAYMENT_INFO.preferredSteps.join("\n• ")}\nIf you can't use PayProp, ask us and we'll set you up for ${PAYMENT_INFO.fallback.replace(", on request", "")}.`,
       `Tenant insurance: please upload proof of your tenant insurance by ${longDay(due)} (within a week of moving in). You can upload it in your account.`,
       "Repairs: report anything that needs fixing from your account, with photos. For emergencies (flooding, no heat in winter, gas smell, fire), call us right away and, if anyone is in danger, call 911 first.",
@@ -48,16 +60,50 @@ export async function sendWelcome(sb, tenancyId) {
     link: PORTAL,
     linkLabel: "Open your account",
   });
-  // PayProp sends its own welcome letter, but only once the tenant is set up there: remind staff.
-  await sendMail({
+  if (attachments && r.sent) await sb.from("tenancies").update({ payprop_letter_sent_at: new Date().toISOString() }).eq("id", t.id);
+  // PayProp's welcome letter needs the tenant set up there first: remind staff (unless it's already attached).
+  if (!attachments) await sendMail({
     to: staffEmails(),
     subject: `Set up in PayProp: ${placeOf(t)}`,
     lines: [
       `The lease for ${placeOf(t)} is signed and the tenant welcome email has gone out.`,
-      `Next, in PayProp: add the tenant(s) (${(t.tenancy_tenants || []).map((p) => [p.full_name, p.email].filter(Boolean).join(", ")).join("; ")}), rent ${money(t.rent)} due on day ${t.rent_due_day || 1}, starting ${longDay(t.start_date)}, then send the PayProp welcome letter so they can set up payments.`,
+      `Next, in PayProp: add the tenant(s) (${(t.tenancy_tenants || []).map((p) => [p.full_name, p.email].filter(Boolean).join(", ")).join("; ")}), rent ${money(t.rent)} due on day ${t.rent_due_day || 1}, starting ${longDay(t.start_date)}, then upload the PayProp welcome letter on the tenancy (unit page) and click "Email to tenants". It's also saved in their account.`,
     ],
   }).catch(() => {});
   return r;
+}
+
+// PayProp welcome letter (uploaded by staff on the tenancy): email it to the tenants as an
+// attachment, and point them to their account where it stays available.
+export async function emailPaypropLetter(sb, tenancyId) {
+  const { data: t } = await sb
+    .from("tenancies")
+    .select(`${TENANCY_SELECT}, payprop_letter_path, payprop_letter_name`)
+    .eq("id", tenancyId)
+    .maybeSingle();
+  if (!t) throw new Error("Tenancy not found.");
+  if (!t.payprop_letter_path) throw new Error("Upload the PayProp welcome letter first.");
+  if (!tenantEmails(t).length) throw new Error("No tenant email on file.");
+  const { data: file, error } = await sb.storage.from("tenancy-documents").download(t.payprop_letter_path);
+  if (error || !file) throw new Error("We couldn't read the uploaded letter.");
+  const content = Buffer.from(await file.arrayBuffer()).toString("base64");
+  const r = await sendMail({
+    to: tenantEmails(t),
+    subject: `Your PayProp welcome letter: ${placeOf(t)}`,
+    lines: [
+      `Hi ${firstNames(t)},`,
+      `Attached is your PayProp welcome letter for ${placeOf(t)}. PayProp is how we collect rent: it has your sign-up details and the payment reference for your home.`,
+      "What to do:\n• Open the attached letter and follow the steps to create your PayProp account\n• Set up your rent payment (pre-authorized debit is easiest)\n• Keep the letter: it's also saved in your IRep account any time you need it",
+      `Rent: ${money(t.rent)} a month, due on day ${t.rent_due_day || 1}.`,
+      `Questions? Reply to this email or call ${SITE.phone}.`,
+    ],
+    link: PORTAL,
+    linkLabel: "Open your account",
+    attachments: [{ filename: t.payprop_letter_name || "PayProp welcome letter.pdf", content }],
+  });
+  if (!r.sent) throw new Error("The email didn't send. Try again in a minute.");
+  await sb.from("tenancies").update({ payprop_letter_sent_at: new Date().toISOString() }).eq("id", t.id);
+  return { sent: true, to: tenantEmails(t) };
 }
 
 // ---------------------------------------------------------------------------
