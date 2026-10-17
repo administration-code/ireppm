@@ -141,6 +141,7 @@ const EXPENSE_LABEL = {
   insurance: "Insurance",
   phone: "Phone",
   software: "Software",
+  office: "Office space",
   miscellaneous: "Miscellaneous",
   other_expense: "Other",
 };
@@ -157,7 +158,11 @@ export function ExpensesTable({ rows }) {
           <tr key={r.category}>
             <th scope="row">{EXPENSE_LABEL[r.category] || r.category}</th>
             <td className="num">{dollars(r.amount)}</td>
-            <td className="num small">{Number(r.hst) ? `HST ${dollars(r.hst)}` : ""}</td>
+            <td className="num small">
+              {[Number(r.hst) ? `HST ${dollars(r.hst)}` : "", Number(r.from_bank) ? `${dollars(r.from_bank)} from bank lines` : ""]
+                .filter(Boolean)
+                .join(" · ")}
+            </td>
           </tr>
         ))}
       </tbody>
@@ -448,8 +453,9 @@ export default function YearBoard({ initialYear }) {
               IRep income
             </h2>
             <p className="small">
-              Months before the website started come from IRep&apos;s corporate accounting workbook. Lawn/snow and
-              IRep&apos;s own expenses come from there too. Months appear as they arrive.
+              Months before the website started come from IRep&apos;s corporate accounting workbook. Lawn/snow and some
+              expenses come from there too; costs paid straight from the bank (phone, software, office) come from
+              bank lines categorised as an IRep business expense, grouped by their note. Months appear as they arrive.
             </p>
             <IncomeTable rows={data.irep_income} year={year} hst={data.hst_collected} />
             <ExpensesTable rows={data.irep_expenses} />
