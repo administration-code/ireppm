@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useAuth } from "./AuthProvider";
 import MyHome from "./MyHome";
 import { getBrowserClient } from "@/lib/supabase";
-import { ACCEPT, CONSENT_TEXT, DOC_BUCKET, DOC_TYPES, INCOME_TYPES, MAX_FILE_MB } from "@/lib/documents";
+import { ACCEPT, CONSENT_TEXT, DOC_BUCKET, DOC_TYPES, INCOME_TYPES, MAX_FILE_MB, consentCurrent } from "@/lib/documents";
 import { listingTitle, money } from "@/lib/format";
 import AddressInput from "@/components/AddressInput";
 
@@ -121,7 +121,7 @@ export default function AccountView() {
   if (!profile?.current_address) missing.push("your current address");
   if (!docOf("photo_id")) missing.push("photo ID");
   if (!incomeType || !docOf("income")) missing.push("proof of income");
-  if (!profile?.credit_consent_at) missing.push("credit check authorization");
+  if (!consentCurrent(profile?.credit_consent_at)) missing.push("credit check and sharing authorization");
   const readyToApply = missing.length === 0;
 
   async function saveProfile(fields) {
@@ -206,6 +206,7 @@ export default function AccountView() {
       applicant_email: profile.email || user.email,
       applicant_phone: profile.phone,
       applicant_address: profile.current_address || null,
+      rental_references: Array.isArray(profile.rental_references) ? profile.rental_references : [],
       income_type: incomeType,
       documents: attached,
       credit_consent: true,
@@ -403,20 +404,20 @@ export default function AccountView() {
             <div className="consent">
               <span className="dname" style={{ fontWeight: 600, display: "flex", gap: 10, alignItems: "center" }}>
                 Credit check authorization{" "}
-                {profile?.credit_consent_at ? <span className="pill done">Given</span> : <span className="pill req">Required</span>}
+                {consentCurrent(profile?.credit_consent_at) ? <span className="pill done">Given</span> : <span className="pill req">Required</span>}
               </span>
               <label htmlFor="consent">
                 <input
                   type="checkbox"
                   id="consent"
-                  checked={Boolean(profile?.credit_consent_at)}
+                  checked={consentCurrent(profile?.credit_consent_at)}
                   onChange={(e) => saveProfile({ credit_consent_at: e.target.checked ? new Date().toISOString() : null })}
                 />
                 <span>{CONSENT_TEXT}</span>
               </label>
               <span className="small">
-                The check runs only after you submit an application. The screening provider sends us the result, not your full
-                credit file.
+                The check runs only after you submit an application. Only IRep staff and the owner of the property you apply for
+                see your application, documents, references and credit report.
               </span>
             </div>
           </>
