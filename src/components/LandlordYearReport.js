@@ -212,7 +212,7 @@ function PropertyTable({ p, before }) {
       </h3>
       {p.fee_billed_separately ? (
         <p className="small">
-          Management fees for this property were billed to you separately and aren&apos;t shown here.
+          You pay the management fee for this property separately (not from your rent). It&apos;s included in the totals above as an expense.
         </p>
       ) : null}
       <div className="ly-table-wrap">
