@@ -228,7 +228,7 @@ export function GettingStarted({ role = "tenant", dismissedAt, onDismiss }) {
   const steps =
     role === "owner"
       ? [
-          ["See your properties", "Units, occupancy and your agreement renewal date."],
+          ["See your properties", "Units, who lives there, and your agreement (first year, then month to month)."],
           ["Monthly statements", "Rent collected, fees and what we sent you, month by month."],
           ["Approve applicants", "We never accept a tenant without your OK."],
           ["Year-end summary", "Your rental income and expenses, laid out for your T776."],

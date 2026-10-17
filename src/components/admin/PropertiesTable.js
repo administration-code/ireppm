@@ -130,10 +130,10 @@ export default function PropertiesTable() {
                     <th scope="col">Fee</th>
                     <th scope="col" aria-sort={sort === "renewal" ? "ascending" : undefined}>
                       <button type="button" className="th-sort" onClick={() => setSort(sort === "renewal" ? "address" : "renewal")}>
-                        Renewal{sort === "renewal" ? " ↑" : ""}
+                        Agreement{sort === "renewal" ? " ↑" : ""}
                       </button>
                     </th>
-                    <th scope="col">Unit records</th>
+                    <th scope="col">Units on file</th>
                     <th scope="col" className="r">
                       <span className="visually-hidden">Actions</span>
                     </th>
@@ -145,7 +145,10 @@ export default function PropertiesTable() {
                     return (
                       <tr key={p.id}>
                         <td className="addr">
-                          {propertyTitle(p)}
+                          <Link className="addr-street addr-link" href={`/admin/properties/${p.id}`}>
+                            {p.address}
+                          </Link>
+                          {p.city ? <span className="small addr-city">{p.city}</span> : null}
                           {p.archived ? <span className="pill us-offline inline-pill">Archived</span> : null}
                         </td>
                         <td>
@@ -171,13 +174,13 @@ export default function PropertiesTable() {
                         <td>
                           <RenewalBadge date={p.agreement_renewal} />
                         </td>
-                        <td className="num unit-counts">
+                        <td className="unit-counts">
                           {p.units?.length ? (
                             <>
-                              <span>{c.occupied} occupied</span>
-                              <span>{c.vacant} vacant</span>
-                              <span>{c.turnover} turnover</span>
-                              {c.offline ? <span className="muted">{c.offline} offline</span> : null}
+                              {c.occupied ? <span className="uc uc-occupied">{c.occupied} occupied</span> : null}
+                              {c.vacant ? <span className="uc uc-vacant">{c.vacant} vacant</span> : null}
+                              {c.turnover ? <span className="uc uc-turnover">{c.turnover} turnover</span> : null}
+                              {c.offline ? <span className="uc uc-offline">{c.offline} offline</span> : null}
                             </>
                           ) : (
                             <span className="small">No units yet</span>

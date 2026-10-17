@@ -70,9 +70,16 @@ export default function AuthProvider({ children }) {
     };
   }, [userId]);
 
-  const openSignIn = useCallback((next) => {
-    setModal({ next: next || window.location.pathname });
+  const openSignIn = useCallback((next, email) => {
+    setModal({ next: next || window.location.pathname, email: email || "" });
   }, []);
+
+  // Invitation links (?invite=email) open the sign-in with that email filled in.
+  useEffect(() => {
+    if (!ready || session) return;
+    const invite = new URLSearchParams(window.location.search).get("invite");
+    if (invite && /^\S+@\S+\.\S+$/.test(invite)) setModal({ next: window.location.pathname, email: invite });
+  }, [ready, session]);
 
   const signOut = useCallback(async () => {
     const sb = getBrowserClient();
@@ -85,7 +92,7 @@ export default function AuthProvider({ children }) {
       value={{ user: session?.user || null, ready, configured: supabaseConfigured, openSignIn, signOut }}
     >
       {children}
-      {modal ? <SignInModal next={modal.next} onClose={() => setModal(null)} /> : null}
+      {modal ? <SignInModal next={modal.next} initialEmail={modal.email} onClose={() => setModal(null)} /> : null}
       {askPhone && !modal ? <PhoneModal userId={userId} onDone={() => setAskPhone(false)} /> : null}
     </AuthContext.Provider>
   );
@@ -167,8 +174,8 @@ function PhoneModal({ userId, onDone }) {
   );
 }
 
-function SignInModal({ next, onClose }) {
-  const [email, setEmail] = useState("");
+function SignInModal({ next, initialEmail = "", onClose }) {
+  const [email, setEmail] = useState(initialEmail);
   const [phone, setPhone] = useState("");
   const [error, setError] = useState("");
   const [sentTo, setSentTo] = useState("");

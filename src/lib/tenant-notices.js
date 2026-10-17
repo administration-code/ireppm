@@ -48,6 +48,15 @@ export async function sendWelcome(sb, tenancyId) {
     link: PORTAL,
     linkLabel: "Open your account",
   });
+  // PayProp sends its own welcome letter, but only once the tenant is set up there: remind staff.
+  await sendMail({
+    to: staffEmails(),
+    subject: `Set up in PayProp: ${placeOf(t)}`,
+    lines: [
+      `The lease for ${placeOf(t)} is signed and the tenant welcome email has gone out.`,
+      `Next, in PayProp: add the tenant(s) (${(t.tenancy_tenants || []).map((p) => [p.full_name, p.email].filter(Boolean).join(", ")).join("; ")}), rent ${money(t.rent)} due on day ${t.rent_due_day || 1}, starting ${longDay(t.start_date)}, then send the PayProp welcome letter so they can set up payments.`,
+    ],
+  }).catch(() => {});
   return r;
 }
 

@@ -5,8 +5,8 @@ import Link from "next/link";
 import { getBrowserClient } from "@/lib/supabase";
 
 // Who handles showings, maintenance and lawn/snow at this property (from the Partners list).
-const ROLES = [
-  ["showings", "Showing agent", "Gets showing requests by email (and text) to approve, decline or suggest a time."],
+export const AGENT_ROLES = [
+  ["showings", "Showing agent", "Gets showing requests by email to approve, decline or suggest a time, with a daily reminder until decided."],
   ["maintenance", "Maintenance contractor", "Default contractor for repairs here."],
   ["lawn_snow", "Lawn & snow", "Who does lawn and snow at this property."],
 ];
@@ -67,7 +67,7 @@ export default function PropertyAgents({ propertyId }) {
           No partners yet. <Link href="/admin/partners">Add your contractors and showing agents</Link> first.
         </p>
       ) : (
-        ROLES.map(([role, label, help]) => {
+        AGENT_ROLES.map(([role, label, help]) => {
           const mine = assigned.filter((a) => a.role === role);
           const free = partners.filter((p) => !mine.some((m) => m.partner_id === p.id));
           return (

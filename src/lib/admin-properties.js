@@ -114,9 +114,14 @@ export function renewalBadge(dateStr) {
   if (days < 0) return { kind: "later", text: "Month to month" };
   if (days === 0) return { kind: "soon", text: "First year ends today" };
   if (days <= 60) return { kind: "soon", text: `First year ends in ${days} ${days === 1 ? "day" : "days"}` };
-  return { kind: "later", text: `First year ends ${prettyDate(dateStr)}` };
+  return { kind: "later", text: `First year to ${shortDate(dateStr)}` };
 }
 export const TENANT_FIELDS = "id, tenancy_id, profile_id, full_name, email, phone, is_primary, created_at";
+
+function shortDate(dateStr) {
+  const d = new Date(dateStr + "T12:00:00");
+  return Number.isNaN(d.getTime()) ? dateStr : d.toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric" });
+}
 
 export function prettyDate(dateStr) {
   if (!dateStr) return "—";

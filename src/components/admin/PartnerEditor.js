@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getBrowserClient } from "@/lib/supabase";
 import PartnerForm, { PARTNER_FIELDS } from "./PartnerForm";
+import PartnerProperties from "./PartnerProperties";
 
 export default function PartnerEditor({ id }) {
   const [state, setState] = useState({ loading: true, partner: null, error: "" });
@@ -48,6 +49,7 @@ export default function PartnerEditor({ id }) {
         <h1 className="admin-title">{partner.name}</h1>
       </div>
       <PartnerForm partner={partner} onSaved={(p) => setState((s) => ({ ...s, partner: p }))} />
+      <PartnerProperties partnerId={partner.id} />
     </div>
   );
 }

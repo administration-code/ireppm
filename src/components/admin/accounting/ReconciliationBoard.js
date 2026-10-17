@@ -75,12 +75,13 @@ function MonthStrip({ months, month, onPick }) {
             <button
               type="button"
               className={`acct-chip st-${status}`}
-              aria-current={key === month ? "true" : undefined}
+              aria-current={key === month ? "page" : undefined}
+              title={RECON_STATUS_LABEL[status] || status}
               onClick={() => onPick(key)}
             >
               <span>{monthLabel(m.period).replace(/\s\d{4}$/, "").slice(0, 3)}</span>
               <span className="visually-hidden">: </span>
-              <span className="acct-chip-status">{RECON_STATUS_LABEL[status] || status}</span>
+              {status === "open" ? null : <span className="acct-chip-status">{RECON_STATUS_LABEL[status] || status}</span>}
             </button>
           </li>
         );

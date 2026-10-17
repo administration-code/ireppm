@@ -2,7 +2,7 @@
 export const PAYMENT_INFO = {
   preferred: "PayProp",
   preferredSteps: [
-    "Watch for an email invitation from PayProp after you sign your lease.",
+    "Watch for a separate welcome letter from PayProp after your lease is signed. It comes from PayProp, not from us, and has your sign-up link and payment reference.",
     "Create your PayProp account and set up your rent payment (pre-authorized debit is easiest).",
     "Your payments are matched to your lease automatically, and you get a receipt every time.",
   ],
