@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { insuranceReminders, leaseEndPrompts } from "@/lib/tenant-notices";
+import { showingReminders } from "@/lib/showings";
 import { Resend } from "resend";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { sendMail, staffEmails } from "@/lib/application-review";
@@ -177,6 +178,7 @@ export async function GET(request) {
   for (const [key, job] of [
     ["insurance", insuranceReminders],
     ["leaseEnd", leaseEndPrompts],
+    ["showings", showingReminders],
   ]) {
     try {
       result[key] = await job(sb);

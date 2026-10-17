@@ -17,6 +17,10 @@ con.date_format = "dd/MM/yyyy"     # the LTB consent form asks for dd/mm/yyyy
 CONSENT = [("Rent Increase", "Doc1[0]"), ("Notice Of Entry", "Doc2[0]"), ("LTB Documents", "Doc3[0]"), ("Tenancy Communication", "Doc4[0]")]
 CONSENT_X = (308, 360, 412, 464)
 
+def CENTRED_CONSENT(label, x, top):
+    import json
+    return json.load(open("checkbox_positions.json")).get(label, (x, top))
+
 def consent_items(i):
     """Tenant i's consent fields: the LTB form for tenant 1, the extra page for tenants 2-8."""
     if i == 1:
@@ -30,7 +34,8 @@ def consent_items(i):
     top = 150 + (i - 2) * 82
     items = [("text", f"Tenant {i} Consent Name", 2, None, 68, top + 14, 220, 11),
              ("text", f"Tenant {i} Consent Email", 2, None, 68, top + 34, 220, 11)]
-    items += [("check", f"Consent {lab} (Tenant {i})", 2, None, x, top + 19, 11, 11) for (lab, _), x in zip(CONSENT, CONSENT_X)]
+    items += [("check", f"Consent {lab} (Tenant {i})", 2, None, *CENTRED_CONSENT(f"Consent {lab} (Tenant {i})", x, top + 19), 11, 11)
+              for (lab, _), x in zip(CONSENT, CONSENT_X)]
     items += [("sign", f"Tenant {i} Consent Signature", 2, None, 82, top + 62, 200, 1),
               ("date", f"Tenant {i} Consent Date", 2, None, 472, top + 58, 104, 12)]
     return [(con, x) for x in items]
@@ -38,7 +43,13 @@ def consent_items(i):
 def T(label, page, x, top, w, h=12):
     return ("lockedtext", label, page, None, x, top, w, h)
 
+import json
+# DocuSign draws a checkbox's visible square about (6, 4) points inside the tab's position, so each
+# tab is placed at (printed box centre - (10, 8)). Positions measured from the PDFs live in this file.
+CENTRED = json.load(open("checkbox_positions.json"))
+
 def C(label, page, x, top):
+    x, top = CENTRED.get(label, (x, top))
     return ("lockedcheck", label, page, None, x, top, 11, 11)
 
 L = []

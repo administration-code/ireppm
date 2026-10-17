@@ -29,7 +29,7 @@ export async function showingAgents(admin, listingId) {
         phones: agents.map((a) => a.phone).filter(Boolean),
       };
   }
-  return { assigned: false, names: [], emails: showingsInbox(), phones: (process.env.SHOWINGS_SMS || "").split(",").filter(Boolean) };
+  return { assigned: false, names: [], emails: showingsInbox(), phones: [] };
 }
 
 export const respondLink = (token) => `${SITE_URL}/showings/respond?t=${token}`;
@@ -113,7 +113,7 @@ export async function emailRenter(s, kind) {
   const content = {
     confirmed: {
       subject: `Showing confirmed: ${place}`,
-      lines: [`Your showing at ${place} is confirmed for ${when(s.preferred_date, s.preferred_time)}.`, s.staff_note ? `Note from IRep: ${s.staff_note}` : "", "We'll text you if anything changes."],
+      lines: [`Your showing at ${place} is confirmed for ${when(s.preferred_date, s.preferred_time)}.`, s.staff_note ? `Note from IRep: ${s.staff_note}` : "", "We'll email you if anything changes."],
     },
     declined: {
       subject: `About your showing request: ${place}`,
@@ -127,4 +127,56 @@ export async function emailRenter(s, kind) {
     },
   }[kind];
   if (content) await sendMail({ to, ...content, lines: content.lines.filter(Boolean) });
+}
+
+// When the agent needs to answer by, as a sentence. Occupied units need 24 hours' written notice to
+// the tenants before the showing window starts; vacant units just need a quick answer.
+export function decideBy(dateIso, window, vacant) {
+  if (!dateIso) return "As soon as possible";
+  if (vacant) return "As soon as possible. The unit is vacant, so same-day showings are fine.";
+  const deadline = new Date(windowStart(dateIso, window).getTime() - 24 * 3600 * 1000);
+  if (deadline.getTime() <= Date.now())
+    return "Now. It is already too late to give the tenants 24 hours' notice for this time, so please suggest a later time or decline.";
+  const when = deadline.toLocaleString("en-CA", {
+    timeZone: "America/Toronto", weekday: "long", month: "long", day: "numeric", hour: "numeric", minute: "2-digit",
+  });
+  return `${when} at the latest, so the tenants get their 24 hours' written notice. Sooner is better: the renter is waiting.`;
+}
+
+// Daily nudge to the assigned agent for showing requests still waiting on a decision.
+export async function showingReminders(admin) {
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" });
+  const cutoff = new Date(Date.now() - 4 * 3600 * 1000).toISOString();
+  const { data, error } = await admin
+    .from("showing_requests")
+    .select("id, listing_id, preferred_date, preferred_time, created_at, listing:listings(address, unit), renter:profiles(full_name), token:showing_action_tokens(token)")
+    .eq("status", "requested")
+    .lt("created_at", cutoff)
+    .gte("preferred_date", today);
+  if (error) throw new Error(error.message);
+  let sent = 0;
+  for (const s of data || []) {
+    const token = Array.isArray(s.token) ? s.token[0]?.token : s.token?.token;
+    if (!token) continue;
+    const [agents, { data: vacant }] = await Promise.all([
+      showingAgents(admin, s.listing_id),
+      admin.rpc("listing_is_vacant", { p_listing_id: s.listing_id }),
+    ]);
+    const hours = Math.floor((Date.now() - new Date(s.created_at).getTime()) / 3600000);
+    const waited = hours >= 48 ? `${Math.floor(hours / 24)} days` : `${hours} hours`;
+    const r = await sendMail({
+      to: agents.emails,
+      subject: `Reminder: decision needed on a showing at ${placeOf(s.listing)}`,
+      lines: [
+        `${s.renter?.full_name || "A renter"} asked to see ${placeOf(s.listing)} ${waited} ago and is still waiting for an answer.`,
+        `Requested: ${prettyDay(s.preferred_date)}, ${s.preferred_time}`,
+        `Please decide by: ${decideBy(s.preferred_date, s.preferred_time, Boolean(vacant))}`,
+        "It takes one click to approve, decline or suggest another time. Renters who don't hear back quickly tend to book somewhere else.",
+      ],
+      link: respondLink(token),
+      linkLabel: "Approve, decline or suggest a time",
+    });
+    if (r.sent) sent += 1;
+  }
+  return { sent };
 }

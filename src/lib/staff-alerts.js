@@ -120,9 +120,10 @@ export function maintenanceEmail(record, unit) {
   };
 }
 
-export function showingEmail(record, listing, renter, respondUrl, vacant) {
+export function showingEmail(record, listing, renter, respondUrl, vacant, decideBy) {
   const place = listingLabel(listing);
   const rows = [
+    ["Please decide by", decideBy],
     ["Name", renter?.full_name || "Not provided"],
     ["Phone", renter?.phone || "Not provided"],
     ["Email", renter?.email || "Not provided"],
@@ -132,12 +133,15 @@ export function showingEmail(record, listing, renter, respondUrl, vacant) {
     ["Notes", record.notes],
     ["Unit", vacant === undefined ? null : vacant ? "Vacant: same-day showings are fine" : "Occupied: tenants need 24 hours' written notice"],
   ];
-  const heading = "New showing request";
+  const heading = "Showing request: decision needed";
+  const intro =
+    "A renter wants to see this property and is waiting to hear back. Please approve it, decline it or suggest another time as soon as you can. " +
+    "It takes one click, and renters who don't get a quick answer tend to book somewhere else. You'll get a reminder each day until it's decided.";
   const link = respondUrl ? { href: respondUrl, label: "Approve, decline or suggest a time" } : undefined;
   return {
-    subject: `New showing request – ${place}`,
-    html: renderEmail({ heading, intro: "A renter has asked to see a property.", rows, ...(link ? { link } : {}) }),
-    text: renderText({ heading, rows, ...(link ? { link } : {}) }),
+    subject: `Action needed: showing request at ${place}`,
+    html: renderEmail({ heading, intro, rows, ...(link ? { link } : {}) }),
+    text: renderText({ heading, rows: [["", intro], ...rows], ...(link ? { link } : {}) }).replace(/^: /m, ""),
   };
 }
 

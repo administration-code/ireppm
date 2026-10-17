@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { bearer, sendMail, userClient } from "@/lib/application-review";
 import { loadShowing, placeOf, prettyDay, respondLink, sendTenantNotice, showingAgents } from "@/lib/showings";
-import { sendSms } from "@/lib/sms";
 import { staffEmails } from "@/lib/application-review";
 
 export const runtime = "nodejs";
@@ -43,13 +42,6 @@ export async function POST(request) {
       link: tok ? respondLink(tok.token) : undefined,
       linkLabel: "Open the showing",
     });
-    if (agents.phones.length)
-      await sendSms(
-        agents.phones,
-        result === "confirmed"
-          ? `IRep showing confirmed: ${placeOf(s.listing)}, ${prettyDay(s.preferred_date)}, ${s.preferred_time}. ${who} accepted your suggested time.`
-          : `IRep showing cancelled: ${placeOf(s.listing)}. ${who} declined the suggested time.`
-      );
     if (result === "confirmed") await sendTenantNotice(admin, s);
   }
   return NextResponse.json({ status: result });
