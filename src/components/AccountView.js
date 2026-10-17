@@ -218,6 +218,7 @@ export default function AccountView() {
       applicant_email: profile.email || user.email,
       applicant_phone: profile.phone,
       applicant_address: profile.current_address || null,
+      applicant_dob: profile.date_of_birth || null,
       rental_references: Array.isArray(profile.rental_references) ? profile.rental_references : [],
       income_type: incomeType,
       documents: attached,
@@ -519,13 +520,22 @@ function ProfileFields({ profile, onSave }) {
   const [name, setName] = useState(profile?.full_name || "");
   const [phone, setPhone] = useState(profile?.phone || "");
   const [address, setAddress] = useState(profile?.current_address || "");
+  const [dob, setDob] = useState(profile?.date_of_birth || "");
   const [saved, setSaved] = useState(false);
   const dirty =
-    name !== (profile?.full_name || "") || phone !== (profile?.phone || "") || address !== (profile?.current_address || "");
+    name !== (profile?.full_name || "") ||
+    phone !== (profile?.phone || "") ||
+    address !== (profile?.current_address || "") ||
+    dob !== (profile?.date_of_birth || "");
 
   async function save(e) {
     e.preventDefault();
-    await onSave({ full_name: name.trim() || null, phone: phone.trim() || null, current_address: address.trim() || null });
+    await onSave({
+      full_name: name.trim() || null,
+      phone: phone.trim() || null,
+      current_address: address.trim() || null,
+      date_of_birth: dob || null,
+    });
     setSaved(true);
   }
 
@@ -553,6 +563,20 @@ function ProfileFields({ profile, onSave }) {
           }}
           placeholder="Start typing your street address"
         />
+      </div>
+      <div className="field">
+        <label htmlFor="p-dob">Date of birth (optional)</label>
+        <input
+          id="p-dob"
+          type="date"
+          value={dob}
+          max={new Date(Date.now() - 16 * 365.25 * 864e5).toISOString().slice(0, 10)}
+          onChange={(e) => {
+            setDob(e.target.value);
+            setSaved(false);
+          }}
+        />
+        <span className="small">Speeds up your credit check. Only IRep staff see it; it isn't shared with landlords.</span>
       </div>
       <div className="row">
         <button className="btn ghost sm" type="submit" disabled={!dirty}>

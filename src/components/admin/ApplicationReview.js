@@ -100,6 +100,39 @@ function CreditBlock({ app, onChange }) {
     setMsg({ kind: "ok", text: "Credit report attached." });
   }
 
+  // FrontLobby has no connection for other websites: copy what its form asks for, open it,
+  // and mark the check as started (the daily job reminds staff if no report follows).
+  async function startFrontLobby() {
+    const prev = (app.rental_references || []).find((r) => r.kind === "previous_landlord");
+    const text = [
+      `Name: ${app.applicant_name || ""}`,
+      `Email: ${app.applicant_email || ""}`,
+      `Phone: ${app.applicant_phone || ""}`,
+      `Date of birth: ${app.applicant_dob || "not given (ask the applicant, or let FrontLobby collect it)"}`,
+      `Current address: ${app.applicant_address || ""}`,
+      `Previous address: ${prev?.address || "not given"}`,
+    ].join("\n");
+    let copied = false;
+    try {
+      await navigator.clipboard.writeText(text); // before opening the tab, while this page has focus
+      copied = true;
+    } catch {}
+    const tab = window.open("https://app.frontlobby.com/login", "_blank");
+    if (tab) tab.opener = null;
+    const started = new Date().toISOString();
+    try {
+      await updateRow("applications", app.id, { credit_check_started_at: started, credit_reminder_sent_at: null });
+      onChange({ ...app, credit_check_started_at: started, credit_reminder_sent_at: null });
+    } catch {}
+    setMsg({
+      kind: "ok",
+      text: copied
+        ? "Applicant details copied. In FrontLobby: Tenant Screening → Screen Tenant, then paste. Choose “applicant enters their own details” to have FrontLobby email them."
+        : `Couldn't copy automatically. Details: ${text.replace(/\n/g, " · ")}`,
+    });
+    if (!tab) setMsg((m) => ({ ...m, text: `${m.text} (Your browser blocked the new tab: open app.frontlobby.com.)` }));
+  }
+
   async function saveSummary() {
     setBusy("summary");
     setMsg(null);
@@ -121,6 +154,14 @@ function CreditBlock({ app, onChange }) {
         Run it in FrontLobby (Tenant Screening → Screen Tenant). Download the report and upload it here. FrontLobby keeps reports for 45
         days.
       </p>
+      <div className="row">
+        <button type="button" className="btn ghost sm" onClick={startFrontLobby}>
+          {app.credit_check_started_at ? "Copy details and open FrontLobby again" : "Start FrontLobby check"}
+        </button>
+        {app.credit_check_started_at && !app.credit_report_path ? (
+          <span className="small">Check started {prettyDateTime(app.credit_check_started_at)}: waiting for the report</span>
+        ) : null}
+      </div>
       <div className="row">
         {app.credit_report_path ? (
           <>

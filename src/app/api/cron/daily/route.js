@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { sendMail, staffEmails } from "@/lib/application-review";
 import { escapeHtml } from "@/lib/staff-alerts";
 import { money } from "@/lib/format";
 import { cents, monthLabel, primaryTenant, todayISO } from "@/lib/rent";
@@ -171,6 +172,7 @@ export async function GET(request) {
   result.reconciliation = await sendReconciliationAlert(sb, today);
   result.documentCleanup = await deleteExpiredDocuments(sb);
   result.screeningCleanup = await deleteExpiredScreeningReports(sb);
+  result.creditReminders = await remindOverdueCreditChecks(sb);
 
   if (digestFailed) {
     return NextResponse.json({ ...result, error: "The rent digest didn't send" }, { status: 500 });
@@ -293,6 +295,32 @@ ${s.accounts
   return { sent: true, sections: sections.length };
 }
 
+// FrontLobby checks started 2+ days ago with no report uploaded: remind staff once.
+async function remindOverdueCreditChecks(sb) {
+  const { data, error } = await sb.rpc("credit_checks_overdue", { p_days: 2 });
+  if (error) {
+    console.error("[cron] credit_checks_overdue failed:", error.message);
+    return { error: "Couldn't load overdue credit checks" };
+  }
+  if (!data?.length) return { reminded: 0 };
+  const lines = data.map((r) => `${r.applicant_name} for ${r.place} (started ${new Date(r.started_at).toLocaleDateString("en-CA", { month: "short", day: "numeric", timeZone: "America/Toronto" })})`);
+  const res = await sendMail({
+    to: staffEmails(),
+    subject: `Credit check${data.length > 1 ? "s" : ""} waiting for a report (${data.length})`,
+    lines: [
+      "These FrontLobby checks were started more than 2 days ago, but no report has been uploaded:",
+      lines.join("\n"),
+      "If the applicant hasn't completed FrontLobby's request, follow up with them. Otherwise download the report from FrontLobby and upload it to the application.",
+    ],
+    link: "https://ireppm.ca/admin/requests?tab=applications",
+    linkLabel: "Open applications",
+  });
+  if (res?.sent || res?.skipped) {
+    await sb.from("applications").update({ credit_reminder_sent_at: new Date().toISOString() }).in("id", data.map((r) => r.application_id));
+  }
+  return { reminded: data.length };
+}
+
 // Credit reports follow the same retention as applicant documents. Only counts are logged.
 async function deleteExpiredScreeningReports(sb) {
   const summary = { files: 0, skipped: 0 };
@@ -302,14 +330,17 @@ async function deleteExpiredScreeningReports(sb) {
     return { ...summary, error: "Couldn't load screening reports due for deletion" };
   }
   for (const row of data || []) {
-    if (!row.id || !row.credit_report_path) continue;
-    const { error: removeError } = await sb.storage.from("screening-reports").remove([row.credit_report_path]);
+    // screening_reports_due_for_deletion returns (application_id, file_path).
+    const appId = row.application_id;
+    const path = row.file_path;
+    if (!appId || !path) continue;
+    const { error: removeError } = await sb.storage.from("screening-reports").remove([path]);
     if (removeError) {
       console.error("[cron] removing a screening report failed; will retry tomorrow:", removeError.message);
       summary.skipped += 1;
       continue;
     }
-    const { error: clearError } = await sb.from("applications").update({ credit_report_path: null }).eq("id", row.id);
+    const { error: clearError } = await sb.from("applications").update({ credit_report_path: null }).eq("id", appId);
     if (clearError) {
       console.error("[cron] clearing credit_report_path failed:", clearError.message);
       summary.skipped += 1;
