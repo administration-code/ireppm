@@ -28,10 +28,22 @@ const EMPTY_TOTALS = {
   full_by_7th: false,
 };
 
+// "Base $175 + 1 extra unit $25 + Snow/Lawn $50 − discount $25" (current fee set-up).
+function feePartsText(f) {
+  if (!f || !f.has_list_price) return "Monthly management fee";
+  const parts = [`Base ${money(f.base)}`];
+  if (Number(f.extra_units)) parts.push(`${f.extra_units} extra unit${f.extra_units === 1 ? "" : "s"} ${money(f.extra_units_amount)}`);
+  for (const a of f.addons || []) parts.push(`${a.name} ${money(a.amount)}`);
+  let text = parts.join(" + ");
+  if (Number(f.discount) > 0) text += ` − discount ${money(f.discount)}`;
+  if (Number(f.discount) < 0) text += ` + adjustment ${money(-f.discount)}`;
+  return text;
+}
+
 async function loadStatement(propertyId, period) {
   const sb = getBrowserClient();
   const start = `${period}-01`;
-  const [property, totals, payments, workOrders, items, payouts, starting, rates] = await Promise.all([
+  const [property, totals, payments, workOrders, items, payouts, starting, rates, breakdown] = await Promise.all([
     sb
       .from("properties")
       .select("id, address, city, postal_code, fee_billed_separately, owner:owners(id, name, email, phone, mailing_address)")
@@ -49,6 +61,7 @@ async function loadStatement(propertyId, period) {
       .gte("start_date", start)
       .lt("start_date", nextPeriodStart(period)),
     sb.from("service_rates").select("key, amount").in("key", ["leasing_standard", "leasing_mls", "hst"]),
+    sb.rpc("property_fee_breakdown", { p_property_id: propertyId }),
   ]);
 
   const paymentRows = payments.data || [];
@@ -76,6 +89,7 @@ async function loadStatement(propertyId, period) {
     payouts: payouts.data || [],
     newTenancies: (starting.data || []).filter((t) => !billed.has(t.id)),
     rates: rateMap,
+    feeParts: breakdown.error ? null : breakdown.data,
     error: failed ? "Some of this statement couldn't load. Refresh the page to try again." : "",
   };
 }
@@ -308,7 +322,7 @@ export default function OwnerStatement({ propertyId, period }) {
                   <>
                     <tr>
                       <td>Management fee</td>
-                      <td>{cents(t.mgmt_fee) ? "Monthly management fee" : "No rent due, so no fee this month"}</td>
+                      <td>{cents(t.mgmt_fee) ? feePartsText(state.feeParts) : "No rent due, so no fee this month"}</td>
                       <td className="r num">{signedMoney(-Number(t.mgmt_fee || 0))}</td>
                       <td className="no-print" />
                     </tr>

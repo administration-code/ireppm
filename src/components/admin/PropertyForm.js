@@ -27,8 +27,8 @@ function toForm(p, initialOwnerId) {
     owner_id: text(initialOwnerId || p?.owner_id),
     management_package: text(p?.management_package),
     unit_count: p?.unit_count ? String(p.unit_count) : "1",
-    custom_fee: Boolean(p?.custom_fee),
     monthly_fee: text(p?.monthly_fee),
+    fee_discount: p?.fee_discount != null ? String(Number(p.fee_discount)) : "0",
     fee_billed_separately: Boolean(p?.fee_billed_separately),
     agreement_start: text(p?.agreement_start),
     agreement_renewal: text(p?.agreement_renewal),
@@ -46,13 +46,17 @@ function validUnits(value) {
   return n >= 1 && n <= 500 ? n : null;
 }
 
+const validDiscount = (v) => /^-?\d+(\.\d{1,2})?$/.test(String(v ?? "").trim() || "0");
+
 function validate(f, isCustom) {
   if (!f.address.trim()) return "Add the street address.";
   if (!validUnits(f.unit_count)) return "Enter the number of units we bill for, from 1 to 500.";
   if (isCustom) {
-    if (!f.monthly_fee.trim()) return "Enter the custom monthly fee, or untick Use a custom fee.";
+    if (!f.monthly_fee.trim()) return "Enter the agreed monthly fee.";
     const fee = checkDollars(f.monthly_fee, "monthly management fee");
     if (fee) return fee;
+  } else if (!validDiscount(f.fee_discount)) {
+    return "Enter the discount in dollars, like 25 or 0. Use a minus sign for a surcharge.";
   }
   if (f.agreement_start && f.agreement_renewal && f.agreement_renewal < f.agreement_start)
     return "The renewal date can't be before the agreement start date.";
@@ -61,7 +65,8 @@ function validate(f, isCustom) {
   return "";
 }
 
-// When the fee isn't custom, monthly_fee is left out: the database sets it from the package and unit count.
+// Packages with a list price send the discount; the database works out the fee
+// (base + extra units + add-ons - discount). Packages without one send the agreed fee.
 function toRow(f, isCustom) {
   return {
     address: f.address.trim(),
@@ -71,7 +76,7 @@ function toRow(f, isCustom) {
     management_package: f.management_package || null,
     unit_count: validUnits(f.unit_count),
     custom_fee: isCustom,
-    ...(isCustom ? { monthly_fee: dollarsOrNull(f.monthly_fee) } : {}),
+    ...(isCustom ? { monthly_fee: dollarsOrNull(f.monthly_fee) } : { fee_discount: Number(String(f.fee_discount).trim() || 0) }),
     fee_billed_separately: f.fee_billed_separately,
     agreement_start: f.agreement_start || null,
     agreement_renewal: f.agreement_renewal || null,
@@ -91,6 +96,7 @@ export default function PropertyForm({ property, initialOwnerId, onSaved }) {
   const [msg, setMsg] = useState({ kind: "", text: "" });
 
   const [rates, setRates] = useState(null);
+  const [addonsTotal, setAddonsTotal] = useState(isNew ? 0 : null);
 
   useEffect(() => {
     let alive = true;
@@ -103,19 +109,26 @@ export default function PropertyForm({ property, initialOwnerId, onSaved }) {
       .select("key, amount")
       .in("key", FEE_RATE_KEYS)
       .then(({ data }) => alive && setRates(Object.fromEntries((data || []).map((r) => [r.key, r.amount]))));
+    if (property?.id)
+      sb.rpc("property_addons_monthly", { p_property_id: property.id }).then(
+        ({ data }) => alive && setAddonsTotal(Number(data || 0))
+      );
     return () => {
       alive = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const units = validUnits(form.unit_count);
   const hasListPrice = !["commercial", "leasing_only"].includes(form.management_package);
   const standard = units && hasListPrice ? standardFee(rates, form.management_package, units) : null;
-  // Packages without a list price can only have a custom fee (the database enforces the same).
-  const isCustom = form.custom_fee || !hasListPrice;
-  const customAmount = Number(dollarsOrNull(form.monthly_fee));
-  const below =
-    isCustom && standard !== null && form.monthly_fee.trim() && customAmount < standard ? standard - customAmount : 0;
+  // Packages without a list price can only have an agreed fee (the database enforces the same).
+  const isCustom = !hasListPrice;
+  const perUnit = Number(rates?.additional_unit ?? 25);
+  const base = standard !== null && units ? standard - perUnit * (units - 1) : null;
+  const discount = validDiscount(form.fee_discount) ? Number(String(form.fee_discount).trim() || 0) : 0;
+  const listPrice = standard !== null && addonsTotal !== null ? standard + addonsTotal : null;
+  const feePreview = listPrice !== null ? Math.max(listPrice - discount, 0) : null;
 
   const update = (key) => (e) => {
     const value = e.target.type === "checkbox" ? e.target.checked : e.target.value;
@@ -240,44 +253,61 @@ export default function PropertyForm({ property, initialOwnerId, onSaved }) {
           </div>
         </div>
 
-        <div className="stack" style={{ gap: 10 }}>
-          <p aria-live="polite">
-            {!hasListPrice ? (
-              <span className="small">This package has no list price, so enter the agreed fee.</span>
-            ) : standard !== null ? (
-              <>
-                Standard fee: <b className="num">{money(standard)}/month</b> + HST for {units} {unitWord(units)}
-              </>
-            ) : (
-              <span className="small">{units ? "Loading the standard fee…" : "Enter the unit count to see the standard fee."}</span>
-            )}
-          </p>
-          {hasListPrice ? (
-            <label className="check">
-              <input type="checkbox" checked={form.custom_fee} onChange={update("custom_fee")} />
-              Use a custom fee
-            </label>
-          ) : null}
-          {isCustom ? (
-            <div className="field" style={{ maxWidth: 320 }}>
-              <label htmlFor="p-fee">Monthly fee before HST ($)</label>
-              <input
-                id="p-fee"
-                inputMode="decimal"
-                value={form.monthly_fee}
-                onChange={update("monthly_fee")}
-                placeholder={standard !== null ? String(standard) : "175"}
-                aria-describedby={below ? "p-fee-below" : undefined}
-              />
-              {below ? (
-                <p id="p-fee-below" className="small">
-                  {money(below)} below the standard fee.
-                </p>
-              ) : null}
-            </div>
-          ) : null}
-        </div>
-        <p className="small">The monthly fee is the all-in amount billed to the owner. Add-ons below show what it includes.</p>
+        {isCustom ? (
+          <div className="field" style={{ maxWidth: 320 }}>
+            <label htmlFor="p-fee">Agreed monthly fee before HST ($)</label>
+            <input id="p-fee" inputMode="decimal" value={form.monthly_fee} onChange={update("monthly_fee")} placeholder="175" />
+            <p className="small">This package has no list price, so enter the agreed fee.</p>
+          </div>
+        ) : (
+          <div className="stack" style={{ gap: 10 }}>
+            <table className="data-table" style={{ maxWidth: 460 }}>
+              <caption className="visually-hidden">How the monthly fee is worked out</caption>
+              <tbody>
+                <tr>
+                  <th scope="row">Base fee (property and first unit)</th>
+                  <td className="num">{base !== null ? money(base) : "…"}</td>
+                </tr>
+                <tr>
+                  <th scope="row">
+                    Additional units{units > 1 ? ` (${units - 1} × ${money(perUnit)})` : ""}
+                  </th>
+                  <td className="num">{units ? money(perUnit * (units - 1)) : "…"}</td>
+                </tr>
+                <tr>
+                  <th scope="row">Add-ons (lawn/snow and others, set below)</th>
+                  <td className="num">{addonsTotal !== null ? money(addonsTotal) : "…"}</td>
+                </tr>
+                <tr>
+                  <th scope="row">
+                    <label htmlFor="p-discount">Discount</label>
+                  </th>
+                  <td className="num">
+                    <input
+                      id="p-discount"
+                      inputMode="decimal"
+                      value={form.fee_discount}
+                      onChange={update("fee_discount")}
+                      style={{ maxWidth: 110, textAlign: "right" }}
+                      aria-describedby="p-discount-help"
+                    />
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row">Monthly fee before HST</th>
+                  <td className="num">
+                    <b>{feePreview !== null ? money(feePreview) : "…"}</b>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <p id="p-discount-help" className="small">
+              The discount is taken off the list price every month. Use a minus sign for a surcharge. Adding or removing an
+              add-on changes the fee straight away.
+            </p>
+          </div>
+        )}
+
         <label className="check">
           <input type="checkbox" checked={form.fee_billed_separately} onChange={update("fee_billed_separately")} />
           Owner pays the management fee separately (not taken from rent)

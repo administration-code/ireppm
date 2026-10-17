@@ -96,7 +96,10 @@ export default function PropertyAddons({ propertyId }) {
           </button>
         ) : null}
       </div>
-      <p className="small">The monthly fee is the all-in billed fee; add-ons show what&apos;s included.</p>
+      <p className="small">
+        Add-ons are added to the monthly fee. Adding or removing one changes the fee from the next statement. Lawn/snow
+        is passed on to the contractor.
+      </p>
 
       {error ? <div className="warnbox">{error}</div> : null}
 

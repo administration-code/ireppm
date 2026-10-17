@@ -2,6 +2,7 @@ import Link from "next/link";
 import ContactLine from "@/components/admin/ContactLine";
 import { OWNER_TYPES, PACKAGE_LABEL, feeWithHst, prettyDate } from "@/lib/admin-properties";
 import RenewalBadge from "./RenewalBadge";
+import { money } from "@/lib/format";
 
 export default function PropertySummary({ property }) {
   const owner = property.owner;
@@ -43,7 +44,11 @@ export default function PropertySummary({ property }) {
             <dt>Monthly fee</dt>
             <dd className="num">
               {feeWithHst(property.monthly_fee)}
-              {property.custom_fee ? <span className="small"> (custom)</span> : null}
+              {Number(property.fee_discount) > 0 ? (
+                <span className="small"> (after a {money(property.fee_discount)} discount)</span>
+              ) : Number(property.fee_discount) < 0 ? (
+                <span className="small"> (includes a {money(-property.fee_discount)} surcharge)</span>
+              ) : null}
             </dd>
           </div>
           <div>
