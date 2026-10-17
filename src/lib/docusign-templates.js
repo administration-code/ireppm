@@ -10,6 +10,10 @@ export const TEMPLATES = {
   N1: { names: ["N1 - Notice of Rent Increase (2022-04)"], env: "DOCUSIGN_TEMPLATE_N1" },
   N4: { names: ["N4 - Non-Payment of Rent (2026-09)"], env: "DOCUSIGN_TEMPLATE_N4" },
   N5: { names: ["N5 - Interfering, Damage or Overcrowding (2026-09)"], env: "DOCUSIGN_TEMPLATE_N5" },
+  N11: {
+    names: ["N11 - Agreement to End the Tenancy (2022-04)", "N11 - Agreement to End the Tenancy (2022-04) (test)"],
+    env: "DOCUSIGN_TEMPLATE_N11",
+  },
   N9: {
     names: ["N9 - Tenant's Notice to End the Tenancy (2022-04)", "N9 - Tenant's Notice to End the Tenancy (2022-04) (test)"],
     env: "DOCUSIGN_TEMPLATE_N9",
@@ -30,6 +34,7 @@ export const KIND_TEMPLATES = {
   N4: ["N4"],
   N5: ["N5"],
   N9: ["N9"],
+  N11: ["N11"],
   certificate_of_service: ["certificate_of_service"],
 };
 
@@ -169,6 +174,26 @@ const N_SIGNER = [
 const SIGNED_AS = ["Signed As Landlord", "Signed As Representative"];
 
 export const EXPECTED = {
+  N11: {
+    roles: [...range(MAX_TENANTS).map((n) => `Tenant ${n}`), "Landlord"],
+    labels: {
+      "Tenant 1": [
+        "Tenant Names",
+        "Landlord Name",
+        "Rental Unit Address",
+        "Termination Day",
+        "Termination Month",
+        "Termination Year",
+        "Tenant 1 First Name",
+        "Tenant 1 Last Name",
+        "Tenant 1 Phone Area",
+        "Tenant 1 Phone Prefix",
+        "Tenant 1 Phone Line",
+      ],
+      ...Object.fromEntries(range(MAX_TENANTS).slice(1).map((n) => [`Tenant ${n}`, [`Tenant ${n} Name`]])),
+      Landlord: ["Landlord First Name", "Landlord Last Name", "Landlord Phone Area", "Landlord Phone Prefix", "Landlord Phone Line"],
+    },
+  },
   N9: {
     roles: range(MAX_TENANTS).map((n) => `Tenant ${n}`),
     labels: {
@@ -918,6 +943,63 @@ export function buildN9(prep, terminationISO, ids, phone = "") {
     terms: {
       type: "N9",
       termination_date: terminationISO,
+      tenants: tenants.map((t) => t.full_name),
+    },
+  };
+}
+
+function phoneParts(phone) {
+  const digits = String(phone || "").replace(/\D/g, "").replace(/^1(?=\d{10}$)/, "");
+  return digits.length === 10 ? [digits.slice(0, 3), digits.slice(3, 6), digits.slice(6)] : ["", "", ""];
+}
+
+// N11: agreement to end the tenancy early. Every tenant signs first, then IRep for the landlord.
+// `prep` is what n9_prepare returns; `request` is the n11_requests row.
+export function buildN11(prep, request, ids) {
+  const tenants = (prep.tenants || []).filter((t) => str(t.full_name) && str(t.email)).slice(0, MAX_TENANTS);
+  const [y, m, d] = String(request.termination_date).split("-");
+  const first = splitName(tenants[0]?.full_name);
+  const [ta, tp, tl] = phoneParts(request.phone || tenants[0]?.phone);
+  const [la, lp, ll] = phoneParts(IREP_SIGNER.phone);
+  const text = {
+    "Tenant Names": joinNames(tenants.map((t) => t.full_name)),
+    "Landlord Name": prep.landlord_name,
+    "Rental Unit Address": prep.address,
+    "Termination Day": d,
+    "Termination Month": m,
+    "Termination Year": y,
+    "Tenant 1 First Name": first.first,
+    "Tenant 1 Last Name": first.last,
+    "Tenant 1 Phone Area": ta,
+    "Tenant 1 Phone Prefix": tp,
+    "Tenant 1 Phone Line": tl,
+  };
+  const landlordText = {
+    "Landlord First Name": IREP_SIGNER.firstName,
+    "Landlord Last Name": IREP_SIGNER.lastName,
+    "Landlord Phone Area": la,
+    "Landlord Phone Prefix": lp,
+    "Landlord Phone Line": ll,
+  };
+  const prefill = prefillOf("Tenant 1", text);
+  prefillOf("Landlord", landlordText, [], prefill);
+  const templateRoles = tenants.map((t, i) => {
+    const roleText = i === 0 ? text : { [`Tenant ${i + 1} Name`]: t.full_name };
+    if (i > 0) prefillOf(`Tenant ${i + 1}`, roleText, [], prefill);
+    return { roleName: `Tenant ${i + 1}`, routingOrder: "1", name: t.full_name, email: str(t.email).toLowerCase(), tabs: tabs(roleText) };
+  });
+  templateRoles.push({ roleName: "Landlord", routingOrder: "2", name: IREP_SIGNER.name, email: IREP_SIGNER.email, tabs: tabs(landlordText) });
+  return {
+    definition: { templateId: ids.N11, templateRoles },
+    prefill,
+    recipients: [
+      ...tenants.map((t, i) => ({ role: `Tenant ${i + 1}`, name: t.full_name, email: t.email, routing_order: 1, status: "created" })),
+      { role: "Landlord", name: IREP_SIGNER.name, email: IREP_SIGNER.email, routing_order: 2, status: "created" },
+    ],
+    terms: {
+      type: "N11",
+      n11_request_id: request.id,
+      termination_date: request.termination_date,
       tenants: tenants.map((t) => t.full_name),
     },
   };
