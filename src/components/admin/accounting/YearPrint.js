@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { AccountSummary, IncomeTable, OwnersTable, loadYear } from "./YearBoard";
+import { AccountSummary, ExpensesTable, IncomeTable, OwnersTable, loadYear } from "./YearBoard";
 import { RECON_STATUS_LABEL, monthOnly } from "@/lib/accounting";
 
 export default function YearPrint({ year }) {
@@ -55,6 +55,7 @@ export default function YearPrint({ year }) {
       <section className="stmt-section stack">
         <h2 className="sec-title">IRep income</h2>
         <IncomeTable rows={data.irep_income} year={year} hst={data.hst_collected} />
+        <ExpensesTable rows={data.irep_expenses} />
       </section>
 
       <section className="stmt-section stack">

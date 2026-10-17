@@ -13,14 +13,20 @@ export const CATEGORY_LABEL = {
   interest: "Interest",
   transfer: "Transfer between IRep accounts",
   correction: "Bank correction or reversal",
+  rent_received: "Rent received before the website",
+  owner_payouts: "Landlord payout before the website",
+  shareholder: "Paid to or from Rishi or Chuck",
+  irep_expense: "IRep business expense",
+  irep_income: "IRep income (e.g. Square)",
+  tax_payment: "Payment to CRA",
   other: "Other",
 };
 
 // Year-summary buckets: the categories above plus matched lines and ignored ones.
 export const YEAR_BUCKET_LABEL = {
+  ...CATEGORY_LABEL,
   rent_received: "Rent received",
   owner_payouts: "Landlord payouts",
-  ...CATEGORY_LABEL,
   ignored: "Ignored lines",
   unmatched: "Not yet matched",
 };

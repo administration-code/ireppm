@@ -122,13 +122,54 @@ export const INCOME_COLS = [
   ["management_hst", "HST on management"],
   ["leasing_fees", "Leasing fees"],
   ["leasing_hst", "HST on leasing"],
+  ["lawn_snow", "Lawn/snow"],
+  ["other_income", "Other income"],
   ["commissions_paid", "Commissions paid"],
+  ["expenses", "Expenses"],
   ["loan_repaid", "Loan repaid"],
 ];
+
+const EXPENSE_LABEL = {
+  agent_payouts: "Leasing commissions paid",
+  lawn_snow_payouts: "Lawn/snow contractor",
+  cleaning: "Cleaning",
+  office_supplies: "Office supplies",
+  payprop: "PayProp",
+  banking: "Banking",
+  docusign: "DocuSign",
+  accounting: "Accounting",
+  insurance: "Insurance",
+  phone: "Phone",
+  software: "Software",
+  miscellaneous: "Miscellaneous",
+  other_expense: "Other",
+};
+
+export function ExpensesTable({ rows }) {
+  if (!rows?.length) return null;
+  return (
+    <table className="data-table">
+      <caption className="small" style={{ textAlign: "left" }}>
+        IRep expenses (before HST)
+      </caption>
+      <tbody>
+        {rows.map((r) => (
+          <tr key={r.category}>
+            <th scope="row">{EXPENSE_LABEL[r.category] || r.category}</th>
+            <td className="num">{dollars(r.amount)}</td>
+            <td className="num small">{Number(r.hst) ? `HST ${dollars(r.hst)}` : ""}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
 
 export function IncomeTable({ rows, year, hst }) {
   const mgmt = Number(hst?.management || 0);
   const leasing = Number(hst?.leasing || 0);
+  const lawn = Number(hst?.lawn_snow || 0);
+  const itcs = Number(hst?.itcs || 0);
   return (
     <div className="stack" style={{ gap: 8 }}>
       <div className="table-wrap" style={{ marginTop: 0 }}>
@@ -169,7 +210,8 @@ export function IncomeTable({ rows, year, hst }) {
       </div>
       {hst ? (
         <p className="small">
-          HST collected: management {dollars(mgmt)}, leasing {dollars(leasing)}, total {dollars(mgmt + leasing)}
+          HST collected: management {dollars(mgmt)}, leasing {dollars(leasing)}, lawn/snow {dollars(lawn)}, total{" "}
+          {dollars(mgmt + leasing + lawn)}. Input tax credits {dollars(itcs)}. Net HST {dollars(mgmt + leasing + lawn - itcs)}.
         </p>
       ) : null}
     </div>
@@ -258,10 +300,17 @@ async function downloadPackage(data) {
       ...data.irep_income.map((r) => [String(r.period).slice(0, 7), ...INCOME_COLS.map(([k]) => money(r[k]))]),
       ["hst_collected_management", money(data.hst_collected?.management)],
       ["hst_collected_leasing", money(data.hst_collected?.leasing)],
+      ["hst_collected_lawn_snow", money(data.hst_collected?.lawn_snow)],
       [
         "hst_collected_total",
-        money(Number(data.hst_collected?.management || 0) + Number(data.hst_collected?.leasing || 0)),
+        money(
+          Number(data.hst_collected?.management || 0) +
+            Number(data.hst_collected?.leasing || 0) +
+            Number(data.hst_collected?.lawn_snow || 0)
+        ),
       ],
+      ["input_tax_credits", money(data.hst_collected?.itcs)],
+      ...(data.irep_expenses || []).map((e) => [`expense_${e.category}`, money(e.amount), money(e.hst)]),
     ]
   );
   await wait(400);
@@ -398,7 +447,12 @@ export default function YearBoard({ initialYear }) {
             <h2 id={`${id}-income`} className="sec-title">
               IRep income
             </h2>
+            <p className="small">
+              Months before the website started come from IRep&apos;s corporate accounting workbook. Lawn/snow and
+              IRep&apos;s own expenses come from there too. Months appear as they arrive.
+            </p>
             <IncomeTable rows={data.irep_income} year={year} hst={data.hst_collected} />
+            <ExpensesTable rows={data.irep_expenses} />
           </section>
 
           <section className="boxed stack" aria-labelledby={`${id}-owners`}>
