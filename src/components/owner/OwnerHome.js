@@ -11,16 +11,23 @@ import { SITE } from "@/lib/site";
 
 async function loadPortal() {
   const sb = getBrowserClient();
-  const [props, letters] = await Promise.all([
+  const [props, letters, apps] = await Promise.all([
     sb.from("my_owned_properties").select("id, address, city, postal_code, agreement_renewal, units, occupied").order("address"),
     sb
       .from("owner_letters")
       .select("id, period, sent_at, data")
       .eq("status", "sent")
       .order("period", { ascending: false }),
+    sb.rpc("owner_applications"),
   ]);
   if (props.error || letters.error) throw props.error || letters.error;
-  return { properties: props.data || [], letters: letters.data || [] };
+  const list = Array.isArray(apps.data) ? apps.data : [];
+  return {
+    properties: props.data || [],
+    letters: letters.data || [],
+    applicants: list.length,
+    toReview: list.filter((a) => a.review_status === "pending").length,
+  };
 }
 
 export default function OwnerHome() {
@@ -120,6 +127,24 @@ export default function OwnerHome() {
           </ul>
         )}
       </section>
+
+      {state.applicants ? (
+        <section className={`boxed stack${state.toReview ? " attention" : ""}`} aria-labelledby="sec-own-apps">
+          <h2 id="sec-own-apps" className="sec-title">
+            Applicants to review ({state.toReview})
+          </h2>
+          <p className="small">
+            {state.toReview
+              ? "IRep won't accept an applicant for your property without your approval."
+              : "You're all caught up. Past applicants are listed there too."}
+          </p>
+          <div>
+            <Link href="/owner/applications" className={state.toReview ? "btn primary" : "btn ghost"}>
+              {state.toReview ? "Review applicants" : "See applicants"}
+            </Link>
+          </div>
+        </section>
+      ) : null}
 
       <section className="boxed stack" aria-labelledby="sec-own-year">
         <h2 id="sec-own-year" className="sec-title">

@@ -15,6 +15,11 @@ export async function loadNavCounts() {
   const queries = {
     showings: sb.from("showing_requests").select("id", head).eq("status", "requested"),
     applications: sb.from("applications").select("id", head).in("status", ["submitted", "reviewing"]),
+    landlordDecided: sb
+      .from("applications")
+      .select("id", head)
+      .eq("status", "reviewing")
+      .in("owner_review_status", ["approved", "declined"]),
     inquiries: sb.from("landlord_inquiries").select("id", head).eq("status", "new"),
     drafts: sb.from("listings").select("id", head).eq("status", "draft"),
     maintenanceNew: sb.from("maintenance_requests").select("id", head).eq("status", "new"),

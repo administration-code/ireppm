@@ -8,6 +8,8 @@ import { getBrowserClient } from "@/lib/supabase";
 import { ACCEPT, CONSENT_TEXT, DOC_BUCKET, DOC_TYPES, INCOME_TYPES, MAX_FILE_MB, consentCurrent } from "@/lib/documents";
 import { listingTitle, money } from "@/lib/format";
 import AddressInput from "@/components/AddressInput";
+import ReferencesEditor from "@/components/ReferencesEditor";
+import MyApplicationExtras from "@/components/MyApplicationExtras";
 
 const STATUS_LABEL = {
   requested: "Requested",
@@ -33,6 +35,7 @@ export default function AccountView() {
   const [docs, setDocs] = useState([]);
   const [showings, setShowings] = useState([]);
   const [apps, setApps] = useState([]);
+  const [messages, setMessages] = useState({});
   const [pending, setPending] = useState(null);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState("");
@@ -56,7 +59,7 @@ export default function AccountView() {
         .order("created_at", { ascending: false }),
       sb
         .from("applications")
-        .select("id, listing_id, status, created_at, documents, listings(id, address, unit, slug, status)")
+        .select("id, listing_id, status, created_at, documents, consent_text, listings(id, address, unit, slug, status)")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false }),
       applyId
@@ -67,6 +70,13 @@ export default function AccountView() {
     setDocs(d.data || []);
     setShowings(s.data || []);
     setApps(a.data || []);
+    const ids = (a.data || []).map((x) => x.id);
+    const m = ids.length
+      ? await sb.from("application_messages").select("*").in("application_id", ids).order("created_at")
+      : { data: [] };
+    const byApp = {};
+    for (const row of m.data || []) (byApp[row.application_id] ||= []).push(row);
+    setMessages(byApp);
     setPending(null);
     if (l.data) {
       const open = (a.data || []).find((x) => x.listing_id === l.data.id && OPEN_STATUSES.includes(x.status));
@@ -123,6 +133,8 @@ export default function AccountView() {
   if (!incomeType || !docOf("income")) missing.push("proof of income");
   if (!consentCurrent(profile?.credit_consent_at)) missing.push("credit check and sharing authorization");
   const readyToApply = missing.length === 0;
+  const hasReferences = Array.isArray(profile?.rental_references) && profile.rental_references.some((r) => r?.name);
+  const consentOutdated = Boolean(profile?.credit_consent_at) && !consentCurrent(profile?.credit_consent_at);
 
   async function saveProfile(fields) {
     setError("");
@@ -355,6 +367,7 @@ export default function AccountView() {
                 ) : (
                   <p>Before you can submit, add {missing.join(", ")}.</p>
                 )}
+                {!hasReferences ? <p className="small">Tip: adding references helps your application.</p> : null}
                 <div>
                   <button className="btn primary" disabled={!readyToApply || submitting} onClick={submitApplication}>
                     {submitting ? "Submitting…" : "Submit application"}
@@ -371,6 +384,8 @@ export default function AccountView() {
             </div>
 
             <ProfileFields profile={profile} onSave={saveProfile} />
+
+            <ReferencesEditor key={profile?.id} references={profile?.rental_references} onSave={saveProfile} />
 
             <div style={{ display: "grid", gap: 10 }}>
               <span className="eyebrow">Your situation</span>
@@ -406,6 +421,12 @@ export default function AccountView() {
                 Credit check authorization{" "}
                 {consentCurrent(profile?.credit_consent_at) ? <span className="pill done">Given</span> : <span className="pill req">Required</span>}
               </span>
+              {consentOutdated ? (
+                <p className="warnbox small">
+                  We&apos;ve updated this authorization to include sharing your application with the property&apos;s owner. Please
+                  review and tick it again.
+                </p>
+              ) : null}
               <label htmlFor="consent">
                 <input
                   type="checkbox"
@@ -480,6 +501,7 @@ export default function AccountView() {
                         </button>
                       ) : null}
                     </div>
+                    <MyApplicationExtras app={a} messages={messages[a.id] || []} onReload={load} />
                   </div>
                 ))}
               </div>

@@ -170,6 +170,7 @@ export async function GET(request) {
   const digestFailed = await sendDigest(sb, today, result);
   result.reconciliation = await sendReconciliationAlert(sb, today);
   result.documentCleanup = await deleteExpiredDocuments(sb);
+  result.screeningCleanup = await deleteExpiredScreeningReports(sb);
 
   if (digestFailed) {
     return NextResponse.json({ ...result, error: "The rent digest didn't send" }, { status: 500 });
@@ -290,6 +291,33 @@ ${s.accounts
     return "failed";
   }
   return { sent: true, sections: sections.length };
+}
+
+// Credit reports follow the same retention as applicant documents. Only counts are logged.
+async function deleteExpiredScreeningReports(sb) {
+  const summary = { files: 0, skipped: 0 };
+  const { data, error } = await sb.rpc("screening_reports_due_for_deletion", { p_days: 80 });
+  if (error) {
+    console.error("[cron] screening_reports_due_for_deletion failed:", error.message);
+    return { ...summary, error: "Couldn't load screening reports due for deletion" };
+  }
+  for (const row of data || []) {
+    if (!row.id || !row.credit_report_path) continue;
+    const { error: removeError } = await sb.storage.from("screening-reports").remove([row.credit_report_path]);
+    if (removeError) {
+      console.error("[cron] removing a screening report failed; will retry tomorrow:", removeError.message);
+      summary.skipped += 1;
+      continue;
+    }
+    const { error: clearError } = await sb.from("applications").update({ credit_report_path: null }).eq("id", row.id);
+    if (clearError) {
+      console.error("[cron] clearing credit_report_path failed:", clearError.message);
+      summary.skipped += 1;
+      continue;
+    }
+    summary.files += 1;
+  }
+  return summary;
 }
 
 // Privacy policy: unsuccessful applicants' documents are deleted within 90 days of the decision.

@@ -6,56 +6,25 @@ import ContactLine from "@/components/admin/ContactLine";
 import MoveInForm from "@/components/admin/MoveInForm";
 import DeleteRecord from "@/components/admin/DeleteRecord";
 import { deleteLeasingRecord } from "@/lib/delete-records";
-import { getBrowserClient } from "@/lib/supabase";
+import AppFileButton from "@/components/AppFileButton";
+import ApplicationReview from "@/components/admin/ApplicationReview";
 import { listingTitle } from "@/lib/format";
-import { DOC_BUCKET, DOC_TYPES, INCOME_TYPES } from "@/lib/documents";
+import { INCOME_TYPES } from "@/lib/documents";
+import { docLabel } from "@/lib/application-client";
 import { APPLICATION_STATUS, prettyDateTime, updateRow } from "@/lib/admin-requests";
 
-const SIGNED_LINK_SECONDS = 300;
 const DELETE_AFTER_DAYS = 80;
-const DOC_NAME = Object.fromEntries(DOC_TYPES.map((d) => [d.key, d.name]));
+const UNAPPROVED_WARNING = "The landlord hasn't approved this applicant. Approve anyway?";
 
-function DocumentRow({ doc }) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-
-  async function view() {
-    setError("");
-    setBusy(true);
-    // Open the tab during the click so popup blockers allow it, then point it at the signed link.
-    const tab = window.open("about:blank", "_blank");
-    const { data, error: signError } = await getBrowserClient()
-      .storage.from(DOC_BUCKET)
-      .createSignedUrl(doc.path, SIGNED_LINK_SECONDS);
-    setBusy(false);
-    if (signError || !data?.signedUrl) {
-      tab?.close();
-      setError("Couldn't open this file. Try again.");
-      return;
-    }
-    if (tab) {
-      tab.opener = null;
-      tab.location.href = data.signedUrl;
-    } else {
-      setError("Your browser blocked the new tab. Allow pop-ups for this site and try again.");
-    }
-  }
-
+function DocumentRow({ appId, doc, incomeType }) {
+  const label = docLabel(doc.type, incomeType);
   return (
     <li>
       <span className="doc-name">
-        <b>{DOC_NAME[doc.type] || doc.type || "Document"}</b>
+        <b>{label}</b>
         <span className="small">{doc.name}</span>
       </span>
-      <button type="button" className="btn ghost sm" onClick={view} disabled={busy || !doc.path}>
-        {busy ? "Opening…" : "View"}
-        <span className="visually-hidden"> {DOC_NAME[doc.type] || doc.name}</span>
-      </button>
-      {error ? (
-        <span className="small err" role="alert">
-          {error}
-        </span>
-      ) : null}
+      {doc.path ? <AppFileButton appId={appId} doc={doc.type} label={`View ${label}`} /> : null}
     </li>
   );
 }
@@ -106,10 +75,14 @@ function ApplicationItem({ app, onChange, onRemove, earlier = [] }) {
   const docs = Array.isArray(app.documents) ? app.documents : [];
   const dirty = status !== app.status || notes !== (app.staff_notes || "");
 
-  async function save() {
+  async function save(nextStatus = status) {
+    if (nextStatus === "approved" && app.status !== "approved" && app.owner_review_status !== "approved") {
+      if (!window.confirm(UNAPPROVED_WARNING)) return;
+    }
     setSaving(true);
     setMsg({ kind: "", text: "" });
-    const changes = { status, staff_notes: notes.trim() || null };
+    setStatus(nextStatus);
+    const changes = { status: nextStatus, staff_notes: notes.trim() || null };
     try {
       await updateRow("applications", app.id, changes);
       onChange({ ...app, ...changes });
@@ -159,7 +132,7 @@ function ApplicationItem({ app, onChange, onRemove, earlier = [] }) {
         {docs.length ? (
           <ul className="doc-list">
             {docs.map((d, i) => (
-              <DocumentRow key={d.path || i} doc={d} />
+              <DocumentRow key={d.path || i} appId={app.id} doc={d} incomeType={app.income_type} />
             ))}
           </ul>
         ) : app.status === "declined" || app.status === "withdrawn" ? null : (
@@ -167,6 +140,8 @@ function ApplicationItem({ app, onChange, onRemove, earlier = [] }) {
         )}
         <RetentionNote app={app} hasDocs={docs.length > 0} />
       </div>
+
+      <ApplicationReview app={app} onChange={onChange} onAccept={() => save("approved")} />
 
       <div className="req-edit">
         <div className="field">
@@ -190,7 +165,7 @@ function ApplicationItem({ app, onChange, onRemove, earlier = [] }) {
         </div>
       </div>
       <div className="req-actions">
-        <button type="button" className="btn primary sm" onClick={save} disabled={saving || !dirty}>
+        <button type="button" className="btn primary sm" onClick={() => save()} disabled={saving || !dirty}>
           {saving ? "Saving…" : "Save"}
         </button>
         {msg.text ? (
