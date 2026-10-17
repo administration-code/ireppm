@@ -118,6 +118,7 @@ export default function AccountView() {
   const missing = [];
   if (!profile?.full_name) missing.push("your full legal name");
   if (!profile?.phone) missing.push("your phone number");
+  if (!profile?.current_address) missing.push("your current address");
   if (!docOf("photo_id")) missing.push("photo ID");
   if (!incomeType || !docOf("income")) missing.push("proof of income");
   if (!profile?.credit_consent_at) missing.push("credit check authorization");
