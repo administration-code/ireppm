@@ -48,6 +48,8 @@ export const NAV_GROUPS = [
       { key: "reconciliation", label: "Reconciliation", href: "/admin/accounting", count: "unmatchedBankLines", note: "bank lines to match" },
       { key: "bank-imports", label: "Bank imports", href: "/admin/accounting/import" },
       { key: "year-end", label: "Year end", href: "/admin/accounting/year" },
+      { key: "landlord-year-end", label: "Landlord year-end", href: "/admin/accounting/landlords" },
+      { key: "commissions", label: "Commissions & loans", href: "/admin/accounting/commissions" },
     ],
   },
   {

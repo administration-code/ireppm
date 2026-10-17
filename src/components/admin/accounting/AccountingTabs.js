@@ -7,7 +7,12 @@ const TABS = [
   { href: "/admin/accounting", label: "Reconcile" },
   { href: "/admin/accounting/import", label: "Bank imports" },
   { href: "/admin/accounting/year", label: "Year end" },
+  { href: "/admin/accounting/landlords", label: "Landlord year-end" },
+  { href: "/admin/accounting/commissions", label: "Commissions & loans" },
 ];
+
+const isCurrent = (pathname, href) =>
+  pathname === href || (href !== "/admin/accounting" && pathname?.startsWith(`${href}/`));
 
 export default function AccountingTabs({ title, subtitle, children }) {
   const pathname = usePathname();
@@ -23,7 +28,7 @@ export default function AccountingTabs({ title, subtitle, children }) {
       </div>
       <nav className="admin-tabs no-print" aria-label="Accounting sections">
         {TABS.map((t) => (
-          <Link key={t.href} href={t.href} aria-current={pathname === t.href ? "page" : undefined}>
+          <Link key={t.href} href={t.href} aria-current={isCurrent(pathname, t.href) ? "page" : undefined}>
             {t.label}
           </Link>
         ))}
