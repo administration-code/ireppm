@@ -15,6 +15,7 @@ import {
 } from "@/lib/admin-listings";
 import PhotoManager from "./PhotoManager";
 import FeaturesEditor from "./FeaturesEditor";
+import AddressInput from "@/components/AddressInput";
 
 const text = (v) => (v === null || v === undefined ? "" : String(v));
 
@@ -182,7 +183,14 @@ export default function ListingForm({ listing, saved, prefill, unitId }) {
         <div className="row2">
           <div className="field">
             <label htmlFor="f-address">Street address</label>
-            <input id="f-address" value={form.address} onChange={update("address")} placeholder="1234 Ouellette Ave" required />
+            <AddressInput
+              id="f-address"
+              value={form.address}
+              onChange={(v) => setForm((f) => ({ ...f, address: v }))}
+              onSelect={(a) => setForm((f) => ({ ...f, address: a.line || f.address, city: a.city || f.city, unit: f.unit || a.unit }))}
+              placeholder="1234 Ouellette Ave"
+              required
+            />
           </div>
           <div className="field">
             <label htmlFor="f-unit">Unit (optional)</label>

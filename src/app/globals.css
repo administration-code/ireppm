@@ -854,3 +854,20 @@ details.boxed > summary { cursor: pointer; }
   .ly-table { min-width: 0; font-size: .625rem; }
   .ly-table th, .ly-table td { padding: 3px 4px; }
 }
+
+/* Address suggestions (AddressInput) */
+.addr-auto { position: relative; }
+.addr-auto > input { width: 100%; }
+.addr-auto-list {
+  position: absolute; z-index: 40; left: 0; right: 0; top: calc(100% + 4px);
+  margin: 0; padding: 4px 0; list-style: none;
+  background: var(--surface); color: var(--fg);
+  border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  max-height: 280px; overflow-y: auto;
+}
+.addr-auto-list li[role="option"] { display: grid; gap: 1px; padding: 8px 12px; cursor: pointer; }
+.addr-auto-list li.on { background: var(--surface-2); }
+.addr-main { font-size: 15px; }
+.addr-sub { font-size: 13px; color: var(--muted); }
+.addr-credit { padding: 6px 12px 4px; font-size: 11px; color: var(--muted); text-align: right; }

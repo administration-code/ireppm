@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { getBrowserClient } from "@/lib/supabase";
 import { OWNER_FIELDS, OWNER_TYPES, orNull, text } from "@/lib/admin-properties";
+import AddressInput from "@/components/AddressInput";
 
 function toForm(o) {
   return {
@@ -111,7 +112,13 @@ export default function OwnerForm({ owner, back, onSaved }) {
         <div className="row2">
           <div className="field">
             <label htmlFor="o-mail">Mailing address</label>
-            <textarea id="o-mail" value={form.mailing_address} onChange={update("mailing_address")} rows={2} />
+            <AddressInput
+              id="o-mail"
+              fill="formatted"
+              value={form.mailing_address}
+              onChange={(v) => setForm((f) => ({ ...f, mailing_address: v }))}
+              placeholder="Start typing the address"
+            />
           </div>
           <div className="field">
             <label htmlFor="o-payout">Payout method</label>

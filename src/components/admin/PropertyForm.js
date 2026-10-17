@@ -15,6 +15,7 @@ import {
   text,
 } from "@/lib/admin-properties";
 import { money } from "@/lib/format";
+import AddressInput from "@/components/AddressInput";
 
 const unitWord = (n) => (n === 1 ? "unit" : "units");
 
@@ -156,7 +157,14 @@ export default function PropertyForm({ property, initialOwnerId, onSaved }) {
         </h2>
         <div className="field">
           <label htmlFor="p-address">Street address</label>
-          <input id="p-address" value={form.address} onChange={update("address")} placeholder="1234 Ouellette Ave" required />
+          <AddressInput
+            id="p-address"
+            value={form.address}
+            onChange={(v) => setForm((f) => ({ ...f, address: v }))}
+            onSelect={(a) => setForm((f) => ({ ...f, address: a.line || f.address, city: a.city || f.city, postal_code: a.postal_code || f.postal_code }))}
+            placeholder="1234 Ouellette Ave"
+            required
+          />
         </div>
         <div className="row3">
           <div className="field">

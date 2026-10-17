@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { getBrowserClient, supabaseConfigured } from "@/lib/supabase";
 import { INQUIRY_INTERESTS, SITE } from "@/lib/site";
+import AddressInput from "@/components/AddressInput";
 
 export default function InquiryForm() {
   const [f, setF] = useState({ name: "", phone: "", email: "", property_address: "", interest: INQUIRY_INTERESTS[0], message: "" });
@@ -52,7 +53,13 @@ export default function InquiryForm() {
       </div>
       <div className="field">
         <label htmlFor="i-addr">Property address</label>
-        <input id="i-addr" value={f.property_address} onChange={set("property_address")} placeholder="Street, Windsor" />
+        <AddressInput
+          id="i-addr"
+          fill="formatted"
+          value={f.property_address}
+          onChange={(v) => setF((x) => ({ ...x, property_address: v }))}
+          placeholder="Street, Windsor"
+        />
       </div>
       <div className="field">
         <label htmlFor="i-int">Interested in</label>
