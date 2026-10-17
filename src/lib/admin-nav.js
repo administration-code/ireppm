@@ -15,12 +15,18 @@ export async function loadNavCounts() {
   const queries = {
     showings: sb.from("showing_requests").select("id", head).eq("status", "requested"),
     applications: sb.from("applications").select("id", head).in("status", ["submitted", "reviewing"]),
+    landlordDecided: sb
+      .from("applications")
+      .select("id", head)
+      .eq("status", "reviewing")
+      .in("owner_review_status", ["approved", "declined"]),
     inquiries: sb.from("landlord_inquiries").select("id", head).eq("status", "new"),
     drafts: sb.from("listings").select("id", head).eq("status", "draft"),
     maintenanceNew: sb.from("maintenance_requests").select("id", head).eq("status", "new"),
     unmatchedPayments: sb.from("payments").select("id", head).eq("status", "unmatched"),
     openTurnovers: sb.from("turnovers").select("id", head).not("status", "in", "(leased,cancelled)"),
     awaitingSignatures: sb.from("signature_requests").select("id", head).in("status", ["draft", "sent", "delivered"]),
+    earlyMoveOuts: sb.from("n11_requests").select("id", head).eq("status", "requested"),
     unmatchedBankLines: sb.from("bank_transactions").select("id", head).eq("status", "unmatched"),
   };
   const keys = Object.keys(queries);

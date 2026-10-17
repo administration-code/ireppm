@@ -16,7 +16,7 @@ export const NAV_GROUPS = [
     items: [
       { key: "listings", label: "Listings", href: "/admin/listings", count: "drafts", note: "drafts", muted: true },
       { key: "showings", label: "Showings", href: "/admin/requests?tab=showings", count: "showings", note: "new" },
-      { key: "applications", label: "Applications", href: "/admin/requests?tab=applications", count: "applications", note: "new" },
+      { key: "applications", label: "Applications", href: "/admin/requests?tab=applications", count: "applications", note: "new", count2: "landlordDecided", note2: "landlord decided" },
       { key: "turnovers", label: "Turnovers", href: "/admin/turnovers", count: "openTurnovers", note: "open", muted: true },
     ],
   },
@@ -26,7 +26,7 @@ export const NAV_GROUPS = [
     items: [
       { key: "rent", label: "Rent", href: "/admin/rent", count: "unmatchedPayments", note: "to match" },
       { key: "maintenance", label: "Maintenance", href: "/admin/maintenance", count: "maintenanceNew", note: "new" },
-      { key: "notices", label: "Notices", href: "/admin/notices" },
+      { key: "notices", label: "Notices", href: "/admin/notices", count: "earlyMoveOuts", note: "early move-out" },
       { key: "signatures", label: "Signatures", href: "/admin/signatures", count: "awaitingSignatures", note: "awaiting signature" },
     ],
   },
@@ -103,6 +103,12 @@ function ItemLink({ item, active, c, onNavigate }) {
     >
       <span>{item.label}</span>
       {item.count ? <Count value={c[item.count]} note={item.note} muted={item.muted} /> : null}
+      {item.count2 && c[item.count2] ? (
+        <span className="tab-count decided" title={`${c[item.count2]} ${item.note2}`}>
+          {c[item.count2]}
+          <span className="visually-hidden"> {item.note2}</span>
+        </span>
+      ) : null}
     </Link>
   );
 }

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { money } from "@/lib/format";
+import { longDate, money } from "@/lib/format";
 import { monthLabel } from "@/lib/rent";
 import { num, plural } from "@/lib/dashboard";
 
@@ -9,7 +9,18 @@ function attentionItems(d) {
   const p = d.payouts || {};
   const match = d.to_match || {};
   const letters = d.letters || {};
+  const early = (d.early_moveouts || []).map((r) => {
+    const unit = r.tenancy?.unit;
+    const place = [unit?.property?.address, unit?.label].filter(Boolean).join(", ") || "a tenancy";
+    return {
+      key: `n11-${r.id}`,
+      n: 1,
+      text: () => `Early move-out request: ${place} for ${longDate(r.termination_date)}`,
+      href: "/admin/notices",
+    };
+  });
   return [
+    ...early,
     { n: num(m.emergencies), text: (n) => plural(n, "emergency", "emergencies"), href: "/admin/maintenance", urgent: true },
     { n: num(m.new), text: (n) => plural(n, "new maintenance request"), href: "/admin/maintenance" },
     {
@@ -54,7 +65,7 @@ export default function NeedsAttention({ data }) {
       {items.length ? (
         <ul>
           {items.map((item) => (
-            <li key={item.href + item.n + item.urgent}>
+            <li key={item.key || item.href + item.n + item.urgent}>
               <Link href={item.href} className={item.urgent ? "dash-alert urgent" : "dash-alert"}>
                 {item.text(item.n)}
               </Link>

@@ -2,12 +2,22 @@ import { getBrowserClient } from "@/lib/supabase";
 
 export async function loadDashboard() {
   const sb = getBrowserClient();
-  const [{ data, error }, awaiting] = await Promise.all([
+  const [{ data, error }, awaiting, early] = await Promise.all([
     sb.rpc("staff_dashboard"),
     sb.from("signature_requests").select("id", { count: "exact", head: true }).in("status", ["draft", "sent", "delivered"]),
+    sb
+      .from("n11_requests")
+      .select("id, termination_date, tenancy:tenancies(unit:units(label, property:properties(address)))")
+      .eq("status", "requested")
+      .order("created_at", { ascending: true }),
   ]);
   if (error) throw error;
-  return { ...(data || {}), awaiting_signatures: awaiting.count || 0, recon_late: await loadReconLate(sb) };
+  return {
+    ...(data || {}),
+    awaiting_signatures: awaiting.count || 0,
+    early_moveouts: early.data || [],
+    recon_late: await loadReconLate(sb),
+  };
 }
 
 function torontoToday() {

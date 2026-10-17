@@ -833,6 +833,18 @@ label.btn[aria-disabled="true"] { opacity: .6; cursor: progress; }
 /* Year-end reports, commissions, tenant notice */
 .mutedbox { background: var(--surface-2); color: var(--muted); padding: 12px 14px; border-radius: var(--radius); margin: 0; }
 .moveout { display: grid; gap: 12px; border-top: 1px solid var(--line); padding-top: 16px; }
+.notebox { background: var(--surface-2); border-left: 3px solid var(--fg); padding: 12px 14px; border-radius: var(--radius); margin: 0; }
+.notebox strong { display: block; margin-bottom: 4px; }
+.n11-list { display: grid; gap: 12px; }
+.n11-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; display: grid; gap: 10px; }
+.n11-card h3 { font-size: 1rem; margin: 0; }
+.n11-facts { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 0; font-size: .9375rem; }
+.n11-facts dt { color: var(--muted); }
+.n11-facts dd { margin: 0; }
+.n11-reason { white-space: pre-wrap; }
+.n11-recent summary { cursor: pointer; font-weight: 600; }
+.linkbtn { background: none; border: 0; padding: 0; color: var(--red); text-decoration: underline; cursor: pointer; font: inherit; }
+.linkbtn:hover { color: var(--fg); }
 .acct-st tfoot th, .acct-st tfoot td { font-weight: 600; border-top: 2px solid var(--fg); border-bottom: 0; }
 .acct-st tbody th { font-weight: 500; }
 .ly-report { display: grid; gap: 24px; }
@@ -871,3 +883,38 @@ details.boxed > summary { cursor: pointer; }
 .addr-main { font-size: 15px; }
 .addr-sub { font-size: 13px; color: var(--muted); }
 .addr-credit { padding: 6px 12px 4px; font-size: 11px; color: var(--muted); text-align: right; }
+
+/* Landlord application review */
+.pill.rv-pending { background: var(--surface-2); color: var(--fg); }
+.pill.rv-approved { background: var(--ok-bg); color: var(--ok); }
+.pill.rv-declined { background: var(--red); color: var(--on-red); }
+.pill.rv-info { background: var(--warn-bg); color: var(--warn); }
+.tab-count.decided { background: var(--ok-bg); color: var(--ok); }
+.file-btn { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.review { border-top: 1px solid var(--line); padding-top: 16px; }
+.checklist { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: .9rem; }
+.checklist .ok { color: var(--ok); }
+.checklist .no { color: var(--muted); }
+.thread { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.thread li { display: grid; gap: 4px; max-width: 46rem; padding: 10px 14px; border-radius: var(--radius); background: var(--surface-2); }
+.thread li.mine { background: var(--surface); border: 1px solid var(--line); justify-self: end; }
+.thread .who { font-size: .75rem; font-weight: 600; color: var(--muted); }
+.thread .body { white-space: pre-wrap; overflow-wrap: anywhere; }
+.ref-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.ref-list li { display: grid; gap: 2px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius); }
+.ref-list a { color: var(--fg); }
+.ref-cards { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.ref-card { border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; margin: 0; display: grid; gap: 10px; min-width: 0; }
+.ref-card legend { font-weight: 600; padding: 0 6px; }
+.ref-card .row2 { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+.ref-notes { background: var(--surface-2); border-radius: var(--radius); padding: 12px 14px; display: grid; gap: 4px; }
+.ref-notes p { margin: 0; white-space: pre-wrap; }
+.app-extra { display: grid; gap: 12px; border-top: 1px solid var(--line); padding-top: 12px; margin-top: 12px; }
+.owner-apps { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.owner-app { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.owner-app > summary { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 16px; cursor: pointer; flex-wrap: wrap; }
+.owner-app[open] > summary { border-bottom: 1px solid var(--line); }
+.owner-app > div { padding: 16px; }
+.owner-app-head { display: grid; gap: 2px; }
+.privacy-note { border-top: 1px solid var(--line); padding-top: 12px; }
+.boxed.attention { box-shadow: inset 3px 0 0 var(--red); }

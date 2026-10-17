@@ -7,6 +7,7 @@ import { money } from "@/lib/format";
 import { primaryTenant, shortDate } from "@/lib/rent";
 import { NOTICE_FIELDS, NOTICE_FORMS, NOTICE_STATUS, effectiveLabel, noticeName } from "@/lib/notices";
 import { NoticeStatus } from "./NoticesPanel";
+import EarlyMoveOuts from "./EarlyMoveOuts";
 
 const SELECT = `${NOTICE_FIELDS}, tenancy:tenancies(id, unit:units(id, label, property:properties(id, address)), tenancy_tenants(full_name, is_primary, created_at))`;
 
@@ -60,6 +61,8 @@ export default function NoticesTable() {
           </div>
         </div>
       </div>
+
+      <EarlyMoveOuts />
 
       <div className="filters">
         <div className="field">

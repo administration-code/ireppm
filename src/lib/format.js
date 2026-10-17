@@ -4,6 +4,16 @@ export function money(n) {
   return "$" + v.toLocaleString("en-CA", { minimumFractionDigits: digits, maximumFractionDigits: digits });
 }
 
+// "November 15, 2026" from a YYYY-MM-DD date (or the date part of a timestamp).
+export function longDate(iso) {
+  if (!iso) return "";
+  return new Date(`${String(iso).slice(0, 10)}T12:00:00`).toLocaleDateString("en-CA", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
 export function availableText(dateStr) {
   if (!dateStr) return "Now";
   const d = new Date(dateStr + "T12:00:00");
