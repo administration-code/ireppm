@@ -27,7 +27,7 @@ const firstNames = (t) =>
 // ---------------------------------------------------------------------------
 // Welcome letter, sent when the lease is fully signed.
 // ---------------------------------------------------------------------------
-export async function sendWelcome(sb, tenancyId) {
+export async function sendWelcome(sb, tenancyId, { remindStaff = true } = {}) {
   if (!tenancyId) return { sent: false };
   const { data: t } = await sb
     .from("tenancies")
@@ -63,7 +63,7 @@ export async function sendWelcome(sb, tenancyId) {
   });
   if (attachments && r.sent) await sb.from("tenancies").update({ payprop_letter_sent_at: new Date().toISOString() }).eq("id", t.id);
   // PayProp's welcome letter needs the tenant set up there first: remind staff (unless it's already attached).
-  if (!attachments) await sendMail({
+  if (!attachments && remindStaff) await sendMail({
     to: staffEmails(),
     subject: `Set up in PayProp: ${placeOf(t)}`,
     lines: [

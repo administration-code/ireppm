@@ -128,7 +128,7 @@ export async function sendInvites(admin, { owners = [], tenants = [] }) {
       .select("id, full_name, email, profile_id, tenancy:tenancies(status, start_date, unit:units(label, property:properties(address)))")
       .in("id", tenants);
     for (const p of data || []) {
-      if (!p.email || p.profile_id) { skipped.push(p.full_name); continue; }
+      if (!p.email || p.profile_id || !p.tenancy) { skipped.push(p.full_name); continue; }
       const r = await sendMail(tenantInviteEmail(p, p.tenancy));
       if (r.sent) {
         sent += 1;
