@@ -74,6 +74,8 @@ button, input, select, textarea { font: inherit; }
 
 .notice { background: var(--surface-2); color: var(--muted); font-size: .8125rem; }
 .notice .wrap { padding-block: 8px; }
+/* Staff pages use the full width of a laptop or desktop screen, so wide tables fit without sideways scrolling. */
+.block.admin > .wrap { max-width: 1480px; }
 .notice b { color: var(--fg); font-weight: 600; }
 
 /* header */
