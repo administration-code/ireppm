@@ -10,7 +10,7 @@ export default function InquiryForm({ estimate = false, id = "inquiry" }) {
   const [f, setF] = useState({
     name: "", phone: "", email: "", property_address: "",
     interest: estimate ? "Free rent estimate" : INQUIRY_INTERESTS[1], message: "",
-    home_type: "House", beds: "", baths: "",
+    home_type: "House", beds: "", baths: "", referred_by: "",
   });
   const [state, setState] = useState("idle");
   const started = useRef(Date.now());
@@ -109,6 +109,10 @@ export default function InquiryForm({ estimate = false, id = "inquiry" }) {
         </select>
       </div>
       )}
+      <div className="field">
+        <label htmlFor={`${id}-ref`}>Referred by a landlord we manage for? (optional)</label>
+        <input id={`${id}-ref`} value={f.referred_by} onChange={set("referred_by")} placeholder="Their name" />
+      </div>
       <div className="field">
         <label htmlFor={`${id}-msg`}>Tell us about the property (optional)</label>
         <textarea id={`${id}-msg`} value={f.message} onChange={set("message")} placeholder="Number of units, current tenants, when you need help" />

@@ -98,6 +98,22 @@ export default function LandlordsPage() {
         </div>
       </section>
 
+      <section className="block" id="referrals" style={{ paddingBlock: 40 }}>
+        <div className="wrap">
+          <div className="boxed" style={{ display: "grid", gap: 8, borderTop: "3px solid var(--red)" }}>
+            <span className="eyebrow">Refer a Landlord</span>
+            <h2 style={{ margin: 0 }}>Know a Landlord? Your Next Month Is on Us.</h2>
+            <p style={{ margin: 0 }}>
+              Already with IRep? Refer another landlord and once they&apos;ve finished their first full month with us, we&apos;ll waive one
+              month of your management fee. It shows as a credit on your statement and is added to your payout.
+            </p>
+            <p className="small" style={{ margin: 0 }}>
+              New landlords just add your name in the &ldquo;Referred by&rdquo; box when they get in touch. One free month for each landlord who signs.
+            </p>
+          </div>
+        </div>
+      </section>
+
       <section className="block" id="calculator">
         <div className="wrap">
           <div className="head">

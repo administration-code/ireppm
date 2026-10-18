@@ -32,14 +32,19 @@ export async function POST(request) {
   if ((mine.count || 0) >= 3) return NextResponse.json({ ok: true, duplicate: true });
   if ((all.count || 0) >= 30) return NextResponse.json({ error: "We're getting a lot of messages right now. Please email us instead." }, { status: 429 });
 
-  const { error } = await admin.from("landlord_inquiries").insert({
+  const referredBy = clip(b.referred_by, 120);
+  const { data: row, error } = await admin.from("landlord_inquiries").insert({
     name,
     email,
     phone: clip(b.phone, 40),
     property_address: clip(b.property_address, 300),
     interest: clip(b.interest, 120),
     message,
-  });
+    referred_by: referredBy,
+  }).select("id").single();
   if (error) return NextResponse.json({ error: "We couldn't send that. Try again." }, { status: 500 });
+  if (referredBy) {
+    await admin.from("referrals").insert({ referrer_text: referredBy, referred_name: name, referred_email: email, inquiry_id: row.id });
+  }
   return NextResponse.json({ ok: true });
 }
