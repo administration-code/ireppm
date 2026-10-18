@@ -7,6 +7,44 @@ import { money } from "@/lib/format";
 import { PACKAGE_LABEL, PROPERTY_SELECT, propertyTitle } from "@/lib/admin-properties";
 import RenewalBadge from "./RenewalBadge";
 
+const shortDay = (iso) => (iso ? new Date(iso).toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric" }) : "");
+
+async function staffApi(url, body) {
+  const { data } = await getBrowserClient().auth.getSession();
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${data?.session?.access_token || ""}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.error) throw new Error(json.error || "That didn't go through. Try again.");
+  return json;
+}
+
+// Owner portal status, from the owners table and email opt-outs.
+async function loadOwnerStatus() {
+  const sb = getBrowserClient();
+  const [{ data: owners }, { data: outs }] = await Promise.all([
+    sb.from("owners").select("id, email, profile_id, portal_invited_at"),
+    sb.from("email_optouts").select("email"),
+  ]);
+  const out = new Set((outs || []).map((o) => o.email));
+  return new Map(
+    (owners || []).map((o) => [o.id, { ...o, unsubscribed: Boolean(o.email && out.has(o.email.trim().toLowerCase())) }])
+  );
+}
+
+const ownerInvitable = (o, property) => Boolean(o && o.email && !o.profile_id && !o.unsubscribed && !property.archived);
+
+function OwnerPortal({ o }) {
+  if (!o) return null;
+  if (o.profile_id) return <span className="pill ts-active">Joined</span>;
+  if (o.unsubscribed) return <span className="small">Unsubscribed</span>;
+  if (!o.email) return <span className="small">No email</span>;
+  if (o.portal_invited_at) return <span className="small">Invited {shortDay(o.portal_invited_at)}</span>;
+  return <span className="small">Not invited</span>;
+}
+
 // Offline units are neither occupied nor available, so they're counted on their own.
 function unitCounts(units = []) {
   const c = { occupied: 0, vacant: 0, turnover: 0, offline: 0 };
@@ -36,6 +74,14 @@ export default function PropertiesTable() {
   const [query, setQuery] = useState("");
   const [showArchived, setShowArchived] = useState(false);
   const [sort, setSort] = useState("address");
+  const [owners, setOwners] = useState(() => new Map());
+  const [picked, setPicked] = useState(() => new Set());
+  const [sending, setSending] = useState(false);
+  const [notice, setNotice] = useState({ kind: "", text: "" });
+
+  useEffect(() => {
+    loadOwnerStatus().then(setOwners, () => {});
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -60,6 +106,42 @@ export default function PropertiesTable() {
   const q = query.trim().toLowerCase();
   const archivedCount = properties.filter((p) => p.archived).length;
   const shown = properties.filter((p) => (showArchived || !p.archived) && matches(p, q)).sort(SORTS[sort]);
+
+  // Invitations go to owners, so several properties with the same owner count once.
+  const ownerOf = (p) => (p.owner ? owners.get(p.owner.id) : null);
+  const pickableOwners = [...new Set(shown.filter((p) => ownerInvitable(ownerOf(p), p)).map((p) => p.owner.id))];
+  const pickedHere = pickableOwners.filter((id) => picked.has(id));
+  const allOn = pickableOwners.length > 0 && pickedHere.length === pickableOwners.length;
+  const resends = pickedHere.filter((id) => owners.get(id)?.portal_invited_at).length;
+  const togglePick = (id) =>
+    setPicked((set) => {
+      const next = new Set(set);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  const toggleAll = () =>
+    setPicked((set) => {
+      const next = new Set(set);
+      pickableOwners.forEach((id) => (allOn ? next.delete(id) : next.add(id)));
+      return next;
+    });
+
+  async function sendInvites() {
+    setSending(true);
+    setNotice({ kind: "", text: "" });
+    try {
+      const r = await staffApi("/api/admin/invites", { owners: pickedHere });
+      setNotice({
+        kind: r.sent ? "ok" : "err",
+        text: `Sent ${r.sent} owner invitation${r.sent === 1 ? "" : "s"}.${r.skipped?.length ? ` Not sent: ${r.skipped.join(", ")}.` : ""}`,
+      });
+      setPicked(new Set());
+      setOwners(await loadOwnerStatus());
+    } catch (err) {
+      setNotice({ kind: "err", text: err.message });
+    }
+    setSending(false);
+  }
 
   return (
     <div className="stack" style={{ gap: 24 }}>
@@ -111,6 +193,26 @@ export default function PropertiesTable() {
             </label>
           </div>
 
+          <div className="row" style={{ gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+            <button type="button" className="btn primary sm" onClick={sendInvites} disabled={!pickedHere.length || sending}>
+              {sending
+                ? "Sending…"
+                : pickedHere.length
+                  ? `Send Owner Portal Invitation to ${pickedHere.length}${resends ? ` (${resends} resend${resends === 1 ? "" : "s"})` : ""}`
+                  : "Send Owner Portal Invitations"}
+            </button>
+            <span className="small">
+              {pickableOwners.length
+                ? "Tick properties below to invite their owners, or tick the box in the header for every owner who can be invited."
+                : "No owners here can be invited: they've joined, have no email or unsubscribed."}
+            </span>
+            {notice.text ? (
+              <span className={`small ${notice.kind}`} role={notice.kind === "err" ? "alert" : "status"}>
+                {notice.text}
+              </span>
+            ) : null}
+          </div>
+
           {shown.length === 0 ? (
             <div className="empty">
               <p>No properties match {q ? <b>&ldquo;{query.trim()}&rdquo;</b> : "these filters"}.</p>
@@ -120,6 +222,16 @@ export default function PropertiesTable() {
               <table className="admin-table">
                 <thead>
                   <tr>
+                    <th scope="col">
+                      <input
+                        type="checkbox"
+                        className="row-check"
+                        checked={allOn}
+                        disabled={!pickableOwners.length}
+                        onChange={toggleAll}
+                        aria-label="Choose every owner who can be invited"
+                      />
+                    </th>
                     <th scope="col">Address</th>
                     <th scope="col">Owner</th>
                     <th scope="col">Package</th>
@@ -141,6 +253,16 @@ export default function PropertiesTable() {
                     const c = unitCounts(p.units);
                     return (
                       <tr key={p.id}>
+                        <td>
+                          <input
+                            type="checkbox"
+                            className="row-check"
+                            checked={Boolean(p.owner && picked.has(p.owner.id))}
+                            disabled={!ownerInvitable(ownerOf(p), p)}
+                            onChange={() => togglePick(p.owner.id)}
+                            aria-label={`Invite ${p.owner?.name || "the owner"} of ${p.address}`}
+                          />
+                        </td>
                         <td className="addr">
                           <Link className="addr-street addr-link" href={`/admin/properties/${p.id}`}>
                             {p.address}
@@ -150,7 +272,12 @@ export default function PropertiesTable() {
                         </td>
                         <td>
                           {p.owner ? (
-                            <Link href={`/admin/owners/${p.owner.id}`}>{p.owner.name}</Link>
+                            <>
+                              <Link href={`/admin/owners/${p.owner.id}`}>{p.owner.name}</Link>
+                              <span className="sub-line">
+                                <OwnerPortal o={ownerOf(p)} />
+                              </span>
+                            </>
                           ) : (
                             <span className="small">Not set</span>
                           )}
