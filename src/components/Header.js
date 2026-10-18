@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { IRepMark } from "./Brand";
 import { useAuth } from "./AuthProvider";
 import { useStaff } from "@/lib/useStaff";
@@ -28,7 +28,14 @@ const SIGN_IN = [
 
 export default function Header() {
   const path = usePathname() || "/";
-  const { user, openSignIn } = useAuth();
+  const { user, openSignIn, signOut } = useAuth();
+  const router = useRouter();
+  async function doSignOut() {
+    setOpenOn(null);
+    await signOut();
+    router.push("/");
+    router.refresh();
+  }
   const { isStaff } = useStaff();
   const { isOwner } = useOwner();
   const { isPartner } = usePartner();
@@ -95,12 +102,17 @@ export default function Header() {
           </Link>
         ) : null}
         {user ? (
-          <Link className="acct-btn" href="/account">
-            My Profile
-          </Link>
+          <>
+            <Link className="acct-btn" href="/account">
+              My Profile
+            </Link>
+            <button type="button" className="acct-btn signout-btn" onClick={doSignOut}>
+              Sign Out
+            </button>
+          </>
         ) : (
           <button className="acct-btn" onClick={() => openSignIn("/account")}>
-            Sign in
+            Sign In
           </button>
         )}
         <button
@@ -147,12 +159,17 @@ export default function Header() {
             ))}
           </nav>
           {user ? (
-            <Link className="site-menu-acct" href="/account" onClick={closeMenu}>
-              My profile
-            </Link>
+            <div className="site-menu-signin">
+              <Link className="site-menu-acct" href="/account" onClick={closeMenu}>
+                My Profile
+              </Link>
+              <button type="button" className="site-menu-acct" onClick={doSignOut}>
+                Sign Out
+              </button>
+            </div>
           ) : (
             <div className="site-menu-signin">
-              <span>Sign in</span>
+              <span>Sign In</span>
               {SIGN_IN.map(([next, label]) => (
                 <button
                   key={next}

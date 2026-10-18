@@ -90,6 +90,8 @@ button, input, select, textarea { font: inherit; }
 .main-nav a[aria-current="page"] { color: var(--on-band); border-bottom-color: var(--red); }
 .acct-btn { background: none; border: 1px solid var(--band-line); color: var(--on-band); padding: 7px 14px; border-radius: var(--radius); cursor: pointer; font-weight: 500; font-size: .875rem; text-decoration: none; }
 .acct-btn:hover { border-color: var(--on-band); }
+.signout-btn { border-color: transparent; color: var(--band-muted); padding-inline: 8px; }
+.signout-btn:hover { color: var(--on-band); border-color: transparent; text-decoration: underline; }
 .menu-btn, .site-menu { display: none; }
 @media (max-width: 759px) {
   .site-header .wrap { flex-wrap: nowrap; justify-content: space-between; gap: 12px; min-height: 64px; }
