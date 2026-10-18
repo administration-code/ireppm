@@ -27,10 +27,18 @@ const shortDay = (iso) => (iso ? new Date(iso).toLocaleDateString("en-CA", { mon
 const searchText = (p) => [p.full_name, p.email, p.phone, tenancyAddress(p.tenancy)].filter(Boolean).join(" ").toLowerCase();
 
 async function loadTenants() {
-  const { data, error } = await getBrowserClient().from("tenancy_tenants").select(SELECT).order("full_name");
+  const sb = getBrowserClient();
+  const [{ data, error }, { data: outs }] = await Promise.all([
+    sb.from("tenancy_tenants").select(SELECT).order("full_name"),
+    sb.from("email_optouts").select("email"),
+  ]);
   if (error) throw new Error("We couldn't load tenants. Refresh the page to try again.");
-  return data || [];
+  const out = new Set((outs || []).map((o) => o.email));
+  return (data || []).map((p) => ({ ...p, unsubscribed: Boolean(p.email && out.has(p.email.trim().toLowerCase())) }));
 }
+
+// Who a portal invitation can go to: has an email, no account yet, on a tenancy, not unsubscribed.
+const invitable = (p) => Boolean(p.email && !p.profile_id && p.tenancy && !p.unsubscribed);
 
 async function staffApi(url, body) {
   const { data } = await getBrowserClient().auth.getSession();
@@ -46,6 +54,8 @@ async function staffApi(url, body) {
 
 function PortalStatus({ p }) {
   if (p.profile_id) return <span className="pill ts-active">Joined</span>;
+  if (p.unsubscribed) return <span className="small">Unsubscribed</span>;
+  if (!p.email) return <span className="small">No email</span>;
   if (p.portal_invited_at) return <span className="small">Invited {shortDay(p.portal_invited_at)}</span>;
   return <span className="small">Not invited</span>;
 }
@@ -58,6 +68,9 @@ export default function TenantsManager() {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState("");
   const [adding, setAdding] = useState(false);
+  const [picked, setPicked] = useState(() => new Set());
+  const [sending, setSending] = useState(false);
+  const [notice, setNotice] = useState({ kind: "", text: "" });
 
   const load = useCallback(async () => {
     try {
@@ -84,6 +97,40 @@ export default function TenantsManager() {
   );
 
   if (!rows) return <p className="small">Loading tenants…</p>;
+
+  const pickable = shown.filter(invitable);
+  const pickedHere = pickable.filter((p) => picked.has(p.id));
+  const allOn = pickable.length > 0 && pickedHere.length === pickable.length;
+  const togglePick = (id) =>
+    setPicked((set) => {
+      const next = new Set(set);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  const toggleAll = () =>
+    setPicked((set) => {
+      const next = new Set(set);
+      pickable.forEach((p) => (allOn ? next.delete(p.id) : next.add(p.id)));
+      return next;
+    });
+  const resends = pickedHere.filter((p) => p.portal_invited_at).length;
+
+  async function sendInvites() {
+    setSending(true);
+    setNotice({ kind: "", text: "" });
+    try {
+      const r = await staffApi("/api/admin/invites", { tenants: pickedHere.map((p) => p.id) });
+      setNotice({
+        kind: r.sent ? "ok" : "err",
+        text: `Sent ${r.sent} invitation${r.sent === 1 ? "" : "s"}.${r.skipped?.length ? ` Not sent: ${r.skipped.join(", ")}.` : ""}`,
+      });
+      setPicked(new Set());
+      await load();
+    } catch (err) {
+      setNotice({ kind: "err", text: err.message });
+    }
+    setSending(false);
+  }
 
   return (
     <div className="stack" style={{ gap: 16 }}>
@@ -117,6 +164,26 @@ export default function TenantsManager() {
         ))}
       </div>
 
+      <div className="row" style={{ gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+        <button type="button" className="btn primary sm" onClick={sendInvites} disabled={!pickedHere.length || sending}>
+          {sending
+            ? "Sending…"
+            : pickedHere.length
+              ? `Send Portal Invitation to ${pickedHere.length}${resends ? ` (${resends} resend${resends === 1 ? "" : "s"})` : ""}`
+              : "Send Portal Invitations"}
+        </button>
+        <span className="small">
+          {pickable.length
+            ? "Tick tenants below, or tick the box in the header to choose everyone who can be invited in this list."
+            : "Nobody in this list can be invited: they've joined, have no email, are unassigned or unsubscribed."}
+        </span>
+        {notice.text ? (
+          <span className={`small ${notice.kind}`} role={notice.kind === "err" ? "alert" : "status"}>
+            {notice.text}
+          </span>
+        ) : null}
+      </div>
+
       {!shown.length ? (
         <div className="empty">
           <p>{q ? "No tenants match that search." : "No tenants here."}</p>
@@ -126,6 +193,16 @@ export default function TenantsManager() {
           <table className="admin-table">
             <thead>
               <tr>
+                <th scope="col">
+                  <input
+                    type="checkbox"
+                    className="row-check"
+                    checked={allOn}
+                    disabled={!pickable.length}
+                    onChange={toggleAll}
+                    aria-label="Choose everyone who can be invited"
+                  />
+                </th>
                 <th scope="col">Tenant</th>
                 <th scope="col">Contact</th>
                 <th scope="col">Home</th>
@@ -137,6 +214,16 @@ export default function TenantsManager() {
               {shown.map((p) => (
                 <Fragment key={p.id}>
                   <tr>
+                    <td>
+                      <input
+                        type="checkbox"
+                        className="row-check"
+                        checked={picked.has(p.id)}
+                        disabled={!invitable(p)}
+                        onChange={() => togglePick(p.id)}
+                        aria-label={`Invite ${p.full_name}`}
+                      />
+                    </td>
                     <td>
                       <b>{p.full_name}</b>
                       {p.is_primary && p.tenancy ? <span className="small sub-line">Primary tenant</span> : null}
@@ -168,7 +255,7 @@ export default function TenantsManager() {
                   </tr>
                   {open === p.id ? (
                     <tr>
-                      <td colSpan={5}>
+                      <td colSpan={6}>
                         <TenantPanel person={p} all={rows} tenancies={tenancies} onChanged={load} onRemoved={() => setOpen("")} />
                       </td>
                     </tr>
@@ -299,7 +386,7 @@ function TenantPanel({ person, all, tenancies, onChanged, onRemoved }) {
   const letter = () =>
     run("letter", () => staffApi("/api/tenancy/payprop-letter", { tenancy: t.id }), "PayProp letter emailed to everyone on this tenancy.", { reload: false });
 
-  const canInvite = person.email && !person.profile_id && t;
+  const canInvite = invitable(person);
 
   return (
     <div className="stack" style={{ gap: 18, padding: "8px 0" }}>
@@ -371,7 +458,9 @@ function TenantPanel({ person, all, tenancies, onChanged, onRemoved }) {
         <p className="small" style={{ margin: 0 }}>
           {person.profile_id
             ? "They already have an account, so no invitation is needed."
-            : !person.email
+            : person.unsubscribed
+              ? "They unsubscribed from promotional email, so no invitation is sent."
+              : !person.email
               ? "Add an email address to send emails."
               : !t
                 ? "Assign them to a tenancy first."
