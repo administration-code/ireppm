@@ -5,22 +5,29 @@ export const TRUST_PAYMENT_METHODS = ["etransfer", "direct_deposit", "cheque", "
 export const TRUST_PAYOUT_METHODS = ["etransfer", "cheque", "other"];
 
 export const CATEGORY_LABEL = {
-  irep_fees: "IRep fees moved to the operating account",
-  vendor_payment: "Paid a contractor",
-  deposit_refund: "Deposit refunded to a tenant",
+  rent_received: "Rent (before the website)",
   owner_contribution: "Money from a landlord",
+  owner_payouts: "Landlord payout (before the website)",
+  vendor_payment: "Contractor or repair",
+  deposit_refund: "Last month's rent refunded",
+  irep_fees: "IRep fees (PayProp settlement)",
+  irep_income: "IRep income (Square, other)",
+  irep_expense: "IRep business expense",
+  shareholder: "Rishi or Chuck (pay, loans)",
+  tax_payment: "CRA payment",
+  transfer: "Transfer between IRep accounts",
   bank_fee: "Bank fee",
   interest: "Interest",
-  transfer: "Transfer between IRep accounts",
   correction: "Bank correction or reversal",
-  rent_received: "Rent received before the website",
-  owner_payouts: "Landlord payout before the website",
-  shareholder: "Paid to or from Rishi or Chuck",
-  irep_expense: "IRep business expense",
-  irep_income: "IRep income (e.g. Square)",
-  tax_payment: "Payment to CRA",
   other: "Other",
 };
+
+export const CATEGORY_GROUPS = [
+  ["Rent and landlords", ["rent_received", "owner_contribution", "owner_payouts", "vendor_payment", "deposit_refund"]],
+  ["IRep", ["irep_fees", "irep_income", "irep_expense", "shareholder", "tax_payment"]],
+  ["Bank", ["transfer", "bank_fee", "interest", "correction"]],
+  ["Anything else", ["other"]],
+];
 
 // Year-summary buckets: the categories above plus matched lines and ignored ones.
 export const YEAR_BUCKET_LABEL = {

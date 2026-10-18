@@ -5,6 +5,7 @@ import { getBrowserClient } from "@/lib/supabase";
 import { money } from "@/lib/format";
 import { checkAmount, countUnmatched, loadTenancyOptions, monthLabel, primaryTenant, tenancyAddress, thisMonth, todayISO } from "@/lib/rent";
 import RentNav, { RentHead } from "./RentNav";
+import PaypropImport from "./PaypropImport";
 
 async function loadBatch(month) {
   const sb = getBrowserClient();
@@ -95,9 +96,19 @@ export default function PayPropBatch() {
     <div className="stack" style={{ gap: 24 }}>
       <RentHead
         title="PayProp batch"
-        intro="Until PayProp's API is connected, tick the tenants who paid through PayProp this month and save them in one go."
+        intro="Import PayProp's payment report, or tick the tenants who paid through PayProp and save them in one go."
       />
       <RentNav current="/admin/rent/payprop" unmatched={unmatched} />
+
+      <PaypropImport
+        onSaved={() =>
+          loadBatch(month).then((next) => {
+            setState({ loading: false, error: "", ...next });
+            setRows(rowsFor(next.tenancies));
+          })
+        }
+      />
+      <h2 className="sub-title" style={{ margin: 0 }}>Or tick them off by hand</h2>
 
       <div className="filters">
         <div className="field" style={{ flex: "0 1 220px" }}>

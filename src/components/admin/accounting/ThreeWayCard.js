@@ -25,10 +25,6 @@ export default function ThreeWayCard({ summary }) {
           <dd className="num">{dollars(l.owners)}</dd>
         </div>
         <div>
-          <dt>Key deposits held</dt>
-          <dd className="num">{dollars(l.key_deposits)}</dd>
-        </div>
-        <div>
           <dt>Money received but not yet allocated</dt>
           <dd className="num">{dollars(l.unallocated)}</dd>
         </div>

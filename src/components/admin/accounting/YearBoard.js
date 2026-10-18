@@ -59,23 +59,31 @@ export function bucketRows(byCategory) {
 
 export function MonthChips({ account, year }) {
   return (
-    <ol className="acct-chips" aria-label={`${account.name} months`}>
-      {(account.months || []).map((m) => {
-        const month = String(m.period).slice(0, 7);
-        return (
-          <li key={month}>
-            <Link
-              href={`/admin/accounting?month=${month}&account=${account.id}`}
-              className={`acct-chip is-${m.status}`}
-              title={`${monthOnly(m.period)} ${year}: ${RECON_STATUS_LABEL[m.status] || m.status}`}
-            >
-              {monthOnly(m.period).slice(0, 3)}
-              <span className="visually-hidden"> {RECON_STATUS_LABEL[m.status] || m.status}</span>
-            </Link>
-          </li>
-        );
-      })}
-    </ol>
+    <div className="stack" style={{ gap: 6 }}>
+      <ol className="acct-chips" aria-label={`${account.name} months`}>
+        {(account.months || []).map((m) => {
+          const month = String(m.period).slice(0, 7);
+          const label = RECON_STATUS_LABEL[m.status] || m.status;
+          return (
+            <li key={month}>
+              <Link
+                href={`/admin/accounting?month=${month}&account=${account.id}`}
+                className={`acct-chip is-${m.status}`}
+                title={`${monthOnly(m.period)} ${year}: ${label}`}
+              >
+                {monthOnly(m.period).slice(0, 3)}
+                <span className="visually-hidden"> {year}, {label}</span>
+              </Link>
+            </li>
+          );
+        })}
+      </ol>
+      <p className="acct-chip-legend">
+        <span>✓ Locked</span>
+        <span>Green outline: balanced, not locked</span>
+        <span>Grey: still open</span>
+      </p>
+    </div>
   );
 }
 
@@ -118,13 +126,13 @@ export function AccountSummary({ account }) {
 }
 
 export const INCOME_COLS = [
-  ["management_fees", "Management fees"],
-  ["management_hst", "HST on management"],
+  ["management_fees", "Mgmt fees"],
+  ["management_hst", "Mgmt HST"],
   ["leasing_fees", "Leasing fees"],
-  ["leasing_hst", "HST on leasing"],
-  ["lawn_snow", "Lawn/snow"],
-  ["other_income", "Other income"],
-  ["commissions_paid", "Commissions paid"],
+  ["leasing_hst", "Leasing HST"],
+  ["lawn_snow", "Lawn & snow"],
+  ["other_income", "Other"],
+  ["commissions_paid", "Commissions"],
   ["expenses", "Expenses"],
   ["loan_repaid", "Loan repaid"],
 ];
@@ -192,7 +200,7 @@ export function IncomeTable({ rows, year, hst }) {
           <tbody>
             {rows.map((r) => (
               <tr key={r.period}>
-                <th scope="row">{monthOnly(r.period)}</th>
+                <th scope="row">{monthOnly(r.period).slice(0, 3)}</th>
                 {INCOME_COLS.map(([k]) => (
                   <td key={k} className="num">
                     {dollars(r[k])}
@@ -224,18 +232,21 @@ export function IncomeTable({ rows, year, hst }) {
 }
 
 const OWNER_COLS = [
-  ["rent_collected", "Rent collected"],
-  ["management_fees", "Management fees"],
-  ["work_orders", "Work orders"],
-  ["other_items", "Other items"],
+  ["rent_collected", "Rent in"],
+  ["management_fees", "Fees"],
+  ["work_orders", "Repairs"],
+  ["other_items", "Other"],
   ["paid_out", "Paid out"],
-  ["balance_dec31", "Owing at Dec 31"],
+  ["balance_dec31", "Balance"],
 ];
 
-export function OwnersTable({ rows }) {
+export function OwnersTable({ rows, year }) {
   if (!rows.length) return <p className="small">No landlords yet.</p>;
   return (
-    <div className="table-wrap">
+    <div className="table-wrap" style={{ marginTop: 0 }}>
+      <p className="small" style={{ margin: "0 0 6px" }}>
+        Rent in, less IRep fees, repairs and other items, less what was paid out. Balance is what IRep held for the landlord at December 31{year ? `, ${year}` : ""} (a minus means more was paid out than recorded in the system, usually from months before the website).
+      </p>
       <table className="data-table">
         <thead>
           <tr>
@@ -465,7 +476,7 @@ export default function YearBoard({ initialYear }) {
             <h2 id={`${id}-owners`} className="sec-title">
               Landlords
             </h2>
-            <OwnersTable rows={data.owners} />
+            <OwnersTable rows={data.owners} year={year} />
           </section>
 
           <section className="boxed stack" aria-labelledby={`${id}-close`}>

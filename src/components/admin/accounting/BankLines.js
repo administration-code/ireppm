@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useId, useState } from "react";
 import { getBrowserClient } from "@/lib/supabase";
-import { CATEGORY_LABEL, dollars, LINE_STATUS_LABEL, staffMessage } from "@/lib/accounting";
+import { CATEGORY_GROUPS, CATEGORY_LABEL, dollars, LINE_STATUS_LABEL, staffMessage } from "@/lib/accounting";
 import { shortDate } from "@/lib/rent";
 import MatchPanel from "./MatchPanel";
 
@@ -13,7 +13,7 @@ const FILTERS = [
   { key: "in", label: "Money in", test: (l) => Number(l.amount) > 0 },
   { key: "out", label: "Money out", test: (l) => Number(l.amount) < 0 },
   { key: "matched", label: "Matched", test: (l) => l.status === "matched" },
-  { key: "categorized", label: "Categorised", test: (l) => l.status === "categorized" },
+  { key: "categorized", label: "Given a category", test: (l) => l.status === "categorized" },
   { key: "ignored", label: "Ignored", test: (l) => l.status === "ignored" },
 ];
 
@@ -74,10 +74,14 @@ function CategoriseForm({ line, mode, onDone, onCancel }) {
           <label htmlFor={`${id}-cat`}>What was it for?</label>
           <select id={`${id}-cat`} value={category} onChange={(e) => setCategory(e.target.value)}>
             <option value="">Choose…</option>
-            {Object.entries(CATEGORY_LABEL).map(([k, v]) => (
-              <option key={k} value={k}>
-                {v}
-              </option>
+            {CATEGORY_GROUPS.map(([group, keys]) => (
+              <optgroup key={group} label={group}>
+                {keys.map((k) => (
+                  <option key={k} value={k}>
+                    {CATEGORY_LABEL[k]}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
         </div>
@@ -192,18 +196,21 @@ export default function BankLines({ accountId, month, lines, links, locked, high
       </div>
 
       <div className="chip-row" role="group" aria-label="Filter bank lines">
-        {FILTERS.map((f) => {
+        {FILTERS.map((f, i) => {
           const count = lines.filter(f.test).length;
+          if (!count && active.key !== f.key && !["attention", "all"].includes(f.key)) return null;
           return (
+            <span key={f.key} style={{ display: "contents" }}>
+            {i === 2 || i === 4 ? <span className="chip-sep" aria-hidden="true" /> : null}
             <button
-              key={f.key}
               type="button"
-              className={`chip${active.key === f.key ? " on" : ""}`}
+              className={`chip${active.key === f.key ? " on" : ""}${count ? "" : " is-empty"}`}
               aria-pressed={active.key === f.key}
               onClick={() => setFilter(f.key)}
             >
               {f.label} <span className="chip-count">{count}</span>
             </button>
+            </span>
           );
         })}
       </div>
