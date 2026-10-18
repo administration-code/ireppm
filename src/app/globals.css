@@ -1115,3 +1115,6 @@ details.boxed > summary { cursor: pointer; }
 /* Staff area spacing: less empty space above the staff menu, breathing room below it */
 .block.admin { padding-top: 24px; }
 .staff-nav { margin-bottom: 28px; }
+
+/* Phone numbers never break across lines */
+a[href^="tel:"] { white-space: nowrap; }
