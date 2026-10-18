@@ -12,6 +12,9 @@ const securityHeaders = [
 
 const nextConfig = {
   poweredByHeader: false,
+  async redirects() {
+    return [{ source: "/reviews", destination: "/", permanent: false }];
+  },
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },

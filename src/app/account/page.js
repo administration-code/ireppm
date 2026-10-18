@@ -1,4 +1,3 @@
-import Link from "next/link";
 import AccountView from "@/components/AccountView";
 
 export const metadata = {
@@ -11,9 +10,6 @@ export default function AccountPage() {
     <section className="block">
       <div className="wrap">
         <AccountView />
-        <p className="pmuted small" style={{ marginTop: 32 }}>
-          Renting from us? <Link href="/reviews?who=tenant#write">Tell others what it&apos;s like</Link>.
-        </p>
       </div>
     </section>
   );

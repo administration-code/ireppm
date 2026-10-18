@@ -29,7 +29,6 @@ export default function Footer() {
           <Link href="/pricing">Packages and Pricing</Link>
           <Link href="/landlords#estimate">Free Rent Estimate</Link>
           <Link href="/guides">Landlord Guides</Link>
-          <Link href="/reviews">Reviews</Link>
           <Link href="/about#inquiry">Talk to Us</Link>
         </div>
         <div>
