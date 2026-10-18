@@ -76,7 +76,7 @@ const SECTIONS = [
       ["New phone number or email: update it in Manage Tenants the same day, so notices, receipts and the portal reach them.", "/admin/tenants", "Manage Tenants"],
       ["Roommate moving in: add them in Manage Tenants and assign them to the tenancy. Get the landlord's OK first and have them sign onto the lease.", "/admin/tenants", "Manage Tenants"],
       ["Roommate moving out while others stay: unassign them in Manage Tenants. They stay on file, and their past payments stay with the tenancy.", "/admin/tenants", "Manage Tenants"],
-      ["Primary tenant changes: make the new person primary in Manage Tenants. The primary tenant is the name on rent receipts and the dashboard.", "/admin/tenants", "Manage Tenants"],
+      ["Primary tenant changes: make the new person primary in Manage Tenants. The primary tenant is the name shown first on the rent board and the dashboard.", "/admin/tenants", "Manage Tenants"],
       ["Tenant moving to another unit we manage: start the new tenancy on that unit first, then move them to it in Manage Tenants.", "/admin/tenants", "Manage Tenants"],
       ["Tenant added by mistake: delete them in Manage Tenants. Unassign instead if they were ever a real tenant.", "/admin/tenants", "Manage Tenants"],
     ],
