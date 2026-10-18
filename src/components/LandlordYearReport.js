@@ -217,7 +217,7 @@ function PropertyTable({ p, before }) {
       ) : null}
       <div className="ly-table-wrap">
         <table className="acct-st ly-table">
-          <caption className="sr-only">Monthly income and expenses for {caption}</caption>
+          <caption className="visually-hidden">Monthly income and expenses for {caption}</caption>
           <thead>
             <tr>
               <th scope="col">Month</th>

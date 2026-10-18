@@ -172,7 +172,9 @@ ol.steps { display: grid; grid-template-columns: repeat(5, 1fr); gap: 24px; coun
 .photo .tag { position: absolute; top: 12px; left: 12px; background: #161616; color: #f7f4ee; font-size: .6875rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; padding: 4px 8px; border-radius: 2px; }
 .empty { padding: 48px 24px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: var(--radius); display: grid; gap: 12px; justify-items: center; }
 
-.back { color: var(--muted); text-decoration: none; font-weight: 500; display: inline-block; margin-bottom: 20px; }
+.back { color: var(--muted); text-decoration: none; font-weight: 500; display: block; width: fit-content; margin-bottom: 14px; }
+.back:hover { color: var(--fg); }
+.back + .eyebrow { display: block; margin-bottom: 6px; }
 .back:hover { color: var(--fg); }
 .detail { display: grid; grid-template-columns: 1.5fr 1fr; gap: 40px; align-items: start; }
 .detail .main { display: grid; gap: 24px; min-width: 0; }
@@ -1079,3 +1081,23 @@ details.boxed > summary { cursor: pointer; }
   .year-print .data-table tr { break-inside: avoid; }
 }
 .acct-out { color: var(--red); }
+
+/* Badges and helpers that were missing styles */
+.stack-sm { display: grid; gap: 6px; }
+.pill.st-unmatched { background: var(--warn-bg); color: var(--warn); }
+.pill.st-matched, .pill.st-categorized { background: var(--ok-bg); color: var(--ok); }
+.pill.st-ignored { background: var(--surface-2); color: var(--muted); }
+.pill.sev-error { background: rgba(180, 23, 16, .12); color: var(--red); }
+.pill.sev-warning { background: var(--warn-bg); color: var(--warn); }
+.pill.sev-info { background: var(--surface-2); color: var(--muted); }
+.pill.sig-ok { background: var(--ok-bg); color: var(--ok); }
+.pill.sig-wait { background: var(--warn-bg); color: var(--warn); }
+.pill.sig-bad { background: rgba(180, 23, 16, .12); color: var(--red); }
+.pill.mu-emergency { background: var(--red); color: var(--on-red); }
+.pill.mu-urgent { background: var(--warn-bg); color: var(--warn); }
+.pill.mu-routine { background: var(--surface-2); color: var(--muted); }
+.pill.ic-excellent, .pill.ic-good { background: var(--ok-bg); color: var(--ok); }
+.pill.ic-fair { background: var(--warn-bg); color: var(--warn); }
+.pill.ic-poor { background: rgba(180, 23, 16, .12); color: var(--red); }
+.acct-row-bad td { background: var(--warn-bg); }
+.room-card { list-style: none; }
