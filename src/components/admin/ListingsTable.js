@@ -44,9 +44,6 @@ export default function ListingsTable() {
     <div className="stack" style={{ gap: 24 }}>
       <div className="admin-head">
         <div style={{ display: "grid", gap: 8 }}>
-          <Link className="eyebrow back-link" href="/admin">
-            ← Staff dashboard
-          </Link>
           <h1 className="admin-title">Listings</h1>
           <p className="small">
             Drafts are hidden from the website. Only listings marked Available appear to renters.

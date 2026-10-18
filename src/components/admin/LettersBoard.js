@@ -95,9 +95,6 @@ export default function LettersBoard({ initialMonth }) {
   return (
     <div className="stack" style={{ gap: 24 }}>
       <div>
-        <Link className="back" href="/admin">
-          ← Staff dashboard
-        </Link>
         <div className="admin-head">
           <div style={{ display: "grid", gap: 8 }}>
             <span className="eyebrow">Staff</span>

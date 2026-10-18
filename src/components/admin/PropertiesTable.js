@@ -65,9 +65,6 @@ export default function PropertiesTable() {
     <div className="stack" style={{ gap: 24 }}>
       <div className="admin-head">
         <div style={{ display: "grid", gap: 8 }}>
-          <Link className="eyebrow back-link" href="/admin">
-            ← Staff dashboard
-          </Link>
           <h1 className="admin-title">Properties</h1>
           <p className="small">Buildings IRep manages, their units and who lives there. Owner details stay in the staff area.</p>
         </div>
