@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { IRepMark } from "./Brand";
@@ -40,8 +40,20 @@ export default function Header() {
 
   const current = (href) => (path.startsWith(href) ? "page" : undefined);
 
+  // Share the header's height so the staff menu can stick just below it.
+  const headerRef = useRef(null);
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return undefined;
+    const set = () => document.documentElement.style.setProperty("--site-header-h", `${el.offsetHeight}px`);
+    set();
+    const ro = new ResizeObserver(set);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   return (
-    <header className="site-header">
+    <header className="site-header" ref={headerRef}>
       <div className="wrap">
         <Link href="/" className="brand" aria-label="IRep Property Management home">
           <IRepMark />
