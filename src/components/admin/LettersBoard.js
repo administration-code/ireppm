@@ -98,13 +98,13 @@ export default function LettersBoard({ initialMonth }) {
         <div className="admin-head">
           <div style={{ display: "grid", gap: 8 }}>
             <span className="eyebrow">Staff</span>
-            <h1 className="admin-title">Landlord letters</h1>
+            <h1 className="admin-title">Landlord Letters</h1>
             <p className="small">
               Monthly statements for each owner. Prepare the drafts, check them over, then send. Landlords sign in to read them.
             </p>
           </div>
           <Link className="btn ghost sm" href={`/admin/payouts?month=${month}`}>
-            Landlord payouts
+            Landlord Payouts
           </Link>
         </div>
       </div>

@@ -2,7 +2,7 @@ import OwnerGate from "@/components/owner/OwnerGate";
 import OwnerApplications from "@/components/owner/OwnerApplications";
 
 export const metadata = {
-  title: "Applicant to review",
+  title: "Applicant to Review",
   robots: { index: false, follow: false },
 };
 

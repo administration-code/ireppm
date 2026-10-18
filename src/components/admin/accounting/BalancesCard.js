@@ -40,7 +40,7 @@ export default function BalancesCard({ accountId, month, summary, locked, onSave
   return (
     <section className="boxed stack" aria-labelledby={`${id}-title`}>
       <h2 id={`${id}-title`} className="sec-title">
-        Bank statement
+        Bank Statement
       </h2>
       <dl className="acct-balances">
         <div>

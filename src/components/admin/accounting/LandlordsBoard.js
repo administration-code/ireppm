@@ -46,7 +46,7 @@ export default function LandlordsBoard({ year: yearProp }) {
 
   return (
     <div className="stack">
-      <AccountingTabs title="Landlord year-end" subtitle="Each landlord's rental income summary for their T776.">
+      <AccountingTabs title="Landlord Year-End" subtitle="Each landlord's rental income summary for their T776.">
         <YearSelect year={year} />
       </AccountingTabs>
 

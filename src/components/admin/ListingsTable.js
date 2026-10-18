@@ -50,7 +50,7 @@ export default function ListingsTable() {
           </p>
         </div>
         <Link className="btn primary" href="/admin/listings/new">
-          New listing
+          New Listing
         </Link>
       </div>
 
@@ -62,7 +62,7 @@ export default function ListingsTable() {
         <div className="empty">
           <p>No listings yet.</p>
           <Link className="btn ghost" href="/admin/listings/new">
-            Create the first listing
+            Create the First Listing
           </Link>
         </div>
       ) : listings.length ? (

@@ -1,7 +1,7 @@
 import StaffGate from "@/components/admin/StaffGate";
 import LogRequestForm from "@/components/admin/LogRequestForm";
 
-export const metadata = { title: "Log a maintenance request" };
+export const metadata = { title: "Log a Maintenance Request" };
 
 const str = (v) => (typeof v === "string" ? v : "");
 

@@ -17,7 +17,7 @@ export default function RecordSignatures({ type, id }) {
   return (
     <section className="boxed stack" aria-labelledby={`sig-${type}-${id}`}>
       <h2 id={`sig-${type}-${id}`} className="sub-title">
-        Documents for signature
+        Documents for Signature
       </h2>
       <div className="req-actions">
         {SENDS[type].map(([kind, label]) => (
@@ -26,7 +26,7 @@ export default function RecordSignatures({ type, id }) {
           </Link>
         ))}
       </div>
-      <DocumentsList column={column} value={id} title="Documents for signature" bare />
+      <DocumentsList column={column} value={id} title="Documents for Signature" bare />
     </section>
   );
 }

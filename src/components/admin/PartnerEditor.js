@@ -33,7 +33,7 @@ export default function PartnerEditor({ id }) {
         <h2>{error ? "Something went wrong" : "Partner not found"}</h2>
         <p>{error || "They may have been removed."}</p>
         <Link className="btn ghost" href="/admin/partners">
-          Back to partners
+          Back to Partners
         </Link>
       </div>
     );

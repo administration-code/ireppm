@@ -112,7 +112,7 @@ export default function PaypropDraw() {
       {msg ? <div className="okbox" role="status">{msg}</div> : null}
 
       <section className="boxed stack" aria-labelledby="draw-steps" style={{ gap: 10 }}>
-        <h2 id="draw-steps" className="sub-title">This month&apos;s checklist</h2>
+        <h2 id="draw-steps" className="sub-title">This Month&apos;s Checklist</h2>
         <ol className="plain-list" style={{ gap: 8 }}>
           {steps.map(([k, label, done]) => (
             <li key={k}>
@@ -129,7 +129,7 @@ export default function PaypropDraw() {
       </section>
 
       <section className="boxed stack" aria-labelledby="draw-winner" style={{ gap: 10 }}>
-        <h2 id="draw-winner" className="sub-title">Gift card draw</h2>
+        <h2 id="draw-winner" className="sub-title">Gift Card Draw</h2>
         {d?.winner_tenancy_id ? (
           <>
             <p style={{ margin: 0 }}>

@@ -72,7 +72,7 @@ export default function EarlyMoveOuts() {
   return (
     <section className="boxed stack" aria-labelledby={`${id}-title`} style={{ gap: 16 }}>
       <h2 id={`${id}-title`} className="sub-title">
-        Early move-out requests (N11)
+        Early Move-Out Requests (N11)
       </h2>
       {state.error ? <p className="err">{state.error}</p> : null}
       {state.open.length ? (
@@ -88,7 +88,7 @@ export default function EarlyMoveOuts() {
       )}
       {state.recent.length ? (
         <details className="n11-recent">
-          <summary>Recent decisions</summary>
+          <summary>Recent Decisions</summary>
           <ul className="plain-list stack" style={{ gap: 8, marginTop: 10 }}>
             {state.recent.map((r) => (
               <li key={r.id} className="small">

@@ -3,7 +3,7 @@ import { loadShowingByToken, placeOf, prettyDay } from "@/lib/showings";
 import ShowingRespond from "@/components/ShowingRespond";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Showing request", robots: { index: false, follow: false } };
+export const metadata = { title: "Showing Request", robots: { index: false, follow: false } };
 
 // Private page for Chuck: approve, decline or suggest another time. The link in the email is the key.
 export default async function ShowingRespondPage({ searchParams }) {
@@ -17,7 +17,7 @@ export default async function ShowingRespondPage({ searchParams }) {
           <div className="warnbox">This link isn&apos;t valid. Ask the office to resend the showing request.</div>
         ) : (
           <div className="stack">
-            <h1 style={{ fontSize: "clamp(1.6rem, 4vw, 2.2rem)" }}>Showing request</h1>
+            <h1 style={{ fontSize: "clamp(1.6rem, 4vw, 2.2rem)" }}>Showing Request</h1>
             <div className="boxed">
               <dl className="kv">
                 <dt>Rental</dt>

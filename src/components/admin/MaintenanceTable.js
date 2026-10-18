@@ -66,7 +66,7 @@ export default function MaintenanceTable() {
           <p className="small">Repairs reported by tenants or logged by staff. Emergencies are listed first.</p>
         </div>
         <Link className="btn primary" href="/admin/maintenance/new">
-          Log a request
+          Log a Request
         </Link>
       </div>
 
@@ -76,10 +76,10 @@ export default function MaintenanceTable() {
         <p className="small">Loading maintenance requests…</p>
       ) : rows.length === 0 && !error ? (
         <div className="empty">
-          <h2>No maintenance requests yet</h2>
+          <h2>No Maintenance Requests Yet</h2>
           <p>Requests from the tenant portal show up here. You can also log one taken by phone, text or email.</p>
           <Link className="btn ghost" href="/admin/maintenance/new">
-            Log a request
+            Log a Request
           </Link>
         </div>
       ) : rows.length ? (

@@ -23,7 +23,7 @@ export default function YearPrint({ year }) {
           Print or save as PDF
         </button>
         <Link className="btn ghost" href={`/admin/accounting/year?year=${year}`}>
-          Back to year end
+          Back to Year End
         </Link>
       </div>
 
@@ -65,7 +65,7 @@ export default function YearPrint({ year }) {
       </div>
 
       <section className="stmt-section stack">
-        <h2 className="sec-title">IRep income</h2>
+        <h2 className="sec-title">IRep Income</h2>
         <IncomeTable rows={data.irep_income} year={year} hst={data.hst_collected} />
         <ExpensesTable rows={data.irep_expenses} />
       </section>

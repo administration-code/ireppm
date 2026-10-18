@@ -85,7 +85,7 @@ export default function InquiriesPanel({ inquiries, onChange, onRemove }) {
   if (!inquiries.length) {
     return (
       <div className="empty">
-        <h2>No landlord inquiries yet</h2>
+        <h2>No Landlord Inquiries Yet</h2>
         <p>When an owner asks about property management through the website, their message will appear here.</p>
       </div>
     );

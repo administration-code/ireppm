@@ -3,7 +3,7 @@ import Link from "next/link";
 import OwnerHome from "@/components/owner/OwnerHome";
 
 export const metadata = {
-  title: "Owner portal",
+  title: "Owner Portal",
   robots: { index: false, follow: false },
 };
 

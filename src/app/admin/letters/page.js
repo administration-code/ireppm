@@ -2,7 +2,7 @@ import StaffGate from "@/components/admin/StaffGate";
 import LettersBoard from "@/components/admin/LettersBoard";
 import { isPeriod } from "@/lib/payouts";
 
-export const metadata = { title: "Landlord letters" };
+export const metadata = { title: "Landlord Letters" };
 
 export default async function LettersPage({ searchParams }) {
   const { month } = await searchParams;

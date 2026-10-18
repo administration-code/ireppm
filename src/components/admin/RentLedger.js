@@ -105,7 +105,7 @@ export default function RentLedger({ tenancy }) {
     <section className="boxed stack" aria-labelledby={`ledger-${tenancy.id}`}>
       <div className="req-top">
         <h2 id={`ledger-${tenancy.id}`} className="sec-title">
-          Rent ledger
+          Rent Ledger
         </h2>
         {!loading ? (
           <span className={`num ledger-balance${cents(balance) > 0 ? " owing" : ""}`}>
@@ -243,7 +243,7 @@ export default function RentLedger({ tenancy }) {
             Add a charge
           </button>
           <Link className="btn ghost sm" href={`/admin/rent/new?tenancy=${tenancy.id}`}>
-            Record a payment
+            Record a Payment
           </Link>
         </div>
       )}
@@ -272,7 +272,7 @@ export default function RentLedger({ tenancy }) {
           <div className="field split-remove">
             {range.from && range.to && range.from <= range.to ? (
               <Link className="btn ghost sm" href={receiptHref}>
-                Make receipt
+                Make Receipt
               </Link>
             ) : (
               <span className="small err">Pick a start date before the end date.</span>

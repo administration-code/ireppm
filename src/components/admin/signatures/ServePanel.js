@@ -118,7 +118,7 @@ export default function ServePanel({ row, tenancy, notice, certs, onServed }) {
   return (
     <section className="boxed stack" aria-labelledby="serve-title">
       <h2 id="serve-title" className="sub-title">
-        Serve this notice
+        Serve This Notice
       </h2>
       {message.text ? (
         <div className={message.tone === "ok" ? "okbox" : "warnbox"} role="status">
@@ -128,14 +128,14 @@ export default function ServePanel({ row, tenancy, notice, certs, onServed }) {
 
       <div className="stack" style={{ gap: 8 }}>
         <h3 className="small" style={{ fontWeight: 700, color: "var(--fg)" }}>
-          Email it to the tenants
+          Email It to the Tenants
         </h3>
         {emailBlock}
       </div>
 
       <form className="stack" onSubmit={record}>
         <h3 className="small" style={{ fontWeight: 700, color: "var(--fg)" }}>
-          Hand delivery, mail slot or mail
+          Hand Delivery, Mail Slot or Mail
         </h3>
         <div className="req-actions">
           <button

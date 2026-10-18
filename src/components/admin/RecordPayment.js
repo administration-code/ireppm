@@ -89,7 +89,7 @@ export default function RecordPayment({ tenancyId = "" }) {
 
   return (
     <div className="stack" style={{ gap: 24 }}>
-      <RentHead title="Record a payment" intro="For cash, cheques, direct deposits and anything that didn't arrive by e-Transfer email." />
+      <RentHead title="Record a Payment" intro="For cash, cheques, direct deposits and anything that didn't arrive by e-Transfer email." />
       <RentNav current="/admin/rent/new" unmatched={unmatched} />
 
       {loadError ? <div className="warnbox">{loadError}</div> : null}

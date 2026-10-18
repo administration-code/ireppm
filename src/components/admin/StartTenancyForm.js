@@ -43,7 +43,7 @@ export default function StartTenancyForm({ unit, onCreated, onCancel }) {
   return (
     <form className="boxed stack" onSubmit={save} noValidate aria-labelledby="start-title">
       <h2 id="start-title" className="sec-title">
-        Start tenancy
+        Start Tenancy
       </h2>
       <p className="small">
         If the start date is today or earlier, the tenancy starts as active and the unit is marked occupied. A future

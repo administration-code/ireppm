@@ -2,7 +2,7 @@ import Link from "next/link";
 import StaffGate from "@/components/admin/StaffGate";
 import PartnerForm from "@/components/admin/PartnerForm";
 
-export const metadata = { title: "Add partner" };
+export const metadata = { title: "Add Partner" };
 
 export default function NewPartnerPage() {
   return (
@@ -13,7 +13,7 @@ export default function NewPartnerPage() {
             ← All partners
           </Link>
           <span className="eyebrow">Staff · Partner</span>
-          <h1 className="admin-title">Add partner</h1>
+          <h1 className="admin-title">Add Partner</h1>
         </div>
         <PartnerForm />
       </div>

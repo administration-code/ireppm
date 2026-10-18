@@ -50,7 +50,7 @@ async function alertStaff(payment) {
   ];
   const html = `<div style="font-family:Helvetica,Arial,sans-serif;color:#161616;background:#F7F4EE;padding:24px;">
     <div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #ddd5c9;border-radius:4px;padding:24px;">
-      <h1 style="font-family:Georgia,serif;font-weight:600;font-size:24px;margin:0 0 8px;">e-Transfer to match</h1>
+      <h1 style="font-family:Georgia,serif;font-weight:600;font-size:24px;margin:0 0 8px;">e-Transfer to Match</h1>
       <p style="margin:0 0 16px;">We couldn't tell which tenancy this e-Transfer is for. Match it in the staff area.</p>
       <table style="border-collapse:collapse;font-size:14px;">${rows
         .map(

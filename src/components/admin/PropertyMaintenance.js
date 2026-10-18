@@ -37,10 +37,10 @@ export default function PropertyMaintenance({ propertyId, unitIds }) {
     <section className="boxed stack" aria-labelledby="sec-prop-maint">
       <div className="sec-head">
         <h2 id="sec-prop-maint" className="sec-title">
-          Open maintenance
+          Open Maintenance
         </h2>
         <Link className="btn ghost sm" href={`/admin/maintenance/new?property=${propertyId}`}>
-          Log a request
+          Log a Request
         </Link>
       </div>
       {error ? <div className="warnbox">{error}</div> : null}

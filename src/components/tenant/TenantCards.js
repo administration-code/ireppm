@@ -50,7 +50,7 @@ function PaypropLetterLink({ tenancyId, label }) {
 export function PayRentCard({ homes = [] }) {
   return (
     <div className="stack" style={{ gap: 8 }}>
-      <h3>Paying rent</h3>
+      <h3>Paying Rent</h3>
       <p className="small" style={{ margin: 0 }}>
         <b>{PAYMENT_INFO.preferred} (preferred).</b> {PAYMENT_INFO.preferredSteps.join(" ")}
       </p>
@@ -142,7 +142,7 @@ export function InsuranceCard({ home }) {
 
   return (
     <div className={`stack${overdue ? " attention" : ""}`} style={{ gap: 8 }} id="insurance">
-      <h3>Tenant insurance</h3>
+      <h3>Tenant Insurance</h3>
       {latest ? (
         <p className="small" style={{ margin: 0 }}>
           {INS_LABEL[latest.status]}: {latest.file_name}
@@ -286,10 +286,10 @@ export function GettingStarted({ role = "tenant", dismissedAt, onDismiss }) {
     <section className="boxed stack" aria-labelledby="gs-title" style={{ gap: 10 }}>
       <div className="admin-head">
         <h2 id="gs-title" className="sec-title">
-          Welcome! Here&apos;s how this works
+          Welcome! Here&apos;s How This Works
         </h2>
         <button type="button" className="btn ghost sm" onClick={dismiss}>
-          Got it, hide this
+          Got It, Hide This
         </button>
       </div>
       <ol className="stack" style={{ gap: 6, margin: 0, paddingLeft: 20 }}>

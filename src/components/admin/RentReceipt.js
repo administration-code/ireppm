@@ -65,7 +65,7 @@ export default function RentReceipt({ params }) {
             "There are no matched payments for this receipt. Split or ignored payments, and payments not yet matched to a tenancy, don't get receipts."}
         </p>
         <Link className="btn ghost" href="/admin/rent">
-          Back to rent
+          Back to Rent
         </Link>
       </div>
     );
@@ -130,7 +130,7 @@ export default function RentReceipt({ params }) {
           </address>
         </header>
 
-        <h1 className="receipt-title">Rent receipt</h1>
+        <h1 className="receipt-title">Rent Receipt</h1>
         <dl className="kv receipt-facts">
           <dt>Receipt number</dt>
           <dd className="num">{receipt.number}</dd>

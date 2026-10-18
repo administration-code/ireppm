@@ -1,7 +1,7 @@
 import StaffGate from "@/components/admin/StaffGate";
 import SignatureDetail from "@/components/admin/signatures/SignatureDetail";
 
-export const metadata = { title: "Signature request" };
+export const metadata = { title: "Signature Request" };
 
 export default async function SignaturePage({ params }) {
   const { id } = await params;

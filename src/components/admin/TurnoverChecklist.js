@@ -99,7 +99,7 @@ function TaskRow({ task, unitId, onSaved }) {
           </>
         ) : (
           <Link className="btn ghost sm" href={workOrderHref}>
-            Create work order
+            Create Work Order
           </Link>
         )}
         {task.done && task.done_at ? (
@@ -215,7 +215,7 @@ export default function TurnoverChecklist({ turnoverId, unitId, tasks, onTasks }
 
       {!total ? (
         <div className="empty">
-          <h2>No checklist yet</h2>
+          <h2>No Checklist Yet</h2>
           <p>Add the standard turnover checklist, from notice through leasing. You can add or skip tasks after.</p>
           <button type="button" className="btn primary" onClick={addStandard} disabled={busy}>
             {busy ? "Adding…" : "Add the standard checklist"}

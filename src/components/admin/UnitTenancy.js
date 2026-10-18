@@ -25,7 +25,7 @@ function PastLedger({ tenancy }) {
     <div className="stack" style={{ marginTop: 12 }}>
       <RentLedger tenancy={tenancy} />
       <NoticesPanel tenancyId={tenancy.id} />
-      <InspectionsList unitId={tenancy.unit_id} tenancyId={tenancy.id} title="Inspections for this tenancy" />
+      <InspectionsList unitId={tenancy.unit_id} tenancyId={tenancy.id} title="Inspections for This Tenancy" />
     </div>
   ) : (
     <button type="button" className="btn ghost sm" style={{ marginTop: 12 }} onClick={() => setOpen(true)}>
@@ -80,7 +80,7 @@ export default function UnitTenancy({ id }) {
         <h2>{error ? "Something went wrong" : "Unit not found"}</h2>
         <p>{error || "It may have been removed."}</p>
         <Link className="btn ghost" href="/admin/properties">
-          Back to properties
+          Back to Properties
         </Link>
       </div>
     );
@@ -134,14 +134,14 @@ export default function UnitTenancy({ id }) {
         />
       ) : (
         <div className="empty">
-          <h2>No current tenancy</h2>
+          <h2>No Current Tenancy</h2>
           <p>Start a tenancy when a renter signs the lease. You&apos;ll add the dates, rent and at least one tenant.</p>
           <div className="req-actions" style={{ justifyContent: "center" }}>
             <button type="button" className="btn primary" onClick={() => setStarting(true)}>
               Start tenancy
             </button>
             <Link className="btn ghost" href={`/admin/signatures/new?kind=lease&unit=${unit.id}`}>
-              Send a lease for signature
+              Send a Lease for Signature
             </Link>
           </div>
         </div>
@@ -149,13 +149,13 @@ export default function UnitTenancy({ id }) {
 
       <InspectionsList
         unitId={unit.id}
-        title="Inspections for this unit"
+        title="Inspections for This Unit"
         newHref={current ? `/admin/inspections/new?tenancy=${current.id}` : `/admin/inspections/new?unit=${unit.id}`}
       />
 
       <section className="stack" aria-labelledby="sec-past">
         <h2 id="sec-past" className="sec-title">
-          Past tenancies
+          Past Tenancies
         </h2>
         {past.length ? (
           <ul className="req-list">

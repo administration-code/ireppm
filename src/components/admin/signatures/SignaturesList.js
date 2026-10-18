@@ -44,7 +44,7 @@ export default function SignaturesList() {
             <p className="small">Leases, contracts and notices sent through DocuSign.</p>
           </div>
           <Link className="btn ghost sm" href="/admin/signatures/templates">
-            Check templates
+            Check Templates
           </Link>
         </div>
       </div>

@@ -142,7 +142,7 @@ function PropertyBlock({ p }) {
       )}
 
       {rent.length ? (
-        <Section title="Rent received">
+        <Section title="Rent Received">
           <Table
             head={["Unit", "Tenant", "Date", "For", "Method", "Amount"]}
             numCols={[5]}
@@ -169,7 +169,7 @@ function PropertyBlock({ p }) {
       ) : null}
 
       {notices.length ? (
-        <Section title="Notices served">
+        <Section title="Notices Served">
           <Table
             head={["Notice", "Tenant / unit", "Served", "Details", "Status"]}
             rows={notices.map((n, i) => {
@@ -195,7 +195,7 @@ function PropertyBlock({ p }) {
       ) : null}
 
       {newTenancies.length ? (
-        <Section title="New tenancies">
+        <Section title="New Tenancies">
           <Table
             head={["Unit", "Tenants", "Lease", "Rent"]}
             numCols={[3]}
@@ -213,7 +213,7 @@ function PropertyBlock({ p }) {
       ) : null}
 
       {ended.length ? (
-        <Section title="Move-outs">
+        <Section title="Move-Outs">
           <Table
             head={["Unit", "Tenants", "Moved out"]}
             rows={ended.map((t, i) => ({
@@ -225,7 +225,7 @@ function PropertyBlock({ p }) {
       ) : null}
 
       {upcoming.length ? (
-        <Section title="Upcoming move-outs">
+        <Section title="Upcoming Move-Outs">
           <Table
             head={["Unit", "Moving out"]}
             rows={upcoming.map((t, i) => ({ key: i, cells: [t.unit, shortDate(t.move_out_date)] }))}
@@ -234,7 +234,7 @@ function PropertyBlock({ p }) {
       ) : null}
 
       {work.length ? (
-        <Section title="Work orders">
+        <Section title="Work Orders">
           <Table
             head={["Unit", "Work", "Status", "Completed", "Charged to you"]}
             numCols={[4]}
@@ -257,7 +257,7 @@ function PropertyBlock({ p }) {
       ) : null}
 
       {vacant.length ? (
-        <Section title="Vacant units">
+        <Section title="Vacant Units">
           <p className="letter-note">{vacant.join(", ")}</p>
         </Section>
       ) : null}

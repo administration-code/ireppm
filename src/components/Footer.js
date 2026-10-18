@@ -19,28 +19,28 @@ export default function Footer() {
         </div>
         <div>
           <b>Renters</b>
-          <Link href="/properties">Available rentals</Link>
-          <Link href="/account">My documents</Link>
-          <Link href="/account">My applications</Link>
+          <Link href="/properties">Available Rentals</Link>
+          <Link href="/account">My Documents</Link>
+          <Link href="/account">My Applications</Link>
         </div>
         <div>
           <b>Landlords</b>
-          <Link href="/landlords">Why landlords choose IRep</Link>
-          <Link href="/pricing">Packages and pricing</Link>
-          <Link href="/landlords#estimate">Free rent estimate</Link>
-          <Link href="/guides">Landlord guides</Link>
+          <Link href="/landlords">Why Landlords Choose IRep</Link>
+          <Link href="/pricing">Packages and Pricing</Link>
+          <Link href="/landlords#estimate">Free Rent Estimate</Link>
+          <Link href="/guides">Landlord Guides</Link>
           <Link href="/reviews">Reviews</Link>
-          <Link href="/about#inquiry">Talk to us</Link>
+          <Link href="/about#inquiry">Talk to Us</Link>
         </div>
         <div>
           <b>Sign in</b>
-          <Link href="/account">Tenants and applicants</Link>
-          <Link href="/owner">Landlord portal</Link>
-          <Link href="/agent">Partner portal</Link>
+          <Link href="/account">Tenants and Applicants</Link>
+          <Link href="/owner">Landlord Portal</Link>
+          <Link href="/agent">Partner Portal</Link>
           <Link href="/admin">Staff</Link>
         </div>
         <div className="legal">
-          © {new Date().getFullYear()} {SITE.name} · <Link href="/resources" style={{ display: "inline" }}>Resources</Link> · <Link href="/privacy" style={{ display: "inline" }}>Privacy policy</Link>
+          © {new Date().getFullYear()} {SITE.name} · <Link href="/resources" style={{ display: "inline" }}>Resources</Link> · <Link href="/privacy" style={{ display: "inline" }}>Privacy Policy</Link>
         </div>
       </div>
     </footer>

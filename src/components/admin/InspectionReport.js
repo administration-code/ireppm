@@ -32,7 +32,7 @@ export default function InspectionReport({ id }) {
         <h2>{error ? "Something went wrong" : "Inspection not found"}</h2>
         <p>{error || "It may have been removed."}</p>
         <Link className="btn ghost" href="/admin/properties">
-          Back to properties
+          Back to Properties
         </Link>
       </div>
     );

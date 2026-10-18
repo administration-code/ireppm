@@ -22,7 +22,7 @@ export default function TemplatesCheck() {
         <div className="admin-head">
           <div style={{ display: "grid", gap: 8 }}>
             <span className="eyebrow">Staff · Signatures</span>
-            <h1 className="admin-title">DocuSign templates</h1>
+            <h1 className="admin-title">DocuSign Templates</h1>
             <p className="small">Each template&apos;s roles and field labels, checked against what the app fills in.</p>
           </div>
         </div>

@@ -91,9 +91,9 @@ async function buildDigest(sb, period) {
 
   const html = `<div style="font-family:Arial,Helvetica,sans-serif;color:#1a1a1a;max-width:640px">
 <h1 style="font-size:20px">Rent through the 7th: ${escapeHtml(label)}</h1>
-<h2 style="font-size:16px;margin-top:24px">Ready to pay landlords</h2>${readyHtml}
-<h2 style="font-size:16px;margin-top:24px">Waiting on rent</h2>${waitingHtml}
-<h2 style="font-size:16px;margin-top:24px">Already paid in full</h2>
+<h2 style="font-size:16px;margin-top:24px">Ready to Pay Landlords</h2>${readyHtml}
+<h2 style="font-size:16px;margin-top:24px">Waiting on Rent</h2>${waitingHtml}
+<h2 style="font-size:16px;margin-top:24px">Already Paid in Full</h2>
 <p>${paidInFull} ${paidInFull === 1 ? "property" : "properties"}</p>
 <p style="margin-top:24px"><a href="${PAYOUTS_URL}" style="background:#c8102e;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;font-weight:bold">Open landlord payouts</a></p>
 </div>`;

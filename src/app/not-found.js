@@ -5,10 +5,10 @@ export default function NotFound() {
     <section className="block">
       <div className="wrap">
         <div className="empty">
-          <h2>That page isn't here</h2>
+          <h2>That Page Isn't Here</h2>
           <p>The rental may have been leased, or the link may be out of date.</p>
           <Link className="btn primary" href="/properties">
-            See available rentals
+            See Available Rentals
           </Link>
         </div>
       </div>

@@ -43,7 +43,7 @@ export default function OwnerLetterView({ id }) {
         <h1>{error ? "Something went wrong" : "Statement not found"}</h1>
         <p>{error || "We couldn't find this statement on your account. Make sure you're signed in with the email address we have on file for you."}</p>
         <Link className="btn ghost" href="/owner">
-          Back to the owner portal
+          Back to the Owner Portal
         </Link>
       </div>
     );

@@ -40,7 +40,7 @@ export function receiptEmail(r) {
           ${escapeHtml(SITE.name)}<br>${escapeHtml(SITE.address)}<br>${escapeHtml(SITE.phone)}<br>${escapeHtml(SITE.email)}
         </td>
       </tr></table>
-      <h1 style="font-family:Georgia,serif;font-weight:600;font-size:28px;margin:28px 0 12px;">Rent receipt</h1>
+      <h1 style="font-family:Georgia,serif;font-weight:600;font-size:28px;margin:28px 0 12px;">Rent Receipt</h1>
       <div style="font-size:14px;line-height:1.6;">
         <p style="margin:0 0 4px;"><b>Receipt number:</b> ${escapeHtml(r.number)}</p>
         <p style="margin:0 0 4px;"><b>Date issued:</b> ${escapeHtml(shortDate(r.issued))}</p>

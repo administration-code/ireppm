@@ -33,7 +33,7 @@ export default function OwnerEditor({ id }) {
         <h2>{error ? "Something went wrong" : "Owner not found"}</h2>
         <p>{error || "They may have been removed."}</p>
         <Link className="btn ghost" href="/admin/owners">
-          Back to owners
+          Back to Owners
         </Link>
       </div>
     );

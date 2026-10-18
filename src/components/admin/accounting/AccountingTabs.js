@@ -5,10 +5,10 @@ import { usePathname } from "next/navigation";
 
 const TABS = [
   { href: "/admin/accounting", label: "Reconcile" },
-  { href: "/admin/accounting/import", label: "Bank imports" },
-  { href: "/admin/accounting/year", label: "Year end" },
-  { href: "/admin/accounting/landlords", label: "Landlord year-end" },
-  { href: "/admin/accounting/commissions", label: "Commissions & loans" },
+  { href: "/admin/accounting/import", label: "Bank Imports" },
+  { href: "/admin/accounting/year", label: "Year End" },
+  { href: "/admin/accounting/landlords", label: "Landlord Year-End" },
+  { href: "/admin/accounting/commissions", label: "Commissions & Loans" },
   { href: "/admin/accounting/dividends", label: "Dividends & T5" },
 ];
 

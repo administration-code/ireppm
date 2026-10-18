@@ -88,7 +88,7 @@ export default function PropertyAddons({ propertyId }) {
     <section className="boxed stack" aria-labelledby="sec-addons">
       <div className="admin-head">
         <h2 id="sec-addons" className="sec-title">
-          Add-ons
+          Add-Ons
         </h2>
         {!adding && available.length ? (
           <button type="button" className="btn ghost sm" onClick={() => setAdding(true)}>

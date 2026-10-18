@@ -73,7 +73,7 @@ export default function LeaseForm({ ctx }) {
       </fieldset>
 
       <fieldset className="boxed stack">
-        <legend className="sub-title">Term and rent</legend>
+        <legend className="sub-title">Term and Rent</legend>
         <div className="row3">
           <div className="field">
             <label htmlFor="l-start">Start date</label>
@@ -128,7 +128,7 @@ export default function LeaseForm({ ctx }) {
       </fieldset>
 
       <fieldset className="boxed stack">
-        <legend className="sub-title">Landlord and signing</legend>
+        <legend className="sub-title">Landlord and Signing</legend>
         <div className="row2">
           <div className="field">
             <label htmlFor="l-landlord">Landlord legal name</label>

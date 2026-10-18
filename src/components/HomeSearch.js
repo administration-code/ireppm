@@ -21,7 +21,7 @@ export default function HomeSearch({ count }) {
 
   return (
     <form className="panel-box" onSubmit={submit} role="search">
-      <h3 style={{ fontSize: "1.35rem" }}>Find a place to rent</h3>
+      <h3 style={{ fontSize: "1.35rem" }}>Find a Place to Rent</h3>
       <div className="field">
         <label htmlFor="h-q">Neighbourhood or street</label>
         <input id="h-q" value={q} onChange={(e) => setQ(e.target.value)} placeholder="e.g. Walkerville, University, Ouellette" />

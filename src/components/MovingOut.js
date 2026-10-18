@@ -152,7 +152,7 @@ export default function MovingOut({ home, user, showAddress }) {
         </p>
         <div>
           <button type="button" className="linkbtn small" onClick={cancelRequest}>
-            Cancel request
+            Cancel Request
           </button>
         </div>
       </div>
@@ -178,7 +178,7 @@ export default function MovingOut({ home, user, showAddress }) {
   return (
     <section className="moveout" aria-labelledby={`${id}-title`}>
       <div style={{ display: "grid", gap: 2 }}>
-        <h3 id={`${id}-title`}>Moving out?</h3>
+        <h3 id={`${id}-title`}>Moving Out?</h3>
         {showAddress ? <p className="small">{[home.address, home.unit_label].filter(Boolean).join(", ")}</p> : null}
       </div>
       {sentMsg ? (

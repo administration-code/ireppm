@@ -83,7 +83,7 @@ export default function PropertySearch({ listings, sample, initial }) {
 
       {listings.length === 0 ? (
         <div className="empty">
-          <h3>No rentals available right now</h3>
+          <h3>No Rentals Available Right Now</h3>
           <p>New units are added here as soon as they're ready to show. Check back soon.</p>
         </div>
       ) : (

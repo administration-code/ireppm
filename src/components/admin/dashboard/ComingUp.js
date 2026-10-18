@@ -19,10 +19,10 @@ export default function ComingUp({ upcoming, today }) {
   const u = upcoming || {};
   return (
     <section className="panel-box dash-section" aria-labelledby="dash-upcoming-title">
-      <h2 id="dash-upcoming-title">Coming up in the next 60 days</h2>
+      <h2 id="dash-upcoming-title">Coming Up in the Next 60 Days</h2>
       <div className="dash-upcoming">
         <Group
-          title="Move-outs"
+          title="Move-Outs"
           items={u.move_outs || []}
           render={(x, i) => (
             <li key={`mo-${i}`} className="dash-item">
@@ -36,7 +36,7 @@ export default function ComingUp({ upcoming, today }) {
         />
 
         <Group
-          title="Leases reaching their end date"
+          title="Leases Reaching Their End Date"
           note="Continues month-to-month unless notice is given."
           items={u.leases_ending || []}
           render={(x, i) => (
@@ -51,7 +51,7 @@ export default function ComingUp({ upcoming, today }) {
         />
 
         <Group
-          title="First-year terms ending"
+          title="First-Year Terms Ending"
           note="After the first year, agreements carry on month to month at the same rate; a first-year discount ends on its own."
           items={(u.agreement_renewals || []).filter((x) => !today || !x.renewal || x.renewal >= today)}
           render={(x, i) => {
@@ -74,7 +74,7 @@ export default function ComingUp({ upcoming, today }) {
         />
 
         <Group
-          title="Rent increase review"
+          title="Rent Increase Review"
           note="Check whether the unit is exempt (first occupied after Nov 15, 2018) before serving an N1 with 90 days' notice."
           items={u.rent_increase_review || []}
           render={(x, i) => (

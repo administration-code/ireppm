@@ -48,7 +48,7 @@ export default function LetterEditor({ id }) {
         <h2>{error ? "Something went wrong" : "Letter not found"}</h2>
         <p>{error || "It may have been removed."}</p>
         <Link className="btn ghost" href="/admin/letters">
-          Back to letters
+          Back to Letters
         </Link>
       </div>
     );
@@ -123,7 +123,7 @@ export default function LetterEditor({ id }) {
           </div>
           {letter.owner ? (
             <Link className="btn ghost sm" href={`/admin/owners/${letter.owner.id}`}>
-              Owner details
+              Owner Details
             </Link>
           ) : null}
         </div>

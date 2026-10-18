@@ -119,7 +119,7 @@ export default function DividendsBoard({ year: initialYear }) {
             <div className="admin-head">
               <h2 className="sec-title">T5 totals for {year}</h2>
               <button type="button" className="btn ghost sm" onClick={exportT5} disabled={!data.t5.length}>
-                Download for the accountant
+                Download for the Accountant
               </button>
             </div>
             {data.t5.length ? (
@@ -161,7 +161,7 @@ export default function DividendsBoard({ year: initialYear }) {
           </section>
 
           <section className="boxed stack">
-            <h2 className="sec-title">Record a dividend</h2>
+            <h2 className="sec-title">Record a Dividend</h2>
             <form className="stack" onSubmit={save} noValidate>
               <div className="row3">
                 <div className="field">

@@ -3,7 +3,7 @@ import StaffGate from "@/components/admin/StaffGate";
 import OwnerStatement from "@/components/admin/OwnerStatement";
 import { isPeriod } from "@/lib/payouts";
 
-export const metadata = { title: "Owner statement" };
+export const metadata = { title: "Owner Statement" };
 
 export default async function OwnerStatementPage({ params }) {
   const { propertyId, period } = await params;

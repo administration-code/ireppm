@@ -58,7 +58,7 @@ export default function PropertyAgents({ propertyId }) {
   return (
     <section className="boxed stack" aria-labelledby="sec-agents">
       <h2 id="sec-agents" className="sec-title">
-        Assigned agents
+        Assigned Agents
       </h2>
       {partners === null ? (
         <p className="small">Loading…</p>

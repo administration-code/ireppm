@@ -81,11 +81,11 @@ export default function PayoutsBoard({ initialMonth }) {
   return (
     <div className="stack" style={{ gap: 24 }}>
       <RentHead
-        title="Landlord payouts"
+        title="Landlord Payouts"
         intro="What each owner is owed for the month after fees, work orders and statement items, and what's been sent."
       >
         <Link className="btn ghost sm" href="/admin/rent">
-          Rent collection
+          Rent Collection
         </Link>
       </RentHead>
 

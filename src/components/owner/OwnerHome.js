@@ -60,7 +60,7 @@ export default function OwnerHome() {
   if (!properties.length) {
     return (
       <div className="empty">
-        <h1>Owner portal</h1>
+        <h1>Owner Portal</h1>
         <p>
           This page is for landlords we manage properties for. Sign in with the email address we have on file for you, or contact us at{" "}
           <a href={`mailto:${SITE.email}`}>{SITE.email}</a>.
@@ -72,8 +72,8 @@ export default function OwnerHome() {
   return (
     <div className="stack" style={{ gap: 28 }}>
       <div style={{ display: "grid", gap: 8 }}>
-        <span className="eyebrow">Owner portal</span>
-        <h1 className="admin-title">Your properties</h1>
+        <span className="eyebrow">Owner Portal</span>
+        <h1 className="admin-title">Your Properties</h1>
         <p className="small">Signed in as {user?.email}.</p>
       </div>
 
@@ -81,7 +81,7 @@ export default function OwnerHome() {
 
       <section className="boxed stack" aria-labelledby="sec-own-props">
         <h2 id="sec-own-props" className="sec-title">
-          Properties we manage for you
+          Properties We Manage for You
         </h2>
         <div className="table-scroll">
           <table className="admin-table">
@@ -120,14 +120,14 @@ export default function OwnerHome() {
 
       <section className="boxed stack" aria-labelledby="sec-own-monthly">
         <h2 id="sec-own-monthly" className="sec-title">
-          Monthly rental summary
+          Monthly Rental Summary
         </h2>
         <OwnerMonthly />
       </section>
 
       <section className="boxed stack" aria-labelledby="sec-own-ins" id="insurance">
         <h2 id="sec-own-ins" className="sec-title">
-          Tenant insurance
+          Tenant Insurance
         </h2>
         <p className="small">Your tenants upload proof of insurance within a week of moving in. You can approve it here, or leave it to IRep.</p>
         <InsuranceReview mode="owner" />
@@ -135,7 +135,7 @@ export default function OwnerHome() {
 
       <section className="boxed stack" aria-labelledby="sec-own-letters">
         <h2 id="sec-own-letters" className="sec-title">
-          Monthly statement letters
+          Monthly Statement Letters
         </h2>
         {!letters.length ? (
           <p className="small">Your first monthly statement will appear here once we send it.</p>
@@ -179,12 +179,12 @@ export default function OwnerHome() {
 
       <section className="boxed stack" aria-labelledby="sec-own-year">
         <h2 id="sec-own-year" className="sec-title">
-          Year-end summary
+          Year-End Summary
         </h2>
         <p className="small">Your rental income and expenses for the year, ready for your accountant and your T776.</p>
         <div>
           <Link href="/owner/year-end" className="btn ghost">
-            Year-end summary
+            Year-End Summary
           </Link>
         </div>
       </section>

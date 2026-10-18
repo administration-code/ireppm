@@ -2,7 +2,7 @@ import InquiryForm from "@/components/InquiryForm";
 import { SITE } from "@/lib/site";
 
 export const metadata = {
-  title: "About us",
+  title: "About Us",
   description: "IRep Property Management manages residential rentals across Windsor and Essex County.",
 };
 
@@ -26,7 +26,7 @@ export default function AboutPage() {
     <section className="block">
       <div className="wrap about">
         <div className="copy">
-          <span className="eyebrow">About us</span>
+          <span className="eyebrow">About Us</span>
           <h1>Local management from the IRep Realty team.</h1>
           <hr className="rule" />
           <p>
@@ -44,7 +44,7 @@ export default function AboutPage() {
           </p>
         </div>
         <div className="panel-box" style={{ padding: 28, gap: 18, alignContent: "start" }}>
-          <h3>Talk to us</h3>
+          <h3>Talk to Us</h3>
           <dl className="kv">
             {contact.map(([k, v]) => (
               <div key={k} style={{ display: "contents" }}>

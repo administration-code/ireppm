@@ -95,7 +95,7 @@ export default function PayPropBatch() {
   return (
     <div className="stack" style={{ gap: 24 }}>
       <RentHead
-        title="PayProp batch"
+        title="PayProp Batch"
         intro="Import PayProp's payment report, or tick the tenants who paid through PayProp and save them in one go."
       />
       <RentNav current="/admin/rent/payprop" unmatched={unmatched} />
@@ -108,7 +108,7 @@ export default function PayPropBatch() {
           })
         }
       />
-      <h2 className="sub-title" style={{ margin: 0 }}>Or tick them off by hand</h2>
+      <h2 className="sub-title" style={{ margin: 0 }}>Or Tick Them Off by Hand</h2>
 
       <div className="filters">
         <div className="field" style={{ flex: "0 1 220px" }}>

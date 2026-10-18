@@ -3,7 +3,7 @@ import StaffGate from "@/components/admin/StaffGate";
 import AccountingTabs from "@/components/admin/accounting/AccountingTabs";
 import StaffLandlordReport from "@/components/admin/accounting/StaffLandlordReport";
 
-export const metadata = { title: "Landlord year-end report" };
+export const metadata = { title: "Landlord Year-End Report" };
 
 export default async function LandlordReportPage({ params, searchParams }) {
   const { ownerId } = await params;
@@ -12,9 +12,9 @@ export default async function LandlordReportPage({ params, searchParams }) {
   return (
     <StaffGate>
       <div className="stack">
-        <AccountingTabs title="Landlord year-end report">
+        <AccountingTabs title="Landlord Year-End Report">
           <Link href={`/admin/accounting/landlords${y ? `?year=${y}` : ""}`} className="btn ghost">
-            All landlords
+            All Landlords
           </Link>
         </AccountingTabs>
         <StaffLandlordReport ownerId={ownerId} year={y} />

@@ -62,7 +62,7 @@ export default function TurnoverEditor({ id }) {
         <h2>{error ? "Something went wrong" : "Turnover not found"}</h2>
         <p>{error || "It may have been removed."}</p>
         <Link className="btn ghost" href="/admin/turnovers">
-          Back to turnovers
+          Back to Turnovers
         </Link>
       </div>
     );
@@ -146,7 +146,7 @@ export default function TurnoverEditor({ id }) {
         </div>
         <div className="pill-row turn-links">
           <Link className="btn ghost sm" href={unitHref}>
-            Unit page
+            Unit Page
           </Link>
           {turnover.ended_tenancy ? (
             <Link className="btn ghost sm" href={`${unitHref}#tenancy-${turnover.ended_tenancy.id}`}>
@@ -204,7 +204,7 @@ export default function TurnoverEditor({ id }) {
           </button>
           {!closed ? (
             <button type="button" className="btn ghost" onClick={cancelTurnover} disabled={saving}>
-              Cancel turnover
+              Cancel Turnover
             </button>
           ) : null}
           {msg.text ? (
@@ -232,7 +232,7 @@ export default function TurnoverEditor({ id }) {
               This unit&apos;s listing is <span className={`pill ls-${listing.status}`}>{LISTING_STATUS[listing.status] || listing.status}</span>
             </p>
             <Link className="btn ghost sm" href={`/admin/listings/${listing.id}`}>
-              Edit listing
+              Edit Listing
             </Link>
           </div>
         ) : (
@@ -241,7 +241,7 @@ export default function TurnoverEditor({ id }) {
               This unit has no listing yet.
             </p>
             <Link className="btn primary sm" href={`/admin/listings/new?unit=${turnover.unit_id}`}>
-              Create listing for this unit
+              Create Listing for This Unit
             </Link>
           </div>
         )}

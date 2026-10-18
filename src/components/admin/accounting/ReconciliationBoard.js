@@ -194,7 +194,7 @@ export default function ReconciliationBoard({ initialMonth, initialAccount }) {
   if (accounts === null) {
     return (
       <div className="stack">
-        <AccountingTabs title="Trust reconciliation" />
+        <AccountingTabs title="Trust Reconciliation" />
         <p className="small">Loading…</p>
       </div>
     );
@@ -203,7 +203,7 @@ export default function ReconciliationBoard({ initialMonth, initialAccount }) {
   if (!accounts.length) {
     return (
       <div className="stack">
-        <AccountingTabs title="Trust reconciliation" />
+        <AccountingTabs title="Trust Reconciliation" />
         {error ? <div className="warnbox">{error}</div> : null}
         <AccountSetup onSaved={loadAccountList} />
       </div>
@@ -213,7 +213,7 @@ export default function ReconciliationBoard({ initialMonth, initialAccount }) {
   return (
     <div className="stack">
       <AccountingTabs
-        title="Trust reconciliation"
+        title="Trust Reconciliation"
         subtitle={account ? [account.name, account.account_last4 ? `····${account.account_last4}` : ""].filter(Boolean).join(" ") : ""}
       >
         <div className="acct-pickers no-print">

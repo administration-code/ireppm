@@ -4,7 +4,7 @@ import InquiryForm from "@/components/InquiryForm";
 import { LANDLORD_PROMISES, LANDLORD_PROTECTIONS } from "@/lib/site";
 
 export const metadata = {
-  title: "Property management for Windsor landlords",
+  title: "Property Management for Windsor Landlords",
   description:
     "Screened tenants, showings answered within 24 hours, payouts by the 7th and a T776-ready year end. See your costs and get a free rent estimate.",
 };
@@ -15,15 +15,15 @@ export default function LandlordsPage() {
       <section className="block">
         <div className="wrap">
           <div className="head">
-            <span className="eyebrow">For landlords</span>
+            <span className="eyebrow">For Landlords</span>
             <h1>Know what&apos;s happening with your rental, every month.</h1>
             <p className="lead">
               IRep finds and screens your tenants, collects the rent, handles repairs and inspections, and shows you all
               of it in your own owner portal. One year to start, then month to month at the same rate.
             </p>
             <div className="row">
-              <Link className="btn primary" href="#estimate">Get a free rent estimate</Link>
-              <Link className="btn ghost" href="#calculator">Work out your fee</Link>
+              <Link className="btn primary" href="#estimate">Get a Free Rent Estimate</Link>
+              <Link className="btn ghost" href="#calculator">Work Out Your Fee</Link>
             </div>
             <p className="small" style={{ marginTop: 12 }}>
               <Link href="/reviews?who=landlord">Read what landlords say about us</Link>
@@ -44,7 +44,7 @@ export default function LandlordsPage() {
       <section className="block">
         <div className="wrap portal-preview">
           <div className="stack" style={{ gap: 14, minWidth: 0 }}>
-            <span className="eyebrow">Your owner portal</span>
+            <span className="eyebrow">Your Owner Portal</span>
             <h2>Every dollar, every month, in one place.</h2>
             <p className="lead">Sign in any time to see:</p>
             <ul className="tick-list">
@@ -83,7 +83,7 @@ export default function LandlordsPage() {
       <section className="block">
         <div className="wrap">
           <div className="head">
-            <span className="eyebrow">How we protect your property</span>
+            <span className="eyebrow">How We Protect Your Property</span>
             <h2>Good tenants, kept on track.</h2>
           </div>
           <ul className="protect-grid">
@@ -101,8 +101,8 @@ export default function LandlordsPage() {
       <section className="block" id="calculator">
         <div className="wrap">
           <div className="head">
-            <span className="eyebrow">Fee calculator</span>
-            <h2>What would it cost?</h2>
+            <span className="eyebrow">Fee Calculator</span>
+            <h2>What Would It Cost?</h2>
             <p className="lead">Pick a package and your number of units. No setup fee and no long lock-in.</p>
           </div>
           <FeeCalculator />
@@ -112,8 +112,8 @@ export default function LandlordsPage() {
       <section className="block" id="estimate">
         <div className="wrap estimate">
           <div className="stack" style={{ gap: 14, minWidth: 0 }}>
-            <span className="eyebrow">Free rent estimate</span>
-            <h2>What could your property rent for?</h2>
+            <span className="eyebrow">Free Rent Estimate</span>
+            <h2>What Could Your Property Rent For?</h2>
             <p className="lead">
               Tell us about the home and we&apos;ll reply within one business day with a rent range based on what&apos;s
               renting near you right now. No obligation.

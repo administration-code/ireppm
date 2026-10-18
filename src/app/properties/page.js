@@ -15,7 +15,7 @@ export default async function PropertiesPage({ searchParams }) {
     <section className="block">
       <div className="wrap">
         <div className="head">
-          <span className="eyebrow">Available now</span>
+          <span className="eyebrow">Available Now</span>
           <h1>Rentals in Windsor-Essex</h1>
         </div>
         {error ? (

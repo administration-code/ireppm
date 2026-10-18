@@ -8,12 +8,12 @@ import { shortDate } from "@/lib/rent";
 import MatchPanel from "./MatchPanel";
 
 const FILTERS = [
-  { key: "attention", label: "Needs attention", test: (l) => l.status === "unmatched" },
+  { key: "attention", label: "Needs Attention", test: (l) => l.status === "unmatched" },
   { key: "all", label: "All", test: () => true },
-  { key: "in", label: "Money in", test: (l) => Number(l.amount) > 0 },
-  { key: "out", label: "Money out", test: (l) => Number(l.amount) < 0 },
+  { key: "in", label: "Money In", test: (l) => Number(l.amount) > 0 },
+  { key: "out", label: "Money Out", test: (l) => Number(l.amount) < 0 },
   { key: "matched", label: "Matched", test: (l) => l.status === "matched" },
-  { key: "categorized", label: "Given a category", test: (l) => l.status === "categorized" },
+  { key: "categorized", label: "Given a Category", test: (l) => l.status === "categorized" },
   { key: "ignored", label: "Ignored", test: (l) => l.status === "ignored" },
 ];
 
@@ -190,7 +190,7 @@ export default function BankLines({ accountId, month, lines, links, locked, high
     <section className="boxed stack" aria-labelledby="acct-lines-title">
       <div className="req-top">
         <h2 id="acct-lines-title" className="sec-title">
-          Bank lines
+          Bank Lines
         </h2>
         <span className="small">{lines.length} this month</span>
       </div>

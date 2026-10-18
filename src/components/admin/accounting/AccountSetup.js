@@ -53,7 +53,7 @@ export default function AccountSetup({ onSaved }) {
     <section className="boxed stack acct-setup" aria-labelledby={`${id}-title`}>
       <div>
         <h2 id={`${id}-title`} className="sec-title">
-          Set up the bank account
+          Set Up the Bank Account
         </h2>
         <p className="small">
           Pick the first day you want to reconcile, and enter the bank balance at the start of that day from the

@@ -4,7 +4,7 @@ export default function PrivacyCleanups({ deletions, failed }) {
   return (
     <section className="stack privacy-cleanups" style={{ gap: 8 }} aria-labelledby="privacy-cleanups-title">
       <h2 id="privacy-cleanups-title" className="eyebrow">
-        Privacy clean-ups
+        Privacy Clean-Ups
       </h2>
       <p className="small">
         Unsuccessful applicants&apos; documents are deleted automatically, as promised in our privacy policy.

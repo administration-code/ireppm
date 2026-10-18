@@ -60,7 +60,7 @@ export default function NeedsAttention({ data }) {
   return (
     <section className="dash-attention" aria-labelledby="dash-attention-title">
       <h2 id="dash-attention-title" className="eyebrow">
-        Needs attention
+        Needs Attention
       </h2>
       {items.length ? (
         <ul>

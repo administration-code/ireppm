@@ -82,7 +82,7 @@ export default function StatementItemForm({ propertyId, period, item, onSaved, o
       </div>
       {!deductOnly ? (
         <fieldset className="check-group">
-          <legend className="visually-hidden">Adds to or deducts from the owner</legend>
+          <legend className="visually-hidden">Adds to or Deducts from the Owner</legend>
           <div className="req-actions">
             <label className="check-line">
               <input type="radio" name={`${id}-dir`} value="add" checked={form.direction === "add"} onChange={set("direction")} />

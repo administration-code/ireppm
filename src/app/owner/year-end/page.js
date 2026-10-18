@@ -2,7 +2,7 @@ import OwnerGate from "@/components/owner/OwnerGate";
 import OwnerYearEnd from "@/components/owner/OwnerYearEnd";
 
 export const metadata = {
-  title: "Rental income summary",
+  title: "Rental Income Summary",
   robots: { index: false, follow: false },
 };
 

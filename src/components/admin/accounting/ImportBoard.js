@@ -221,7 +221,7 @@ export default function ImportBoard() {
   if (accounts === null) {
     return (
       <div className="stack">
-        <AccountingTabs title="Bank imports" />
+        <AccountingTabs title="Bank Imports" />
         <p className="small">Loading…</p>
       </div>
     );
@@ -230,7 +230,7 @@ export default function ImportBoard() {
   if (!accounts.length) {
     return (
       <div className="stack">
-        <AccountingTabs title="Bank imports" />
+        <AccountingTabs title="Bank Imports" />
         {error ? <div className="warnbox">{error}</div> : null}
         <AccountSetup onSaved={refreshAccounts} />
       </div>
@@ -239,7 +239,7 @@ export default function ImportBoard() {
 
   return (
     <div className="stack">
-      <AccountingTabs title="Bank imports" subtitle="Upload the CSV your bank gives you. Lines already imported are skipped." />
+      <AccountingTabs title="Bank Imports" subtitle="Upload the CSV your bank gives you. Lines already imported are skipped." />
 
       {result ? (
         <div className="okbox" role="status">
@@ -261,7 +261,7 @@ export default function ImportBoard() {
 
       <section className="boxed stack" aria-labelledby={`${id}-upload`}>
         <h2 id={`${id}-upload`} className="sec-title">
-          Upload a statement
+          Upload a Statement
         </h2>
 
         {accounts.length > 1 ? (
@@ -322,7 +322,7 @@ export default function ImportBoard() {
 
         {mapping ? (
           <div className="stack">
-            <h3 className="sub-title">Which column is which?</h3>
+            <h3 className="sub-title">Which Column Is Which?</h3>
             {account?.csv_mapping && mappingFits(account.csv_mapping, rows) ? (
               <p className="small">Using the columns you picked last time for this account.</p>
             ) : null}
@@ -333,7 +333,7 @@ export default function ImportBoard() {
             </label>
 
             <fieldset className="acct-radio">
-              <legend>How does the file show amounts?</legend>
+              <legend>How Does the File Show Amounts?</legend>
               <label className="check">
                 <input
                   type="radio"
@@ -445,7 +445,7 @@ export default function ImportBoard() {
 
       <section className="boxed stack" aria-labelledby={`${id}-history`}>
         <h2 id={`${id}-history`} className="sec-title">
-          Past imports
+          Past Imports
         </h2>
         <History rows={history} />
       </section>

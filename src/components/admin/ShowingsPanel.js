@@ -138,7 +138,7 @@ export default function ShowingsPanel({ showings, onChange, onRemove }) {
   if (!showings.length) {
     return (
       <div className="empty">
-        <h2>No showing requests yet</h2>
+        <h2>No Showing Requests Yet</h2>
         <p>When a renter asks to see a listing, their request and preferred time will appear here.</p>
       </div>
     );

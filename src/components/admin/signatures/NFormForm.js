@@ -95,7 +95,7 @@ export default function NFormForm({ kind, ctx }) {
 
       {kind === "N1" ? (
         <fieldset className="boxed stack">
-          <legend className="sub-title">Rent increase</legend>
+          <legend className="sub-title">Rent Increase</legend>
           <div className="row3">
             <div className="field">
               <label htmlFor="n1-current">Current rent ($/month)</label>
@@ -124,7 +124,7 @@ export default function NFormForm({ kind, ctx }) {
 
       {kind === "N4" ? (
         <fieldset className="boxed stack">
-          <legend className="sub-title">Rent owing</legend>
+          <legend className="sub-title">Rent Owing</legend>
           {f.periods.map((p, i) => (
             <div className="sig-period" key={i}>
               <div className="field">
@@ -170,7 +170,7 @@ export default function NFormForm({ kind, ctx }) {
 
       {kind === "N5" ? (
         <fieldset className="boxed stack">
-          <legend className="sub-title">Reasons and details</legend>
+          <legend className="sub-title">Reasons and Details</legend>
           <div className="field">
             <label htmlFor="n5-number">Which notice is this?</label>
             <select id="n5-number" value={f.notice_number} onChange={set("notice_number")}>

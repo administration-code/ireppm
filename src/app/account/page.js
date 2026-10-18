@@ -2,7 +2,7 @@ import Link from "next/link";
 import AccountView from "@/components/AccountView";
 
 export const metadata = {
-  title: "My profile",
+  title: "My Profile",
   robots: { index: false, follow: false },
 };
 

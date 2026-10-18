@@ -76,7 +76,7 @@ export default function EarlierEntries({ properties, year, onChange }) {
   return (
     <section className="boxed stack no-print" aria-labelledby={`${id}-title`}>
       <h2 id={`${id}-title`} className="sec-title">
-        Add figures from before the website
+        Add Figures from Before the Website
       </h2>
       <p className="small">
         Our system starts in September 2026. Add each property&apos;s January–August totals from the income spreadsheet so

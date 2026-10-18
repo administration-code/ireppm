@@ -79,7 +79,7 @@ export default function PaypropLetter({ tenancyId }) {
     <div className="stack" style={{ gap: 8, borderTop: "1px solid var(--line)", paddingTop: 14 }}>
       <div className="row" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
         <div>
-          <h3 style={{ margin: 0 }}>PayProp welcome letter</h3>
+          <h3 style={{ margin: 0 }}>PayProp Welcome Letter</h3>
           <p className="small" style={{ margin: 0 }}>
             {has
               ? `${row.payprop_letter_name || "Letter"} · ${row.payprop_letter_sent_at ? `emailed ${when(row.payprop_letter_sent_at)}` : "not emailed yet"}`

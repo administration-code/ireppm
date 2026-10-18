@@ -3,7 +3,7 @@ import FeeCalculator from "@/components/FeeCalculator";
 import { COMPARISON, PACKAGES } from "@/lib/site";
 
 export const metadata = {
-  title: "Property management pricing",
+  title: "Property Management Pricing",
   description:
     "Property management packages for Windsor landlords from $175/month, plus tenant placement for half of one month's rent.",
 };
@@ -13,8 +13,8 @@ export default function PricingPage() {
     <section className="block">
       <div className="wrap">
         <div className="head">
-          <span className="eyebrow">Packages and pricing</span>
-          <h1>Simple monthly management fees</h1>
+          <span className="eyebrow">Packages and Pricing</span>
+          <h1>Simple Monthly Management Fees</h1>
           <p className="lead">
             Pick the level of care your property needs. Every package includes rent collection, full tenant management
             and your owner portal. One year to start, then month to month at the same rate: no long lock-in.
@@ -39,7 +39,7 @@ export default function PricingPage() {
               </ul>
               {p.quote ? (
                 <Link className="btn ghost" href="/about#inquiry" style={{ marginTop: 4 }}>
-                  Ask for a quote
+                  Ask for a Quote
                 </Link>
               ) : null}
             </div>
@@ -49,20 +49,20 @@ export default function PricingPage() {
         <div className="leasing">
           <div className="big">½ month</div>
           <div style={{ display: "grid", gap: 6, minWidth: 0 }}>
-            <h3>Leasing and tenant placement</h3>
+            <h3>Leasing and Tenant Placement</h3>
             <p className="pmuted" style={{ fontSize: ".9375rem" }}>
               Advertising, showings, screening with a credit check, and a signed Ontario Standard Lease. Charged once,
               when the tenant moves in, at half of one month's rent.
             </p>
           </div>
           <Link className="btn primary" href="/about#inquiry">
-            Get started
+            Get Started
           </Link>
         </div>
 
         <div className="head" id="calculator" style={{ marginTop: 56 }}>
-          <span className="eyebrow">Fee calculator</span>
-          <h2>Work out your monthly fee</h2>
+          <span className="eyebrow">Fee Calculator</span>
+          <h2>Work Out Your Monthly Fee</h2>
         </div>
         <FeeCalculator />
 

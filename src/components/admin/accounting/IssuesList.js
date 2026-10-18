@@ -50,7 +50,7 @@ export default function IssuesList({ issues, onShowLine }) {
     <section className="boxed stack" aria-labelledby="acct-issues-title">
       <div className="req-top">
         <h2 id="acct-issues-title" className="sec-title">
-          What needs fixing
+          What Needs Fixing
         </h2>
         {blocking.length ? (
           <span className="tab-count">{blocking.length}</span>

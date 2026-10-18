@@ -77,7 +77,7 @@ export default function SignatureDetail({ id }) {
         <h2>{state.error ? "Something went wrong" : "Request not found"}</h2>
         <p>{state.error || "It may have been removed."}</p>
         <Link className="btn ghost" href="/admin/signatures">
-          Back to signatures
+          Back to Signatures
         </Link>
       </div>
     );
@@ -191,17 +191,17 @@ export default function SignatureDetail({ id }) {
           ) : null}
           {row.property_id ? (
             <li>
-              <Link className="btn ghost sm" href={`/admin/properties/${row.property_id}`}>Open property</Link>
+              <Link className="btn ghost sm" href={`/admin/properties/${row.property_id}`}>Open Property</Link>
             </li>
           ) : null}
           {row.application_id ? (
             <li>
-              <Link className="btn ghost sm" href="/admin/requests?tab=applications">Open application</Link>
+              <Link className="btn ghost sm" href="/admin/requests?tab=applications">Open Application</Link>
             </li>
           ) : null}
           {row.notice_id ? (
             <li>
-              <Link className="btn ghost sm" href="/admin/notices">Open notice</Link>
+              <Link className="btn ghost sm" href="/admin/notices">Open Notice</Link>
             </li>
           ) : null}
           {parent ? (

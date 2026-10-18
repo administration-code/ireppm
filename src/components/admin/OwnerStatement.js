@@ -212,7 +212,7 @@ export default function OwnerStatement({ propertyId, period }) {
             Print / Save as PDF
           </button>
           <Link className="btn ghost sm" href={`/admin/properties/${property.id}`}>
-            Open property
+            Open Property
           </Link>
         </div>
         {error ? <div className="warnbox">{error}</div> : null}
@@ -282,24 +282,24 @@ export default function OwnerStatement({ propertyId, period }) {
         </div>
 
         <section className="stmt-section" aria-labelledby="stmt-rent">
-          <h2 id="stmt-rent">Rent collected</h2>
+          <h2 id="stmt-rent">Rent Collected</h2>
           {rentRows.length ? <PaymentsTable rows={rentRows} /> : <p className="small">No rent collected for this month.</p>}
           {lmrRows.length ? (
             <>
-              <h3>Last month&apos;s rent forwarded</h3>
+              <h3>Last Month&apos;s Rent Forwarded</h3>
               <PaymentsTable rows={lmrRows} />
             </>
           ) : null}
           {notCounted.length ? (
             <>
-              <h3>Recorded but not counted</h3>
+              <h3>Recorded but Not Counted</h3>
               <PaymentsTable rows={notCounted} muted />
             </>
           ) : null}
         </section>
 
         <section className="stmt-section" aria-labelledby="stmt-deduct">
-          <h2 id="stmt-deduct">Fees, work orders and adjustments</h2>
+          <h2 id="stmt-deduct">Fees, Work Orders and Adjustments</h2>
           <div className="table-scroll">
             <table className="receipt-table">
               <thead>
@@ -461,7 +461,7 @@ export default function OwnerStatement({ propertyId, period }) {
 
       <section className="boxed stack no-print" aria-labelledby="sec-leasing">
         <h2 id="sec-leasing" className="sec-title">
-          Leasing fees for new tenancies
+          Leasing Fees for New Tenancies
         </h2>
         {ratesMissing ? (
           <div className="warnbox">

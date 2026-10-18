@@ -120,7 +120,7 @@ export default function LandlordYearReport({ ownerId, year, staff = false }) {
               </button>
               {data.owner?.email ? (
                 <a className="btn ghost" href={mailtoFor(data)}>
-                  Email to landlord
+                  Email to Landlord
                 </a>
               ) : (
                 <span className="small">No email on file for this landlord.</span>
@@ -161,7 +161,7 @@ function Report({ data }) {
 
       <section className="stack" style={{ gap: 8 }} aria-labelledby="ly-t776">
         <h3 id="ly-t776" className="sec-title">
-          Summary for your T776
+          Summary for Your T776
         </h3>
         <table className="acct-st ly-t776">
           <thead>

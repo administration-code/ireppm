@@ -156,8 +156,8 @@ function PhoneModal({ userId, onDone }) {
         </button>
         <form className="stack" onSubmit={save}>
           <div style={{ display: "grid", gap: 6 }}>
-            <span className="eyebrow">One more thing</span>
-            <h3 id="phone-title">What's your mobile number?</h3>
+            <span className="eyebrow">One More Thing</span>
+            <h3 id="phone-title">What's Your Mobile Number?</h3>
             <p className="small">We text you to confirm showing times. We don't share it.</p>
           </div>
           <div className="field">
@@ -225,7 +225,7 @@ function SignInModal({ next, initialEmail = "", onClose }) {
         {!supabaseConfigured ? (
           <div className="stack">
             <span className="eyebrow">Accounts</span>
-            <h3 id="signin-title">Online accounts are coming soon</h3>
+            <h3 id="signin-title">Online Accounts Are Coming Soon</h3>
             <p>
               To book a showing or apply right now, email us at <b>{SITE.email}</b> with the address you're
               interested in.
@@ -233,8 +233,8 @@ function SignInModal({ next, initialEmail = "", onClose }) {
           </div>
         ) : sentTo ? (
           <div className="stack">
-            <span className="eyebrow">Check your email</span>
-            <h3 id="signin-title">We sent you a sign-in link</h3>
+            <span className="eyebrow">Check Your Email</span>
+            <h3 id="signin-title">We Sent You a Sign-In Link</h3>
             <p>
               Open the email we sent to <b>{sentTo}</b> and tap the link. It brings you straight back here,
               signed in. Open it on this device.
@@ -244,7 +244,7 @@ function SignInModal({ next, initialEmail = "", onClose }) {
         ) : (
           <form className="stack" onSubmit={submit}>
             <div style={{ display: "grid", gap: 6 }}>
-              <span className="eyebrow">Sign in or create an account</span>
+              <span className="eyebrow">Sign In or Create an Account</span>
               <h3 id="signin-title">{GOOGLE_ON ? "Sign in to continue" : "Just your email and phone"}</h3>
               <p className="small">
                 No password to remember. We use your phone number to confirm showings.

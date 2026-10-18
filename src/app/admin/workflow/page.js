@@ -1,7 +1,7 @@
 import Link from "next/link";
 import StaffGate from "@/components/admin/StaffGate";
 
-export const metadata = { title: "Staff workflow" };
+export const metadata = { title: "Staff Workflow" };
 
 // Who does what, and when. Each step links to the page where it's done.
 // [text, href?, linkLabel?]
@@ -99,7 +99,7 @@ export default function WorkflowPage() {
     <StaffGate>
       <div className="stack">
         <div style={{ display: "grid", gap: 6 }}>
-          <h1 className="admin-title">Staff workflow</h1>
+          <h1 className="admin-title">Staff Workflow</h1>
           <p className="small">What happens when, and where to do it. Jump to:{" "}
             {SECTIONS.map((s, i) => (
               <span key={s.id}>

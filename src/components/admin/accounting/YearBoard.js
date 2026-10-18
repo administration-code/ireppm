@@ -410,7 +410,7 @@ export default function YearBoard({ initialYear }) {
 
   return (
     <div className="stack">
-      <AccountingTabs title="Year end" subtitle="IRep's fiscal year runs January 1 to December 31.">
+      <AccountingTabs title="Year End" subtitle="IRep's fiscal year runs January 1 to December 31.">
         <div className="field acct-picker">
           <label htmlFor={`${id}-year`}>Year</label>
           <select id={`${id}-year`} value={year} onChange={(e) => setYear(Number(e.target.value))}>
@@ -437,7 +437,7 @@ export default function YearBoard({ initialYear }) {
               {busy === "export" ? "Preparing files…" : "Download accountant package"}
             </button>
             <Link className="btn ghost" href={`/admin/accounting/year/print?year=${year}`} target="_blank">
-              Printable summary
+              Printable Summary
             </Link>
           </div>
 
@@ -461,7 +461,7 @@ export default function YearBoard({ initialYear }) {
 
           <section className="boxed stack" aria-labelledby={`${id}-income`}>
             <h2 id={`${id}-income`} className="sec-title">
-              IRep income
+              IRep Income
             </h2>
             <p className="small">
               Months before the website started come from IRep&apos;s corporate accounting workbook. Lawn/snow and some

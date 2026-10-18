@@ -12,7 +12,7 @@ import { usePartner } from "@/lib/usePartner";
 const NAV = [
   ["/", "Home"],
   ["/properties", "Properties"],
-  ["/landlords", "For landlords"],
+  ["/landlords", "For Landlords"],
   ["/pricing", "Pricing"],
   ["/guides", "Guides"],
   ["/about", "About"],
@@ -20,7 +20,7 @@ const NAV = [
 
 // One sign-in for everyone; this only decides where they land afterwards.
 const SIGN_IN = [
-  ["/account", "Tenants and applicants"],
+  ["/account", "Tenants and Applicants"],
   ["/owner", "Landlords"],
   ["/agent", "Partners"],
   ["/admin", "Staff"],
@@ -86,17 +86,17 @@ export default function Header() {
         ) : null}
         {isOwner ? (
           <Link className="staff-link" href="/owner" aria-current={current("/owner")}>
-            Owner portal
+            Owner Portal
           </Link>
         ) : null}
         {isPartner ? (
           <Link className="staff-link" href="/agent" aria-current={current("/agent")}>
-            Partner portal
+            Partner Portal
           </Link>
         ) : null}
         {user ? (
           <Link className="acct-btn" href="/account">
-            My profile
+            My Profile
           </Link>
         ) : (
           <button className="acct-btn" onClick={() => openSignIn("/account")}>
@@ -124,12 +124,12 @@ export default function Header() {
               ) : null}
               {isOwner ? (
                 <Link className="site-menu-portal" href="/owner" aria-current={current("/owner")} onClick={closeMenu}>
-                  Owner portal
+                  Owner Portal
                 </Link>
               ) : null}
               {isPartner ? (
                 <Link className="site-menu-portal" href="/agent" aria-current={current("/agent")} onClick={closeMenu}>
-                  Partner portal
+                  Partner Portal
                 </Link>
               ) : null}
             </div>

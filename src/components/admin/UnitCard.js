@@ -77,7 +77,7 @@ export default function UnitCard({ unit, propertyId, onSaved }) {
         </button>
         {unit.listing_id ? (
           <Link className="btn ghost sm" href={`/admin/listings/${unit.listing_id}`}>
-            Edit listing
+            Edit Listing
           </Link>
         ) : canList ? (
           <Link className="btn ghost sm" href={`/admin/listings/new?unit=${unit.id}`}>

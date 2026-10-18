@@ -41,7 +41,7 @@ export default async function ReviewsPage({ searchParams }) {
       <div className="wrap">
         <div className="head">
           <span className="eyebrow">Reviews</span>
-          <h1>What tenants and landlords say</h1>
+          <h1>What Tenants and Landlords Say</h1>
           <p className="lead">Every review here is from a tenant who rents (or rented) from us or a landlord whose property we manage, signed in with their IRep account. We post them good or bad.</p>
         </div>
 
@@ -90,7 +90,7 @@ export default async function ReviewsPage({ searchParams }) {
 
         <div className="review-write" id="write">
           <div>
-            <h2>Write a review</h2>
+            <h2>Write a Review</h2>
             <p className="pmuted">Rent from us or have us manage your property? Sign in and tell others what it&apos;s like. We read every review, and we&apos;ll reply if something needs fixing.</p>
             <p className="pmuted small">Reviews are checked before they go up. We don&apos;t edit what you write; we only hold back reviews with personal information about someone else, abuse, or spam.</p>
           </div>

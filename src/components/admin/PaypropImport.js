@@ -179,7 +179,7 @@ export default function PaypropImport({ onSaved }) {
   return (
     <section className="boxed stack" aria-labelledby="pp-import" style={{ gap: 12 }}>
       <div>
-        <h2 id="pp-import" className="sub-title">Import a PayProp report</h2>
+        <h2 id="pp-import" className="sub-title">Import a PayProp Report</h2>
         <p className="small" style={{ margin: "4px 0 0" }}>
           In PayProp, export the All Payments report as a CSV for the month and choose it here. Payments already in the system are skipped, so it&apos;s safe to import the same report twice.
         </p>

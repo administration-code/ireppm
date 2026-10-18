@@ -59,7 +59,7 @@ function Decision({ app, onDone }) {
       <h4 className="eyebrow">Your decision</h4>
       <div className="row">
         <button type="button" className="btn primary sm" onClick={approve} disabled={busy}>
-          Approve applicant
+          Approve Applicant
         </button>
         <button type="button" className="btn ghost sm" onClick={() => setMode("declined")} aria-pressed={mode === "declined"} disabled={busy}>
           Decline
@@ -185,7 +185,7 @@ function ApplicantDetail({ app, onReload }) {
         <ReferenceList references={app.references} />
         {app.reference_notes ? (
           <div className="ref-notes">
-            <span className="eyebrow">IRep&apos;s reference check</span>
+            <span className="eyebrow">IRep&apos;s Reference Check</span>
             <p>{app.reference_notes}</p>
           </div>
         ) : null}
@@ -256,14 +256,14 @@ export default function OwnerApplications({ focusId }) {
         <Link href="/owner" className="small">
           ← Owner portal
         </Link>
-        <h1 className="admin-title">Applicants to review</h1>
+        <h1 className="admin-title">Applicants to Review</h1>
         <p className="small">IRep won&apos;t accept any applicant for your property without your approval.</p>
       </div>
       {loading ? <p className="small">Loading applicants…</p> : null}
       {error ? <div className="warnbox">{error}</div> : null}
       {!loading && !error && !apps.length ? (
         <div className="empty">
-          <h2>No applicants yet</h2>
+          <h2>No Applicants Yet</h2>
           <p>When IRep sends you an applicant to review, they&apos;ll appear here and we&apos;ll email you.</p>
         </div>
       ) : null}

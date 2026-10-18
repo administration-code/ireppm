@@ -46,7 +46,7 @@ export default function FeeCalculator() {
           </div>
         </div>
         <fieldset className="calc-addons">
-          <legend>Add-ons</legend>
+          <legend>Add-Ons</legend>
           {CALC.addons.map((a) => {
             const included = a.includedIn.includes(pkg);
             return (
@@ -67,7 +67,7 @@ export default function FeeCalculator() {
       </form>
 
       <div className="calc-out" aria-live="polite">
-        <span className="eyebrow">Your monthly fee</span>
+        <span className="eyebrow">Your Monthly Fee</span>
         <div className="calc-total num">
           {fmt(monthly)}
           <small> / month + HST</small>
@@ -87,7 +87,7 @@ export default function FeeCalculator() {
           After the first year your agreement carries on month to month at the same rate.
         </p>
         <Link className="btn primary" href="/landlords#estimate">
-          Get a free rent estimate
+          Get a Free Rent Estimate
         </Link>
       </div>
     </div>

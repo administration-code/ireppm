@@ -47,7 +47,7 @@ export default function OwnersTable() {
           <p className="small">The people and companies who own the properties IRep manages.</p>
         </div>
         <Link className="btn primary" href="/admin/owners/new">
-          Add owner
+          Add Owner
         </Link>
       </div>
 
@@ -57,10 +57,10 @@ export default function OwnersTable() {
         <p className="small">Loading owners…</p>
       ) : owners.length === 0 && !error ? (
         <div className="empty">
-          <h2>No owners yet</h2>
+          <h2>No Owners Yet</h2>
           <p>Add an owner, then choose them on each of their properties.</p>
           <Link className="btn ghost" href="/admin/owners/new">
-            Add the first owner
+            Add the First Owner
           </Link>
         </div>
       ) : owners.length ? (

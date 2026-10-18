@@ -1,7 +1,7 @@
 import StaffGate from "@/components/admin/StaffGate";
 import YearPrint from "@/components/admin/accounting/YearPrint";
 
-export const metadata = { title: "Year-end summary" };
+export const metadata = { title: "Year-End Summary" };
 
 export default async function YearPrintPage({ searchParams }) {
   const { year } = await searchParams;

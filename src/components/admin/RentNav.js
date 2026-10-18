@@ -4,9 +4,9 @@ import Link from "next/link";
 
 const LINKS = [
   ["/admin/rent", "Collection"],
-  ["/admin/rent/match", "To match"],
-  ["/admin/rent/new", "Record a payment"],
-  ["/admin/rent/payprop", "PayProp batch"],
+  ["/admin/rent/match", "To Match"],
+  ["/admin/rent/new", "Record a Payment"],
+  ["/admin/rent/payprop", "PayProp Batch"],
 ];
 
 export default function RentNav({ current, unmatched = 0 }) {

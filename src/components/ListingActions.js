@@ -157,7 +157,7 @@ export default function ListingActions({ listing, sample }) {
         </form>
       ) : (
         <button className="btn primary" onClick={book}>
-          Book a showing
+          Book a Showing
         </button>
       )}
       {lastApp && OPEN_STATUSES.includes(lastApp.status) ? (

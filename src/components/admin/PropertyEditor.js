@@ -49,7 +49,7 @@ export default function PropertyEditor({ id, initialOwnerId }) {
         <h2>{error ? "Something went wrong" : "Property not found"}</h2>
         <p>{error || "It may have been removed."}</p>
         <Link className="btn ghost" href="/admin/properties">
-          Back to properties
+          Back to Properties
         </Link>
       </div>
     );
@@ -128,7 +128,7 @@ export default function PropertyEditor({ id, initialOwnerId }) {
 
         {adding ? (
           <div className="boxed stack">
-            <h3 className="unit-label">New unit</h3>
+            <h3 className="unit-label">New Unit</h3>
             <UnitForm
               propertyId={property.id}
               onCancel={() => setAdding(false)}
@@ -148,7 +148,7 @@ export default function PropertyEditor({ id, initialOwnerId }) {
           </ul>
         ) : !adding ? (
           <div className="empty">
-            <h2>No units yet</h2>
+            <h2>No Units Yet</h2>
             <p>
               Add the first unit to this property, like &ldquo;Whole house&rdquo;, &ldquo;Upper&rdquo; or &ldquo;Room 1&rdquo;.
               Then you can start a tenancy or create a listing for it.

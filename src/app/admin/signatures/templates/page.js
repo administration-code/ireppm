@@ -1,7 +1,7 @@
 import StaffGate from "@/components/admin/StaffGate";
 import TemplatesCheck from "@/components/admin/signatures/TemplatesCheck";
 
-export const metadata = { title: "DocuSign templates" };
+export const metadata = { title: "DocuSign Templates" };
 
 export default function TemplatesPage() {
   return (

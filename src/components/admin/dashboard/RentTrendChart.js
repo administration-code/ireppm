@@ -15,7 +15,7 @@ export default function RentTrendChart({ trend }) {
   return (
     <section className="panel-box dash-section" aria-labelledby="dash-trend-title">
       <div className="dash-section-head">
-        <h2 id="dash-trend-title">Rent trend</h2>
+        <h2 id="dash-trend-title">Rent Trend</h2>
         <div className="trend-legend small" aria-hidden="true">
           <span>
             <i className="key expected" /> Expected

@@ -22,7 +22,7 @@ export default function DeletedRecords({ records, failed }) {
   return (
     <details className="deleted-records">
       <summary>
-        <span className="eyebrow">Deleted records</span>
+        <span className="eyebrow">Deleted Records</span>
         <span className="small"> ({rows.length ? `last ${rows.length}` : "none"})</span>
       </summary>
       {failed ? (

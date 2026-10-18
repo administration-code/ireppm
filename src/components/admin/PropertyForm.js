@@ -229,7 +229,7 @@ export default function PropertyForm({ property, initialOwnerId, onSaved }) {
             <label htmlFor="p-lot">Lot size (sq. ft.)</label>
             <input id="p-lot" inputMode="numeric" value={form.lot_size_sqft} onChange={update("lot_size_sqft")} placeholder="4500" />
             <button type="button" className="link-btn small" onClick={lookUpLot} disabled={!form.address.trim()}>
-              Look up from City of Windsor data
+              Look Up from City of Windsor Data
             </button>
             {lotNote ? <span className="small">{lotNote}</span> : null}
           </div>
@@ -260,7 +260,7 @@ export default function PropertyForm({ property, initialOwnerId, onSaved }) {
 
       <section className="boxed stack" aria-labelledby="sec-contract">
         <h2 id="sec-contract" className="sec-title">
-          Management agreement
+          Management Agreement
         </h2>
         <div className="row2">
           <div className="field">
@@ -385,7 +385,7 @@ export default function PropertyForm({ property, initialOwnerId, onSaved }) {
           </div>
         </div>
         <fieldset className="field boxed stack" style={{ gap: 10 }}>
-          <legend>First-year promo (optional)</legend>
+          <legend>First-Year Promo (optional)</legend>
           <div className="row3">
             <div className="field">
               <label htmlFor="p-promo">Promo discount ($/month off the fee)</label>

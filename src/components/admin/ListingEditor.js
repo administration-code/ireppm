@@ -28,10 +28,10 @@ export default function ListingEditor({ id, saved }) {
   if (!state.listing) {
     return (
       <div className="empty">
-        <h2>Listing not found</h2>
+        <h2>Listing Not Found</h2>
         <p>It may have been deleted, or the link is wrong.</p>
         <Link className="btn ghost" href="/admin/listings">
-          Back to all listings
+          Back to All Listings
         </Link>
       </div>
     );

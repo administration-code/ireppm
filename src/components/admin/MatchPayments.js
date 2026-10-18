@@ -61,7 +61,7 @@ export default function MatchPayments() {
   return (
     <div className="stack" style={{ gap: 24 }}>
       <RentHead
-        title="To match"
+        title="To Match"
         intro="Payments we couldn't tie to a tenancy automatically. Once you match an e-Transfer, we remember the sender's name for next time."
       />
       <RentNav current="/admin/rent/match" unmatched={payments.length} />
@@ -77,7 +77,7 @@ export default function MatchPayments() {
         <p className="small">Loading payments…</p>
       ) : !payments.length && !error ? (
         <div className="empty">
-          <h2>All caught up</h2>
+          <h2>All Caught Up</h2>
           <p>Every payment is matched to a tenancy.</p>
         </div>
       ) : (

@@ -9,7 +9,7 @@ export default function OpenNotices({ notices }) {
   return (
     <section className="panel-box dash-section" aria-labelledby="dash-notices-title">
       <div className="dash-section-head">
-        <h2 id="dash-notices-title">Open notices</h2>
+        <h2 id="dash-notices-title">Open Notices</h2>
         <Link href="/admin/notices" className="small dash-link">
           All notices →
         </Link>

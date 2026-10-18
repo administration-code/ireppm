@@ -2,7 +2,7 @@ import OwnerGate from "@/components/owner/OwnerGate";
 import OwnerLetterView from "@/components/owner/OwnerLetterView";
 
 export const metadata = {
-  title: "Monthly statement",
+  title: "Monthly Statement",
   robots: { index: false, follow: false },
 };
 

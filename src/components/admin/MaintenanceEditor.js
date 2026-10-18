@@ -164,7 +164,7 @@ export default function MaintenanceEditor({ id }) {
         <h2>{error ? "Something went wrong" : "Request not found"}</h2>
         <p>{error || "It may have been removed."}</p>
         <Link className="btn ghost" href="/admin/maintenance">
-          Back to maintenance
+          Back to Maintenance
         </Link>
       </div>
     );
@@ -252,7 +252,7 @@ export default function MaintenanceEditor({ id }) {
             <p className="small">Notice served {prettyDateTime(request.entry_notice_served_at)}.</p>
           ) : (
             <button type="button" className="btn ghost sm" onClick={markNoticeServed} disabled={saving}>
-              Mark notice served
+              Mark Notice Served
             </button>
           )}
         </div>
@@ -261,7 +261,7 @@ export default function MaintenanceEditor({ id }) {
       <div className="maint-grid">
         <section className="boxed stack" aria-labelledby="sec-m-report">
           <h2 id="sec-m-report" className="sec-title">
-            What was reported
+            What Was Reported
           </h2>
           <dl className="maint-facts">
             <div>
@@ -286,7 +286,7 @@ export default function MaintenanceEditor({ id }) {
             ) : null}
           </dl>
           {request.description ? <p className="pre">{request.description}</p> : <p className="small">No description.</p>}
-          <h3 className="sub-title">Photos and videos</h3>
+          <h3 className="sub-title">Photos and Videos</h3>
           <Photos photos={request.photos} />
         </section>
 
@@ -304,7 +304,7 @@ export default function MaintenanceEditor({ id }) {
           </div>
           {reporter ? (
             <div className="stack">
-              <h3 className="sub-title">Reported by</h3>
+              <h3 className="sub-title">Reported By</h3>
               <Contact person={reporter} />
             </div>
           ) : null}
@@ -323,7 +323,7 @@ export default function MaintenanceEditor({ id }) {
       <form className="admin-form" onSubmit={save} noValidate>
         <section className="boxed stack" aria-labelledby="sec-m-staff">
           <h2 id="sec-m-staff" className="sec-title">
-            Staff handling
+            Staff Handling
           </h2>
           <div className="row3">
             <div className="field">

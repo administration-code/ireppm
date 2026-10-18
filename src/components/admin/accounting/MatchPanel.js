@@ -202,7 +202,7 @@ export default function MatchPanel({ line, onClose, onMatched }) {
       <div className="stack">
         <div>
           <h2 id={`${id}-title`} className="sec-title">
-            Match this bank line
+            Match This Bank Line
           </h2>
           <p className="acct-dialog-line">
             <span>{shortDate(line.posted_on)}</span>

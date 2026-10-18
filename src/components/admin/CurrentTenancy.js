@@ -79,7 +79,7 @@ export default function CurrentTenancy({ tenancy, onChanged }) {
     <section className="boxed stack" aria-labelledby="sec-current">
       <div className="req-top">
         <h2 id="sec-current" className="sec-title">
-          Current tenancy
+          Current Tenancy
         </h2>
         <span className={`pill ts-${tenancy.status}`}>{TENANCY_STATUS[tenancy.status]}</span>
       </div>

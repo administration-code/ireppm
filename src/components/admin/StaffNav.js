@@ -10,7 +10,7 @@ import { COUNTS_EVENT, loadNavCounts } from "@/lib/admin-nav";
 // `count` is a key from loadNavCounts(). Muted counts show only inside the menu.
 export const NAV_GROUPS = [
   { key: "dashboard", label: "Dashboard", href: "/admin" },
-  { key: "workflow", label: "Staff workflow", href: "/admin/workflow" },
+  { key: "workflow", label: "Staff Workflow", href: "/admin/workflow" },
   {
     key: "leasing",
     label: "Leasing",
@@ -26,12 +26,12 @@ export const NAV_GROUPS = [
     label: "Tenants",
     items: [
       { key: "rent", label: "Rent", href: "/admin/rent", count: "unmatchedPayments", note: "to match" },
-      { key: "draw", label: "Paid by 7th & draw", href: "/admin/rent/draw" },
-      { key: "payprop-letters", label: "PayProp letters", href: "/admin/payprop-letters" },
+      { key: "draw", label: "Paid by 7th & Draw", href: "/admin/rent/draw" },
+      { key: "payprop-letters", label: "PayProp Letters", href: "/admin/payprop-letters" },
       { key: "maintenance", label: "Maintenance", href: "/admin/maintenance", count: "maintenanceNew", note: "new" },
       { key: "notices", label: "Notices", href: "/admin/notices", count: "earlyMoveOuts", note: "early move-out" },
       { key: "signatures", label: "Signatures", href: "/admin/signatures", count: "awaitingSignatures", note: "awaiting signature" },
-      { key: "insurance", label: "Tenant insurance", href: "/admin/insurance", count: "insuranceToReview", note: "to review" },
+      { key: "insurance", label: "Tenant Insurance", href: "/admin/insurance", count: "insuranceToReview", note: "to review" },
     ],
   },
   {
@@ -40,10 +40,10 @@ export const NAV_GROUPS = [
     items: [
       { key: "properties", label: "Properties", href: "/admin/properties" },
       { key: "owners", label: "Owners", href: "/admin/owners" },
-      { key: "invites", label: "Portal invitations", href: "/admin/invites" },
-      { key: "payouts", label: "Landlord payouts", href: "/admin/payouts" },
-      { key: "letters", label: "Landlord letters", href: "/admin/letters" },
-      { key: "inquiries", label: "New landlord inquiries", href: "/admin/requests?tab=inquiries", count: "inquiries", note: "new" },
+      { key: "invites", label: "Portal Invitations", href: "/admin/invites" },
+      { key: "payouts", label: "Landlord Payouts", href: "/admin/payouts" },
+      { key: "letters", label: "Landlord Letters", href: "/admin/letters" },
+      { key: "inquiries", label: "New Landlord Inquiries", href: "/admin/requests?tab=inquiries", count: "inquiries", note: "new" },
       { key: "reviews", label: "Reviews", href: "/admin/reviews" },
     ],
   },
@@ -52,10 +52,10 @@ export const NAV_GROUPS = [
     label: "Accounting",
     items: [
       { key: "reconciliation", label: "Reconciliation", href: "/admin/accounting", count: "unmatchedBankLines", note: "bank lines to match" },
-      { key: "bank-imports", label: "Bank imports", href: "/admin/accounting/import" },
-      { key: "year-end", label: "Year end", href: "/admin/accounting/year" },
-      { key: "landlord-year-end", label: "Landlord year-end", href: "/admin/accounting/landlords" },
-      { key: "commissions", label: "Commissions & loans", href: "/admin/accounting/commissions" },
+      { key: "bank-imports", label: "Bank Imports", href: "/admin/accounting/import" },
+      { key: "year-end", label: "Year End", href: "/admin/accounting/year" },
+      { key: "landlord-year-end", label: "Landlord Year-End", href: "/admin/accounting/landlords" },
+      { key: "commissions", label: "Commissions & Loans", href: "/admin/accounting/commissions" },
       { key: "dividends", label: "Dividends & T5", href: "/admin/accounting/dividends" },
     ],
   },
@@ -64,7 +64,7 @@ export const NAV_GROUPS = [
     label: "Settings",
     items: [
       { key: "partners", label: "Partners", href: "/admin/partners" },
-      { key: "rates", label: "Add-ons & rates", href: "/admin/rates" },
+      { key: "rates", label: "Add-Ons & Rates", href: "/admin/rates" },
     ],
   },
 ];

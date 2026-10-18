@@ -50,7 +50,7 @@ export default function MyHome({ user }) {
     <section className="boxed stack" aria-labelledby="my-home-title" style={{ gap: 16 }}>
       <div className="admin-head">
         <div style={{ display: "grid", gap: 6 }}>
-          <span className="eyebrow">My home</span>
+          <span className="eyebrow">My Home</span>
           <h2 id="my-home-title">{homes.length === 1 ? homeLabel(homes[0]) : "Your homes"}</h2>
           {homes.length === 1 ? (
             <p className="small">{[homes[0].city, homes[0].postal_code].filter(Boolean).join(" ")}</p>
@@ -105,7 +105,7 @@ export default function MyHome({ user }) {
       <PayRentCard homes={homes} />
 
       <div className="stack" style={{ gap: 10 }}>
-        <h3>My requests</h3>
+        <h3>My Requests</h3>
         {requests.length ? (
           <div className="list">
             {requests.map((r) => (
@@ -204,7 +204,7 @@ function ReportForm({ user, homes, onCancel, onSent }) {
 
   return (
     <form className="stack confirm-box" onSubmit={submit} noValidate aria-label="Report a problem">
-      <h3>Report a problem</h3>
+      <h3>Report a Problem</h3>
       {homes.length > 1 ? (
         <div className="field">
           <label htmlFor="m-home">Home</label>
@@ -246,7 +246,7 @@ function ReportForm({ user, homes, onCancel, onSent }) {
       </div>
 
       <fieldset className="field">
-        <legend>How urgent is it?</legend>
+        <legend>How Urgent Is It?</legend>
         <div className="stack" style={{ gap: 8 }}>
           {Object.entries(URGENCY_HELP).map(([k, v]) => (
             <label className="check" key={k}>

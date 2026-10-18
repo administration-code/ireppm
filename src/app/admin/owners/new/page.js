@@ -2,7 +2,7 @@ import Link from "next/link";
 import StaffGate from "@/components/admin/StaffGate";
 import OwnerForm from "@/components/admin/OwnerForm";
 
-export const metadata = { title: "Add owner" };
+export const metadata = { title: "Add Owner" };
 
 export default async function NewOwnerPage({ searchParams }) {
   const { back } = await searchParams;
@@ -14,7 +14,7 @@ export default async function NewOwnerPage({ searchParams }) {
             ← All owners
           </Link>
           <span className="eyebrow">Staff · Create</span>
-          <h1 className="admin-title">Add owner</h1>
+          <h1 className="admin-title">Add Owner</h1>
         </div>
         <OwnerForm back={typeof back === "string" ? back : ""} />
       </div>

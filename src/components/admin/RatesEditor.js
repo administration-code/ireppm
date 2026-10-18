@@ -118,7 +118,7 @@ export default function RatesEditor() {
   return (
     <div className="stack" style={{ gap: 24 }}>
       <div style={{ display: "grid", gap: 8 }}>
-        <h1 className="admin-title">Add-ons &amp; rates</h1>
+        <h1 className="admin-title">Add-Ons &amp; Rates</h1>
         <p className="small">
           IRep&apos;s standard prices. Changing a rate here doesn&apos;t change any property&apos;s monthly fee or custom add-on price.
         </p>
@@ -130,7 +130,7 @@ export default function RatesEditor() {
         <p className="small">Loading rates…</p>
       ) : groups.length === 0 && !error ? (
         <div className="empty">
-          <h2>No rates yet</h2>
+          <h2>No Rates Yet</h2>
           <p>Rates are added in the database.</p>
         </div>
       ) : (

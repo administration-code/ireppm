@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import StaffGate from "@/components/admin/StaffGate";
 import RequestsInbox from "@/components/admin/RequestsInbox";
 
-export const metadata = { title: "Requests inbox" };
+export const metadata = { title: "Requests Inbox" };
 
 export default function RequestsPage() {
   return (

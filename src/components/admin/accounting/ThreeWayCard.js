@@ -11,7 +11,7 @@ export default function ThreeWayCard({ summary }) {
     <section className="boxed stack" aria-labelledby="acct-3way-title">
       <div>
         <h2 id="acct-3way-title" className="sec-title">
-          Three-way check
+          Three-Way Check
         </h2>
         <p className="acct-3way-line">
           Bank balance <strong className="num">{dollars(bank)}</strong> vs what IRep holds for others{" "}

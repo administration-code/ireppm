@@ -259,7 +259,7 @@ export default function InspectionEditor({ id, context }) {
         <h2>{error === "Inspection not found." ? "Inspection not found" : "Something went wrong"}</h2>
         <p>{error}</p>
         <Link className="btn ghost" href="/admin/properties">
-          Back to properties
+          Back to Properties
         </Link>
       </div>
     );
@@ -439,7 +439,7 @@ export default function InspectionEditor({ id, context }) {
           )}
 
           <div className="boxed stack">
-            <h3 className="sub-title">Add room</h3>
+            <h3 className="sub-title">Add Room</h3>
             <div className="seg">
               {QUICK_ROOMS.map((name) => (
                 <button key={name} type="button" onClick={() => addRoom(name)}>

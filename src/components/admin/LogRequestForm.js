@@ -118,7 +118,7 @@ export default function LogRequestForm({ initialPropertyId = "", initialUnitId =
           ← All maintenance
         </Link>
         <span className="eyebrow">Staff · Maintenance</span>
-        <h1 className="admin-title">Log a request</h1>
+        <h1 className="admin-title">Log a Request</h1>
         <p className="small">For problems reported by phone, text or email, or found during an inspection.</p>
       </div>
 
@@ -167,7 +167,7 @@ export default function LogRequestForm({ initialPropertyId = "", initialUnitId =
 
         <section className="boxed stack" aria-labelledby="sec-log-who">
           <h2 id="sec-log-who" className="sec-title">
-            Who reported it
+            Who Reported It
           </h2>
           <div className="row2">
             <div className="field">
@@ -199,7 +199,7 @@ export default function LogRequestForm({ initialPropertyId = "", initialUnitId =
 
         <section className="boxed stack" aria-labelledby="sec-log-what">
           <h2 id="sec-log-what" className="sec-title">
-            The problem
+            The Problem
           </h2>
           <div className="row2">
             <div className="field">

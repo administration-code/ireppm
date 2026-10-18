@@ -1,6 +1,6 @@
 import AgentPortal from "@/components/agent/AgentPortal";
 
-export const metadata = { title: "Agent portal", robots: { index: false, follow: false } };
+export const metadata = { title: "Agent Portal", robots: { index: false, follow: false } };
 
 export default function AgentPage() {
   return (

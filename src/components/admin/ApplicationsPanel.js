@@ -192,7 +192,7 @@ function ApplicationItem({ app, onChange, onRemove, earlier = [] }) {
       {app.status === "approved" ? (
         <>
           <Link className="btn ghost sm" style={{ justifySelf: "start" }} href={`/admin/signatures/new?kind=lease&application=${app.id}`}>
-            Send lease for signature
+            Send Lease for Signature
           </Link>
           <MoveInForm app={app} />
         </>
@@ -219,7 +219,7 @@ export default function ApplicationsPanel({ applications, onChange, onRemove }) 
   if (!applications.length) {
     return (
       <div className="empty">
-        <h2>No applications yet</h2>
+        <h2>No Applications Yet</h2>
         <p>When a renter applies for a listing, their details and attached documents will appear here.</p>
       </div>
     );

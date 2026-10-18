@@ -1,7 +1,7 @@
 import StaffGate from "@/components/admin/StaffGate";
 import RecordPayment from "@/components/admin/RecordPayment";
 
-export const metadata = { title: "Record a payment" };
+export const metadata = { title: "Record a Payment" };
 
 export default async function RecordPaymentPage({ searchParams }) {
   const { tenancy } = await searchParams;

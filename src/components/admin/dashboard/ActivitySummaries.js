@@ -22,7 +22,7 @@ export default function ActivitySummaries({ data }) {
   return (
     <section className="panel-box dash-section" aria-labelledby="dash-activity-title">
       <h2 id="dash-activity-title" className="visually-hidden">
-        Maintenance and leasing
+        Maintenance and Leasing
       </h2>
 
       <div className="dash-sub">

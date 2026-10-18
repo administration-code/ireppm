@@ -105,7 +105,7 @@ export default function AccountView() {
   if (!configured) {
     return (
       <div className="empty">
-        <h2>Online accounts are coming soon</h2>
+        <h2>Online Accounts Are Coming Soon</h2>
         <p>Renter profiles, showings and applications will appear here once accounts are switched on.</p>
       </div>
     );
@@ -116,7 +116,7 @@ export default function AccountView() {
   if (!user) {
     return (
       <div className="empty">
-        <h2>Sign in to see your profile</h2>
+        <h2>Sign In to See Your Profile</h2>
         <p>Your documents, showings and applications live here.</p>
         <button className="btn primary" onClick={() => openSignIn("/account")}>
           Create account or sign in
@@ -321,7 +321,7 @@ export default function AccountView() {
     <div className="acctgrid">
       <div className="stack">
         <div>
-          <span className="eyebrow">Signed in</span>
+          <span className="eyebrow">Signed In</span>
           <div style={{ fontWeight: 600, overflowWrap: "anywhere" }}>{user.email}</div>
           {profile?.phone ? <div className="small">{profile.phone}</div> : null}
         </div>
@@ -337,7 +337,7 @@ export default function AccountView() {
           ))}
         </nav>
         <button className="btn ghost" onClick={signOut}>
-          Sign out
+          Sign Out
         </button>
       </div>
 
@@ -366,7 +366,7 @@ export default function AccountView() {
 
             {pending ? (
               <div className="boxed stack" style={{ gap: 10 }}>
-                <span className="eyebrow">Applying for</span>
+                <span className="eyebrow">Applying For</span>
                 <h3>{listingTitle(pending)}</h3>
                 <p className="small num">{money(pending.rent)} / month</p>
                 {readyToApply ? (
@@ -384,7 +384,7 @@ export default function AccountView() {
             ) : null}
 
             <div style={{ display: "grid", gap: 8 }}>
-              <h2>My documents</h2>
+              <h2>My Documents</h2>
               <p className="lead" style={{ fontSize: "1rem" }}>
                 Upload these once. They're attached to every application you submit, and only IRep staff can see them.
               </p>
@@ -395,7 +395,7 @@ export default function AccountView() {
             <ReferencesEditor key={profile?.id} references={profile?.rental_references} onSave={saveProfile} />
 
             <div style={{ display: "grid", gap: 10 }}>
-              <span className="eyebrow">Your situation</span>
+              <span className="eyebrow">Your Situation</span>
               <div className="seg" role="group" aria-label="Income type">
                 {Object.entries(INCOME_TYPES).map(([k, v]) => (
                   <button key={k} type="button" aria-pressed={incomeType === k} onClick={() => saveProfile({ income_type: k })}>
@@ -453,7 +453,7 @@ export default function AccountView() {
 
         {tab === "showings" ? (
           <>
-            <h2>My showings</h2>
+            <h2>My Showings</h2>
             {showings.length ? (
               <div className="list">
                 {showings.map((s) => (
@@ -497,7 +497,7 @@ export default function AccountView() {
 
         {tab === "apps" ? (
           <>
-            <h2>My applications</h2>
+            <h2>My Applications</h2>
             {apps.length ? (
               <div className="list">
                 {apps.map((a) => (

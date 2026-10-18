@@ -40,7 +40,7 @@ export default function ReconActions({ accountId, month, summary, rec, isAdmin, 
   return (
     <section className="boxed stack no-print" aria-labelledby={`${id}-title`}>
       <h2 id={`${id}-title`} className="sec-title">
-        Finish the month
+        Finish the Month
       </h2>
 
       {rec?.notes ? (

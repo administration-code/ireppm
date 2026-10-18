@@ -58,7 +58,7 @@ export default function PartnerProperties({ partnerId }) {
   return (
     <section className="boxed stack" aria-labelledby="pp-title" style={{ gap: 14 }}>
       <div>
-        <h2 id="pp-title" className="sub-title">Assigned properties</h2>
+        <h2 id="pp-title" className="sub-title">Assigned Properties</h2>
         <p className="small">Tick the properties this partner covers, or assign them to every property in one click.</p>
       </div>
       <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>

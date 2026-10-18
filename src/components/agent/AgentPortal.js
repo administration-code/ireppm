@@ -31,7 +31,7 @@ export default function AgentPortal() {
   if (!user) {
     return (
       <div className="empty">
-        <h1>Agent portal</h1>
+        <h1>Agent Portal</h1>
         <p>For IRep&apos;s showing agents and contractors. Sign in with the email address IRep has on file for you.</p>
         <button type="button" className="btn primary" onClick={() => openSignIn("/agent")}>
           Sign in
@@ -44,7 +44,7 @@ export default function AgentPortal() {
   if (!d) {
     return (
       <div className="empty">
-        <h1>Agent portal</h1>
+        <h1>Agent Portal</h1>
         <p>
           We couldn&apos;t find an agent record for {user.email}. Ask IRep to add this email to your partner record, or contact{" "}
           <a href={`mailto:${SITE.email}`}>{SITE.email}</a>.
@@ -57,7 +57,7 @@ export default function AgentPortal() {
   return (
     <div className="stack" style={{ gap: 24 }}>
       <div style={{ display: "grid", gap: 6 }}>
-        <span className="eyebrow">Agent portal</span>
+        <span className="eyebrow">Agent Portal</span>
         <h1 className="admin-title">Hi {String(d.partner.name || "").split(" ")[0]}</h1>
       </div>
 
@@ -109,7 +109,7 @@ export default function AgentPortal() {
       {d.jobs.length ? (
         <section className="boxed stack" aria-labelledby="ag-jobs">
           <h2 id="ag-jobs" className="sec-title">
-            Open jobs
+            Open Jobs
           </h2>
           <ul className="plain-list">
             {d.jobs.map((j) => (
@@ -129,7 +129,7 @@ export default function AgentPortal() {
 
       <section className="boxed stack" aria-labelledby="ag-props">
         <h2 id="ag-props" className="sec-title">
-          Your properties
+          Your Properties
         </h2>
         {d.properties.length ? (
           <ul className="plain-list">

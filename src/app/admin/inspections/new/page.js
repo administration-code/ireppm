@@ -1,7 +1,7 @@
 import StaffGate from "@/components/admin/StaffGate";
 import InspectionEditor from "@/components/admin/InspectionEditor";
 
-export const metadata = { title: "New inspection" };
+export const metadata = { title: "New Inspection" };
 
 const UUID = /^[0-9a-f-]{36}$/i;
 const pick = (v) => (typeof v === "string" && UUID.test(v) ? v : null);

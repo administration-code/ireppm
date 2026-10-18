@@ -3,7 +3,7 @@ import { SITE } from "@/lib/site";
 import { PAYMENT_INFO } from "@/lib/payment-info";
 
 export const metadata = {
-  title: "Resources for tenants and landlords",
+  title: "Resources for Tenants and Landlords",
   description: "Ontario rental rules, Landlord and Tenant Board forms, paying rent with PayProp, and how to raise a concern with IRep Property Management.",
 };
 
@@ -19,14 +19,14 @@ export default function ResourcesPage() {
       <div className="wrap">
         <div className="prose">
           <span className="eyebrow">Resources</span>
-          <h1>Helpful information for tenants and landlords</h1>
+          <h1>Helpful Information for Tenants and Landlords</h1>
           <p>
             Renting in Ontario is governed by the <i>Residential Tenancies Act</i> and handled by the Landlord and Tenant Board (LTB).
             These links go to the official sources. If you&apos;re not sure what applies to you, ask us, or get independent legal advice.
           </p>
 
-          <h2 id="tenants">For tenants</h2>
-          <h3>Your rights and responsibilities</h3>
+          <h2 id="tenants">For Tenants</h2>
+          <h3>Your Rights and Responsibilities</h3>
           <ul>
             <li>
               <A href="https://www.ontario.ca/page/renting-ontario-your-rights">Renting in Ontario: your rights</A> (Government of Ontario)
@@ -43,21 +43,21 @@ export default function ResourcesPage() {
             </li>
           </ul>
 
-          <h3>Paying rent</h3>
+          <h3>Paying Rent</h3>
           <p>
             <b>{PAYMENT_INFO.preferred} is our preferred way to pay.</b> {PAYMENT_INFO.preferredSteps.join(" ")} Learn about{" "}
             <A href="https://payprop.com/ca">PayProp</A>.
           </p>
           <p>{PAYMENT_INFO.fallbackNote}</p>
 
-          <h3>Tenant insurance</h3>
+          <h3>Tenant Insurance</h3>
           <p>
             Our leases require tenant insurance. It protects your belongings and covers you if you accidentally damage the home or someone is
             hurt there; the landlord&apos;s insurance doesn&apos;t cover you. Upload proof in your <Link href="/account">account</Link> within a
             week of moving in.
           </p>
 
-          <h3>Repairs and emergencies</h3>
+          <h3>Repairs and Emergencies</h3>
           <ul>
             <li>
               Report repairs from your <Link href="/account">account</Link>, with photos. We&apos;ll arrange the work and tell you when someone
@@ -69,7 +69,7 @@ export default function ResourcesPage() {
             </li>
           </ul>
 
-          <h3>Moving out</h3>
+          <h3>Moving Out</h3>
           <ul>
             <li>
               To end your tenancy you must give at least 60 days&apos; written notice (form N9), ending on the last day of a rental period. You can
@@ -81,7 +81,7 @@ export default function ResourcesPage() {
             <li>When a fixed-term lease ends and you don&apos;t give notice, your tenancy continues month to month on the same terms.</li>
           </ul>
 
-          <h2 id="landlords">For landlords</h2>
+          <h2 id="landlords">For Landlords</h2>
           <ul>
             <li>
               <A href="https://www.ontario.ca/page/renting-ontario-your-rights">Renting in Ontario: rights and responsibilities</A>
@@ -100,7 +100,7 @@ export default function ResourcesPage() {
             </li>
           </ul>
 
-          <h2 id="concerns">Questions, concerns and complaints</h2>
+          <h2 id="concerns">Questions, Concerns and Complaints</h2>
           <ol>
             <li>
               Start with us: email <a href={`mailto:${SITE.email}`}>{SITE.email}</a> or call <a href={`tel:${SITE.phone}`}>{SITE.phone}</a>.

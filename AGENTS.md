@@ -12,6 +12,9 @@ leasing in Windsor and Essex County, Ontario. Windsor is the main market.
   without asking — the site uses plain CSS.
 - **Logo:** the IRep house mark in `src/components/Brand.js`, with "PROPERTY MANAGEMENT" under IREP.
 - **Canadian English** (neighbourhood, colour, centre). Prices in CAD.
+- **Title Case** for headings, menu and tab labels, buttons and footer links ("Tenants and Applicants",
+  "Add Property"). Keep short words (a, and, of, the, to, for, in, on, or, by, with) lowercase unless first
+  or last. Sentences, help text and form choices stay in sentence case.
 - **Business details and package prices** live in `src/lib/site.js` — edit there, not in pages.
 - **Renter documents are sensitive** (photo ID, income letters, credit reports). They stay in
   the private `applicant-docs` storage bucket. Never make that bucket public or show other

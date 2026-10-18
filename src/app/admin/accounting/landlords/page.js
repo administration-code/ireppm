@@ -1,7 +1,7 @@
 import StaffGate from "@/components/admin/StaffGate";
 import LandlordsBoard from "@/components/admin/accounting/LandlordsBoard";
 
-export const metadata = { title: "Landlord year-end" };
+export const metadata = { title: "Landlord Year-End" };
 
 export default async function LandlordYearEndPage({ searchParams }) {
   const { year } = await searchParams;

@@ -13,7 +13,7 @@ export default async function HomePage() {
       <section className="hero">
         <div className="wrap grid">
           <div className="copy">
-            <span className="eyebrow">Windsor-Essex property management</span>
+            <span className="eyebrow">Windsor-Essex Property Management</span>
             <h1>
               Windsor rentals, <em>managed properly.</em>
             </h1>
@@ -24,10 +24,10 @@ export default async function HomePage() {
             </p>
             <div className="row">
               <Link className="btn primary" href="/pricing">
-                See management packages
+                See Management Packages
               </Link>
               <Link className="btn ghost" href="/properties">
-                Browse rentals
+                Browse Rentals
               </Link>
             </div>
           </div>
@@ -39,7 +39,7 @@ export default async function HomePage() {
         <div className="wrap">
           <div className="split">
             <div>
-              <span className="eyebrow">For landlords</span>
+              <span className="eyebrow">For Landlords</span>
               <h3>Hand us the keys, keep the income.</h3>
               <ul>
                 <li>Every applicant screened, and you approve every tenant</li>
@@ -49,15 +49,15 @@ export default async function HomePage() {
               </ul>
               <div className="row">
                 <Link className="btn primary" href="/landlords">
-                  Why landlords choose IRep
+                  Why Landlords Choose IRep
                 </Link>
                 <Link className="btn ghost" href="/landlords#estimate">
-                  Free rent estimate
+                  Free Rent Estimate
                 </Link>
               </div>
             </div>
             <div>
-              <span className="eyebrow">For renters</span>
+              <span className="eyebrow">For Renters</span>
               <h3>Apply once, with everything attached.</h3>
               <ul>
                 <li>See every unit we have available right now</li>
@@ -67,7 +67,7 @@ export default async function HomePage() {
               </ul>
               <div>
                 <Link className="btn ghost" href="/properties">
-                  See available rentals
+                  See Available Rentals
                 </Link>
               </div>
             </div>
@@ -78,8 +78,8 @@ export default async function HomePage() {
       <section className="block">
         <div className="wrap stack" style={{ gap: 24 }}>
           <div className="head" style={{ marginBottom: 0 }}>
-            <span className="eyebrow">Our promises to landlords</span>
-            <h2>What you can count on</h2>
+            <span className="eyebrow">Our Promises to Landlords</span>
+            <h2>What You Can Count On</h2>
           </div>
           <ul className="landlord-strip">
             {LANDLORD_PROMISES.map(([t, d]) => (
@@ -91,7 +91,7 @@ export default async function HomePage() {
           </ul>
           <div>
             <Link className="btn ghost" href="/landlords#calculator">
-              Work out your monthly fee
+              Work Out Your Monthly Fee
             </Link>
           </div>
         </div>
@@ -100,8 +100,8 @@ export default async function HomePage() {
       <section className="block">
         <div className="wrap">
           <div className="head">
-            <span className="eyebrow">How placement works</span>
-            <h2>From vacant to rented</h2>
+            <span className="eyebrow">How Placement Works</span>
+            <h2>From Vacant to Rented</h2>
           </div>
           <ol className="steps">
             <li>
@@ -131,7 +131,7 @@ export default async function HomePage() {
       <section className="block">
         <div className="wrap area">
           <div className="stack">
-            <span className="eyebrow">Where we work</span>
+            <span className="eyebrow">Where We Work</span>
             <h2>Windsor first, all of Essex County.</h2>
             <p className="lead">
               Most of the homes we manage are in Windsor, from Walkerville and Downtown to the University district and the

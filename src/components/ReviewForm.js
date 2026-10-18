@@ -89,7 +89,7 @@ export default function ReviewForm({ initialType = "" }) {
         </div>
       </fieldset>
       <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }}>
-        <legend>Your rating</legend>
+        <legend>Your Rating</legend>
         <div className="stars-input" role="radiogroup" aria-label="Rating">
           {[1, 2, 3, 4, 5].map((n) => (
             <label key={n} className={n <= f.rating ? "on" : ""}>

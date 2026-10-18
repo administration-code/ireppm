@@ -69,7 +69,7 @@ export default function PropertiesTable() {
           <p className="small">Buildings IRep manages, their units and who lives there. Owner details stay in the staff area.</p>
         </div>
         <Link className="btn primary" href="/admin/properties/new">
-          Add property
+          Add Property
         </Link>
       </div>
 
@@ -79,10 +79,10 @@ export default function PropertiesTable() {
         <p className="small">Loading properties…</p>
       ) : properties.length === 0 && !error ? (
         <div className="empty">
-          <h2>No properties yet</h2>
+          <h2>No Properties Yet</h2>
           <p>Add the first property you manage. You can add its units and tenants after that.</p>
           <Link className="btn ghost" href="/admin/properties/new">
-            Add the first property
+            Add the First Property
           </Link>
         </div>
       ) : properties.length ? (

@@ -341,7 +341,7 @@ export default function ApplicationReview({ app, onChange, onAccept }) {
           <div className="okbox row">
             <span>The landlord approved this applicant.</span>
             <button type="button" className="btn primary sm" onClick={onAccept}>
-              Landlord approved: accept and send the lease
+              Landlord Approved: Accept and Send the Lease
             </button>
           </div>
         ) : null}

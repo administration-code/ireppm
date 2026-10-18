@@ -76,7 +76,7 @@ export default function CommissionsBoard({ year: yearProp }) {
 
   return (
     <div className="stack">
-      <AccountingTabs title="Commissions & loans" subtitle="The leasing fee split and the shareholder loans.">
+      <AccountingTabs title="Commissions & Loans" subtitle="The leasing fee split and the shareholder loans.">
         <div className="acct-inline-actions">
           <YearSelect year={year} />
           <button type="button" className="btn ghost" onClick={exportYear} disabled={!data}>
@@ -274,7 +274,7 @@ function MonthsTable({ data, year, onChange }) {
   return (
     <section className="boxed stack" aria-labelledby="comm-months">
       <h2 id="comm-months" className="sec-title">
-        By month
+        By Month
       </h2>
       <div className="ly-table-wrap">
         <table className="acct-st">
@@ -475,7 +475,7 @@ function PaymentsList({ payments, year, onChange }) {
   return (
     <section className="boxed stack" aria-labelledby="comm-payments">
       <h2 id="comm-payments" className="sec-title">
-        Commission payments
+        Commission Payments
       </h2>
       {payments.length ? (
         <ul className="acct-mini-list">

@@ -190,7 +190,7 @@ export default function ListingForm({ listing, saved, prefill, unitId }) {
             <span className={`pill st-${status}`}>{STATUS_LABEL[status] || status}</span>
             {!isNew && status === "available" ? (
               <Link className="btn ghost sm" href={`/properties/${listing.slug}`} target="_blank">
-                View on site
+                View on Site
               </Link>
             ) : null}
           </div>
@@ -238,7 +238,7 @@ export default function ListingForm({ listing, saved, prefill, unitId }) {
 
       <section className="boxed stack" aria-labelledby="sec-details">
         <h2 id="sec-details" className="sec-title">
-          The rental
+          The Rental
         </h2>
         <div className="row4">
           <div className="field">
@@ -276,7 +276,7 @@ export default function ListingForm({ listing, saved, prefill, unitId }) {
           </div>
         </div>
         <fieldset className="field">
-          <legend>Utilities included in the rent</legend>
+          <legend>Utilities Included in the Rent</legend>
           <div className="row" style={{ flexWrap: "wrap", gap: "6px 18px" }}>
             <label className="check">
               <input

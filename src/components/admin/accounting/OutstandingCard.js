@@ -51,7 +51,7 @@ export default function OutstandingCard({ summary }) {
     <section className="boxed stack" aria-labelledby="acct-outstanding-title">
       <div>
         <h2 id="acct-outstanding-title" className="sec-title">
-          Recorded but not at the bank yet
+          Recorded but Not at the Bank Yet
         </h2>
         <p className="small">These are normal for a day or two at the end of the month.</p>
       </div>
@@ -62,7 +62,7 @@ export default function OutstandingCard({ summary }) {
           render={(r) => [r.who || "Unknown sender", METHOD_LABEL[r.method] || r.method].filter(Boolean).join(" · ")}
           open={hrefForPayment}
         />
-        <List title="Landlord payouts" rows={payouts} render={(r) => r.property || "Property"} open={hrefForPayout} />
+        <List title="Landlord Payouts" rows={payouts} render={(r) => r.property || "Property"} open={hrefForPayout} />
       </div>
     </section>
   );

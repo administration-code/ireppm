@@ -53,7 +53,7 @@ export default function UnitTurnover({ unitId }) {
               .join(" · ")}
           </p>
           <Link className="btn ghost sm" href={`/admin/turnovers/${t.id}`}>
-            Open turnover
+            Open Turnover
           </Link>
         </>
       ) : (

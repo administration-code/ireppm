@@ -41,7 +41,7 @@ export default function PartnersTable() {
           <p className="small">Trades and contractors we send maintenance jobs to.</p>
         </div>
         <Link className="btn primary" href="/admin/partners/new">
-          Add partner
+          Add Partner
         </Link>
       </div>
 
@@ -51,10 +51,10 @@ export default function PartnersTable() {
         <p className="small">Loading partners…</p>
       ) : partners.length === 0 && !error ? (
         <div className="empty">
-          <h2>No partners yet</h2>
+          <h2>No Partners Yet</h2>
           <p>Add the plumbers, electricians and other trades you work with, then assign them to requests.</p>
           <Link className="btn ghost" href="/admin/partners/new">
-            Add the first partner
+            Add the First Partner
           </Link>
         </div>
       ) : partners.length ? (
