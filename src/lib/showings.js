@@ -4,7 +4,8 @@ import { sendMail, staffEmails, SITE_URL } from "@/lib/application-review";
 // Showing requests (see migration 0032): Chuck answers from a private link; renters answer a
 // suggested time; current tenants get written notice once a showing is confirmed.
 
-export const WINDOWS = ["Morning (9 am – 12 pm)", "Afternoon (12 – 5 pm)", "Evening (5 – 8 pm)"];
+import { WINDOWS, isExactTime, toMinutes } from "@/lib/showing-times";
+export { WINDOWS, isExactTime };
 
 export function showingsInbox() {
   const list = (process.env.SHOWINGS_EMAIL || "").split(",").map((s) => s.trim()).filter(Boolean);
@@ -43,14 +44,14 @@ export const placeOf = (l) => [l?.address, l?.unit].filter(Boolean).join(", ") |
 
 // Start of a time window, as a Date (Windsor time).
 export function windowStart(dateIso, window) {
-  const hour = /^morning/i.test(window) ? 9 : /^evening/i.test(window) ? 17 : 12;
+  const mins = toMinutes(window);
   // Find the UTC offset for Toronto on that day.
   const probe = new Date(`${dateIso}T12:00:00Z`);
   const tz = new Intl.DateTimeFormat("en-US", { timeZone: "America/Toronto", timeZoneName: "shortOffset" })
     .formatToParts(probe)
     .find((p) => p.type === "timeZoneName")?.value || "GMT-5";
   const offset = Number((tz.match(/GMT([+-]\d+)/) || [0, -5])[1]);
-  return new Date(Date.UTC(...dateIso.split("-").map((n, i) => (i === 1 ? Number(n) - 1 : Number(n))), hour - offset));
+  return new Date(Date.UTC(...dateIso.split("-").map((n, i) => (i === 1 ? Number(n) - 1 : Number(n))), Math.floor(mins / 60) - offset, mins % 60));
 }
 
 // Everything a decision needs, by showing id (service-role client).

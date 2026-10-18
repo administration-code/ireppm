@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { WINDOWS, emailRenter, loadShowingByToken, sendTenantNotice, windowStart } from "@/lib/showings";
+import { WINDOWS, isExactTime, emailRenter, loadShowingByToken, sendTenantNotice, windowStart } from "@/lib/showings";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -55,7 +55,7 @@ export async function POST(request) {
   if (body.action === "reschedule") {
     const date = String(body.date || "");
     const time = String(body.time || "");
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !WINDOWS.includes(time)) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !(WINDOWS.includes(time) || isExactTime(time))) {
       return NextResponse.json({ error: "Pick a day and a time window." }, { status: 400 });
     }
     if (windowStart(date, time).getTime() < earliest) {

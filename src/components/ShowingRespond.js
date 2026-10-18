@@ -1,27 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { showingSlots } from "@/lib/showing-times";
 
-const WINDOWS = ["Morning (9 am – 12 pm)", "Afternoon (12 – 5 pm)", "Evening (5 – 8 pm)"];
-const START = { Morning: 9, Afternoon: 12, Evening: 17 };
-
-// Day + window choices that start late enough: 24 hours ahead, or later today if vacant.
-export function showingSlots(vacant, days = 14) {
-  const earliest = Date.now() + (vacant ? 0 : 24 * 3600 * 1000);
-  const out = [];
-  const today = new Date();
-  for (let k = 0; k <= days; k++) {
-    const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + k);
-    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    const windows = WINDOWS.filter((w) => {
-      const start = new Date(d.getFullYear(), d.getMonth(), d.getDate(), START[w.split(" ")[0]]);
-      return start.getTime() >= earliest;
-    });
-    if (windows.length)
-      out.push({ iso, label: d.toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" }), windows });
-  }
-  return out;
-}
+export { showingSlots };
 
 const DONE = {
   confirmed: "Approved. The renter has been emailed",
@@ -34,6 +16,7 @@ export default function ShowingRespond({ token, status, vacant, tenantCount, pro
   const [mode, setMode] = useState("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
+  const [exact, setExact] = useState("");
   const [note, setNote] = useState("");
   const [notifyTenants, setNotifyTenants] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -48,7 +31,7 @@ export default function ShowingRespond({ token, status, vacant, tenantCount, pro
     const res = await fetch("/api/showings/respond", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token, action, date, time, note, notifyTenants }),
+      body: JSON.stringify({ token, action, date, time: exact || time, note, notifyTenants }),
     });
     const json = await res.json().catch(() => ({}));
     setBusy(false);
@@ -86,7 +69,7 @@ export default function ShowingRespond({ token, status, vacant, tenantCount, pro
           <div className="row2">
             <div className="field">
               <label htmlFor="r-day">Day</label>
-              <select id="r-day" value={date} onChange={(e) => { setDate(e.target.value); setTime(""); }}>
+              <select id="r-day" value={date} onChange={(e) => { setDate(e.target.value); setTime(""); setExact(""); }}>
                 <option value="">Choose a day</option>
                 {slots.map((s) => (
                   <option key={s.iso} value={s.iso}>{s.label}</option>
@@ -94,8 +77,8 @@ export default function ShowingRespond({ token, status, vacant, tenantCount, pro
               </select>
             </div>
             <div className="field">
-              <label htmlFor="r-time">Time</label>
-              <select id="r-time" value={time} onChange={(e) => setTime(e.target.value)} disabled={!day}>
+              <label htmlFor="r-time">Time of Day</label>
+              <select id="r-time" value={time} onChange={(e) => { const w = e.target.value; const d = day; setTime(w); setExact(w && d && !d.whole?.[w] ? d.times[w][0] : ""); }} disabled={!day}>
                 <option value="">Choose a time</option>
                 {(day?.windows || []).map((w) => (
                   <option key={w}>{w}</option>
@@ -103,9 +86,19 @@ export default function ShowingRespond({ token, status, vacant, tenantCount, pro
               </select>
             </div>
           </div>
+          <div className="field">
+            <label htmlFor="r-exact">Exact Time</label>
+            <select id="r-exact" value={exact} onChange={(e) => setExact(e.target.value)} disabled={!time}>
+              {(day)?.whole?.[time] !== false ? <option value="">Any time in this window</option> : null}
+              {(day?.times?.[time] || []).map((t) => (
+                <option key={t}>{t}</option>
+              ))}
+            </select>
+            <span className="small">Pick a 30-minute start time, or leave it as any time in the window.</span>
+          </div>
           <div className="row">
             <button className="btn primary" type="button" disabled={busy || !date || !time} onClick={() => send("reschedule")}>
-              {busy ? "Sending…" : "Send the new time"}
+              {busy ? "Sending…" : "Send the New Time"}
             </button>
             <button className="btn ghost" type="button" onClick={() => setMode("")}>Back</button>
           </div>

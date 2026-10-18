@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "./AuthProvider";
 import { getBrowserClient } from "@/lib/supabase";
-import { showingSlots } from "./ShowingRespond";
+import { showingSlots } from "@/lib/showing-times";
 import ShowingAnswer from "./ShowingAnswer";
 
 const OPEN_STATUSES = ["submitted", "reviewing", "approved"];
@@ -26,6 +26,7 @@ export default function ListingActions({ listing, sample }) {
   const [formOpen, setFormOpen] = useState(false);
   const [date, setDate] = useState("");
   const [win, setWin] = useState("");
+  const [exact, setExact] = useState("");
   const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -93,7 +94,7 @@ export default function ListingActions({ listing, sample }) {
     const sb = getBrowserClient();
     const { data, error: err } = await sb
       .from("showing_requests")
-      .insert({ listing_id: listing.id, user_id: user.id, preferred_date: date, preferred_time: win, notes: notes.trim() || null })
+      .insert({ listing_id: listing.id, user_id: user.id, preferred_date: date, preferred_time: exact || win, notes: notes.trim() || null })
       .select("id, preferred_date, preferred_time, status, proposed_date, proposed_time, staff_note")
       .single();
     setBusy(false);
@@ -118,7 +119,7 @@ export default function ListingActions({ listing, sample }) {
         <form className="stack" style={{ gap: 12 }} onSubmit={submitShowing}>
           <div className="field">
             <label htmlFor="s-date">Day</label>
-            <select id="s-date" value={date} onChange={(e) => { setDate(e.target.value); setWin(""); }} required>
+            <select id="s-date" value={date} onChange={(e) => { setDate(e.target.value); setWin(""); setExact(""); }} required>
               <option value="">Choose a day</option>
               {days.map((d) => (
                 <option key={d.iso} value={d.iso}>
@@ -128,8 +129,8 @@ export default function ListingActions({ listing, sample }) {
             </select>
           </div>
           <div className="field">
-            <label htmlFor="s-win">Time of day</label>
-            <select id="s-win" value={win} onChange={(e) => setWin(e.target.value)} disabled={!date}>
+            <label htmlFor="s-win">Time of Day</label>
+            <select id="s-win" value={win} onChange={(e) => { const w = e.target.value; const d = days.find((d) => d.iso === date); setWin(w); setExact(w && d && !d.whole?.[w] ? d.times[w][0] : ""); }} disabled={!date}>
               <option value="">Choose a time</option>
               {(days.find((d) => d.iso === date)?.windows || []).map((w) => (
                 <option key={w}>{w}</option>
@@ -142,13 +143,23 @@ export default function ListingActions({ listing, sample }) {
             </span>
           </div>
           <div className="field">
+            <label htmlFor="s-exact">Exact Time (optional)</label>
+            <select id="s-exact" value={exact} onChange={(e) => setExact(e.target.value)} disabled={!win}>
+              {(days.find((d) => d.iso === date))?.whole?.[win] !== false ? <option value="">Any time in this window</option> : null}
+              {(days.find((d) => d.iso === date)?.times?.[win] || []).map((t) => (
+                <option key={t}>{t}</option>
+              ))}
+            </select>
+            <span className="small">Choose a 30-minute start time if you have one in mind. We&apos;ll confirm the exact time either way.</span>
+          </div>
+          <div className="field">
             <label htmlFor="s-notes">Anything we should know? (optional)</label>
             <textarea id="s-notes" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. moving in with one roommate" />
           </div>
           {error ? <p className="err">{error}</p> : null}
           <div className="row">
             <button className="btn primary" type="submit" disabled={busy}>
-              {busy ? "Sending…" : "Request showing"}
+              {busy ? "Sending…" : "Request Showing"}
             </button>
             <button className="btn ghost" type="button" onClick={() => setFormOpen(false)}>
               Cancel
