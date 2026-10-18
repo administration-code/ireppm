@@ -258,6 +258,7 @@ const TENANT_STEPS = [
   ["Upload tenant insurance", "Due within a week of moving in."],
   ["Report problems here", "Use Report a problem, with photos. Emergencies: call us."],
   ["Read your rights", "Our resources page has the Landlord and Tenant Board guides."],
+  ["Add the app to your phone", "Open Get the App at the bottom of any page to put IRep on your home screen."],
 ];
 
 export function GettingStarted({ role = "tenant", dismissedAt, onDismiss }) {
@@ -267,10 +268,13 @@ export function GettingStarted({ role = "tenant", dismissedAt, onDismiss }) {
     role === "owner"
       ? [
           ["See your properties", "Units, who lives there, and your agreement (first year, then month to month)."],
-          ["Monthly statements", "Rent collected, fees and what we sent you, month by month."],
+          ["Monthly statements", "Rent collected, fees, repairs and what we sent you, month by month."],
           ["Approve applicants", "We never accept a tenant without your OK."],
+          ["Approve repairs", "Repairs over $250 that aren't emergencies wait for your OK. Emergencies are handled right away."],
+          ["Sign notices", "If rent is late, we email you the N4 to sign around the 8th, then deliver it to the tenant."],
           ["Year-end summary", "Your rental income and expenses, laid out for your T776."],
-          ["Resources", "Ontario landlord rules and rent increase guidelines."],
+          ["Refer a landlord", "When a landlord you refer signs with us, you get a month's management fee free."],
+          ["Add the app to your phone", "Open Get the App at the bottom of any page to put IRep on your home screen."],
         ]
       : TENANT_STEPS;
 
