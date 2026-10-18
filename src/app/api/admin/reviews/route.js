@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { staffUser } from "@/lib/signatures-server";
+import { reviewerPlaces } from "@/lib/reviews";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,7 +12,8 @@ export async function GET(request) {
   if (!(await staffUser(admin, request))) return NextResponse.json({ error: "Staff sign-in required." }, { status: 401 });
   const { data, error } = await admin.from("reviews").select("*").order("created_at", { ascending: false }).limit(500);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ reviews: data || [] });
+  const places = await reviewerPlaces(admin, (data || []).map((r) => r.profile_id));
+  return NextResponse.json({ reviews: (data || []).map((r) => ({ ...r, places: places[r.profile_id] || [] })) });
 }
 
 export async function POST(request) {

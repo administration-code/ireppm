@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { getBrowserClient } from "@/lib/supabase";
 import { useAuth } from "@/components/AuthProvider";
 
@@ -9,6 +9,27 @@ export default function ReviewForm({ initialType = "" }) {
   const [f, setF] = useState({ reviewer_type: initialType, rating: 0, display_name: "", title: "", body: "", email: "", consent: false, website: "" });
   const [state, setState] = useState("");
   const [error, setError] = useState("");
+  const [roles, setRoles] = useState(null);
+
+  useEffect(() => {
+    if (!auth?.ready) return;
+    let alive = true;
+    (async () => {
+      const { data } = await getBrowserClient().auth.getSession();
+      const token = data?.session?.access_token;
+      if (!token) return alive && setRoles({ signedIn: false });
+      const res = await fetch("/api/reviews", { headers: { Authorization: `Bearer ${token}` } });
+      const json = await res.json().catch(() => ({}));
+      if (!alive) return;
+      setRoles(json);
+      const only = json.tenant && !json.landlord ? "tenant" : json.landlord && !json.tenant ? "landlord" : "";
+      if (only) setF((x) => ({ ...x, reviewer_type: only }));
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [auth?.ready, auth?.user?.id]);
+
   const set = (k) => (e) => setF((x) => ({ ...x, [k]: e.target.type === "checkbox" ? e.target.checked : e.target.value }));
 
   async function submit(e) {
@@ -35,12 +56,31 @@ export default function ReviewForm({ initialType = "" }) {
   if (state === "sent")
     return <div className="okbox" role="status">Thank you for your review. We&apos;ll post it on this page once we&apos;ve checked it, usually within a couple of days.</div>;
 
+  if (!roles) return <p className="small">Loading…</p>;
+  if (!roles.signedIn)
+    return (
+      <div className="stack" style={{ gap: 10 }}>
+        <p style={{ margin: 0 }}>Reviews are for tenants and landlords who&apos;ve rented or managed a property with us. Sign in with your IRep account to write one.</p>
+        <button type="button" className="btn primary" style={{ justifySelf: "start" }} onClick={() => auth?.openSignIn?.("/reviews#write")}>
+          Sign in to write a review
+        </button>
+      </div>
+    );
+  if (!roles.tenant && !roles.landlord)
+    return (
+      <p style={{ margin: 0 }}>
+        Your account isn&apos;t linked to a property with IRep yet, so it can&apos;t leave a review. If you rent from us or we manage your property, contact us and we&apos;ll link it.
+      </p>
+    );
+
+  const types = [["tenant", "Tenant"], ["landlord", "Landlord"]].filter(([v]) => roles[v]);
+
   return (
     <form className="stack" style={{ gap: 12 }} onSubmit={submit}>
       <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }}>
         <legend>I&apos;m a</legend>
         <div className="row" style={{ gap: 16 }}>
-          {[["tenant", "Tenant"], ["landlord", "Landlord"]].map(([v, l]) => (
+          {types.map(([v, l]) => (
             <label key={v} className="check">
               <input type="radio" name="reviewer_type" value={v} checked={f.reviewer_type === v} onChange={set("reviewer_type")} required />
               {l}
@@ -83,14 +123,6 @@ export default function ReviewForm({ initialType = "" }) {
         <input type="checkbox" checked={f.consent} onChange={set("consent")} required />
         <span>IRep can publish my review and the name above on its website.</span>
       </label>
-      {auth?.user ? (
-        <p className="small" style={{ margin: 0 }}>You&apos;re signed in, so your review will show as verified if you rent or own a home with us.</p>
-      ) : (
-        <p className="small" style={{ margin: 0 }}>
-          Tenant or landlord with us?{" "}
-          <button type="button" className="link-btn" onClick={() => auth?.openSignIn?.("/reviews#write")}>Sign in</button> first and your review shows as verified.
-        </p>
-      )}
       {error ? <p className="err">{error}</p> : null}
       <button className="btn primary" type="submit" disabled={state === "sending"}>
         {state === "sending" ? "Sending…" : "Send my review"}

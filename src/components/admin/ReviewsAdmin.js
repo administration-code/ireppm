@@ -64,10 +64,11 @@ export default function ReviewsAdmin() {
               <span>
                 <span className="stars">{"★".repeat(r.rating)}<span className="off">{"★".repeat(5 - r.rating)}</span></span>{" "}
                 <b>{r.display_name}</b> · {r.reviewer_type === "tenant" ? "Tenant" : "Landlord"}
-                {r.verified ? <span className="pill st-available" style={{ marginLeft: 6 }}>Verified</span> : <span className="pill" style={{ marginLeft: 6 }}>Not signed in</span>}
+                {r.verified ? <span className="pill st-available" style={{ marginLeft: 6 }}>Verified</span> : <span className="pill" style={{ marginLeft: 6 }}>Not verified</span>}
               </span>
               <span className="small">{new Date(r.created_at).toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric" })}{r.email ? ` · ${r.email}` : ""}</span>
             </div>
+            {r.places?.length ? <p className="small" style={{ margin: 0 }}>{r.places.join(" · ")} (staff only, not shown on the website)</p> : null}
             {r.title ? <b>{r.title}</b> : null}
             <p style={{ margin: 0, whiteSpace: "pre-line" }}>{r.body}</p>
             <div className="field" style={{ margin: 0 }}>
