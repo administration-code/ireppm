@@ -38,6 +38,7 @@ export default function Footer() {
           <Link href="/owner">Landlord Portal</Link>
           <Link href="/agent">Partner Portal</Link>
           <Link href="/admin">Staff</Link>
+          <Link href="/app">Get the App</Link>
         </div>
         <div className="legal">
           © {new Date().getFullYear()} {SITE.name} · <Link href="/resources" style={{ display: "inline" }}>Resources</Link> · <Link href="/privacy" style={{ display: "inline" }}>Privacy Policy</Link>

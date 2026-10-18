@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { supabaseConfigured } from "@/lib/supabase";
 import { SITE } from "@/lib/site";
+import { ServiceWorker } from "@/components/AppInstall";
 
 const display = Cormorant_Garamond({
   subsets: ["latin"],
@@ -28,6 +29,7 @@ export const metadata = {
   },
   description:
     "Residential property management and leasing in Windsor and Essex County. Browse available rentals, book a showing and apply online.",
+  appleWebApp: { capable: true, title: "IRep", statusBarStyle: "black" },
   openGraph: {
     siteName: SITE.name,
     locale: "en_CA",
@@ -43,6 +45,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en-CA" className={`${display.variable} ${body.variable}`}>
       <body>
+        <ServiceWorker />
         <AuthProvider>
           {!supabaseConfigured ? (
             <div className="notice">

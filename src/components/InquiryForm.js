@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { getBrowserClient, supabaseConfigured } from "@/lib/supabase";
+import { useRef, useState } from "react";
+import { supabaseConfigured } from "@/lib/supabase";
 import { INQUIRY_INTERESTS, SITE } from "@/lib/site";
 import AddressInput from "@/components/AddressInput";
 
@@ -13,6 +13,8 @@ export default function InquiryForm({ estimate = false, id = "inquiry" }) {
     home_type: "House", beds: "", baths: "",
   });
   const [state, setState] = useState("idle");
+  const started = useRef(Date.now());
+  const [website, setWebsite] = useState("");
   const [error, setError] = useState("");
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
 
@@ -24,14 +26,17 @@ export default function InquiryForm({ estimate = false, id = "inquiry" }) {
       return;
     }
     setState("sending");
-    const sb = getBrowserClient();
     const { home_type, beds, baths, ...rest } = f;
     const about = estimate ? [`Home: ${home_type}`, beds && `${beds} bed`, baths && `${baths} bath`].filter(Boolean).join(", ") : "";
     const payload = Object.fromEntries(
       Object.entries({ ...rest, message: [about, rest.message.trim()].filter(Boolean).join("\n") }).map(([k, v]) => [k, String(v || "").trim() || null])
     );
-    const { error: err } = await sb.from("landlord_inquiries").insert(payload);
-    if (err) {
+    const res = await fetch("/api/inquiry", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...payload, website, started: started.current }),
+    }).catch(() => null);
+    if (!res?.ok) {
       setState("idle");
       setError(`We couldn't send that. Try again, or email us at ${SITE.email}.`);
       return;
@@ -108,6 +113,16 @@ export default function InquiryForm({ estimate = false, id = "inquiry" }) {
         <label htmlFor={`${id}-msg`}>Tell us about the property (optional)</label>
         <textarea id={`${id}-msg`} value={f.message} onChange={set("message")} placeholder="Number of units, current tenants, when you need help" />
       </div>
+      <input
+        type="text"
+        name="website"
+        value={website}
+        onChange={(e) => setWebsite(e.target.value)}
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden="true"
+        style={{ position: "absolute", left: "-9999px", width: 1, height: 1 }}
+      />
       {error ? <p className="err">{error}</p> : null}
       <button className="btn primary" type="submit" disabled={state === "sending"}>
         {state === "sending" ? "Sending…" : estimate ? "Get my rent estimate" : "Send inquiry"}
