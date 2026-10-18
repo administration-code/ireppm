@@ -1,8 +1,9 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { getBrowserClient, supabaseConfigured } from "@/lib/supabase";
 import { SITE } from "@/lib/site";
+import Turnstile from "@/components/Turnstile";
 
 const AuthContext = createContext({
   user: null,
@@ -180,6 +181,8 @@ function SignInModal({ next, initialEmail = "", onClose }) {
   const [error, setError] = useState("");
   const [sentTo, setSentTo] = useState("");
   const [busy, setBusy] = useState(false);
+  const [captcha, setCaptcha] = useState("");
+  const captchaRef = useRef(null);
 
   useEffect(() => {
     const onKey = (e) => e.key === "Escape" && onClose();
@@ -202,14 +205,17 @@ function SignInModal({ next, initialEmail = "", onClose }) {
     await sb.rpc("remember_signin_phone", { p_email: em, p_phone: phone.trim() });
     const { error: err } = await sb.auth.signInWithOtp({
       email: em,
-      options: { emailRedirectTo: window.location.origin + next, data: { phone: phone.trim() } },
+      options: { emailRedirectTo: window.location.origin + next, data: { phone: phone.trim() }, captchaToken: captcha || undefined },
     });
     setBusy(false);
+    captchaRef.current?.reset();
     if (err) {
       setError(
         err.status === 429
           ? "Too many sign-in emails were sent. Wait a few minutes and try again."
-          : "We couldn't send the sign-in email. Check the address and try again."
+          : /captcha/i.test(err.message || "")
+            ? "Please wait for the security check under the email box to finish, then try again."
+            : "We couldn't send the sign-in email. Check the address and try again."
       );
       return;
     }
@@ -282,9 +288,10 @@ function SignInModal({ next, initialEmail = "", onClose }) {
                 required
               />
             </div>
+            <Turnstile ref={captchaRef} onToken={setCaptcha} />
             {error ? <p className="err">{error}</p> : null}
             <button className="btn primary" type="submit" disabled={busy}>
-              {busy ? "Sending…" : "Email me a sign-in link"}
+              {busy ? "Sending…" : "Email Me a Sign-In Link"}
             </button>
           </form>
         )}
