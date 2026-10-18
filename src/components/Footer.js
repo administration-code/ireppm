@@ -32,6 +32,13 @@ export default function Footer() {
           <Link href="/reviews">Reviews</Link>
           <Link href="/about#inquiry">Talk to us</Link>
         </div>
+        <div>
+          <b>Sign in</b>
+          <Link href="/account">Tenants and applicants</Link>
+          <Link href="/owner">Landlord portal</Link>
+          <Link href="/agent">Partner portal</Link>
+          <Link href="/admin">Staff</Link>
+        </div>
         <div className="legal">
           © {new Date().getFullYear()} {SITE.name} · <Link href="/resources" style={{ display: "inline" }}>Resources</Link> · <Link href="/privacy" style={{ display: "inline" }}>Privacy policy</Link>
         </div>

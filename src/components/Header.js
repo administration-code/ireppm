@@ -7,6 +7,7 @@ import { IRepMark } from "./Brand";
 import { useAuth } from "./AuthProvider";
 import { useStaff } from "@/lib/useStaff";
 import { useOwner } from "@/lib/useOwner";
+import { usePartner } from "@/lib/usePartner";
 
 const NAV = [
   ["/", "Home"],
@@ -17,11 +18,20 @@ const NAV = [
   ["/about", "About"],
 ];
 
+// One sign-in for everyone; this only decides where they land afterwards.
+const SIGN_IN = [
+  ["/account", "Tenants and applicants"],
+  ["/owner", "Landlords"],
+  ["/agent", "Partners"],
+  ["/admin", "Staff"],
+];
+
 export default function Header() {
   const path = usePathname() || "/";
   const { user, openSignIn } = useAuth();
   const { isStaff } = useStaff();
   const { isOwner } = useOwner();
+  const { isPartner } = usePartner();
   const isCurrent = (href) => (href === "/" ? path === "/" : path.startsWith(href));
 
   // Remember which page the menu was opened on, so changing page closes it.
@@ -79,6 +89,11 @@ export default function Header() {
             Owner portal
           </Link>
         ) : null}
+        {isPartner ? (
+          <Link className="staff-link" href="/agent" aria-current={current("/agent")}>
+            Partner portal
+          </Link>
+        ) : null}
         {user ? (
           <Link className="acct-btn" href="/account">
             My profile
@@ -100,7 +115,7 @@ export default function Header() {
       </div>
       <div id="site-menu" className="site-menu" hidden={!menuOpen}>
         <div className="wrap">
-          {isStaff || isOwner ? (
+          {isStaff || isOwner || isPartner ? (
             <div className="site-menu-portals">
               {isStaff ? (
                 <Link className="site-menu-portal" href="/admin" aria-current={current("/admin")} onClick={closeMenu}>
@@ -110,6 +125,11 @@ export default function Header() {
               {isOwner ? (
                 <Link className="site-menu-portal" href="/owner" aria-current={current("/owner")} onClick={closeMenu}>
                   Owner portal
+                </Link>
+              ) : null}
+              {isPartner ? (
+                <Link className="site-menu-portal" href="/agent" aria-current={current("/agent")} onClick={closeMenu}>
+                  Partner portal
                 </Link>
               ) : null}
             </div>
@@ -131,16 +151,22 @@ export default function Header() {
               My profile
             </Link>
           ) : (
-            <button
-              type="button"
-              className="site-menu-acct"
-              onClick={() => {
-                closeMenu();
-                openSignIn("/account");
-              }}
-            >
-              Sign in
-            </button>
+            <div className="site-menu-signin">
+              <span>Sign in</span>
+              {SIGN_IN.map(([next, label]) => (
+                <button
+                  key={next}
+                  type="button"
+                  className="site-menu-acct"
+                  onClick={() => {
+                    closeMenu();
+                    openSignIn(next);
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           )}
         </div>
       </div>
