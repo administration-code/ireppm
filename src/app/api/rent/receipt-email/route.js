@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { loadReceipt, receiptParams } from "@/lib/receipt";
 import { receiptEmail } from "@/lib/receipt-email";
 import { SITE } from "@/lib/site";
+import { mfaSatisfied } from "@/lib/staff-mfa";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,7 +16,7 @@ async function staffUser(sb, request) {
   const token = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
   if (!token) return null;
   const { data, error } = await sb.auth.getUser(token);
-  if (error || !data?.user) return null;
+  if (error || !data?.user || !mfaSatisfied(data.user, token)) return null;
   const { data: profile } = await sb.from("profiles").select("role").eq("id", data.user.id).maybeSingle();
   return profile && ["staff", "admin"].includes(profile.role) ? data.user : null;
 }

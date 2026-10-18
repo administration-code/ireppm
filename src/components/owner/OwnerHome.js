@@ -13,6 +13,7 @@ import { SITE } from "@/lib/site";
 import OwnerMonthly from "@/components/owner/OwnerMonthly";
 import InsuranceReview from "@/components/InsuranceReview";
 import { GettingStarted } from "@/components/tenant/TenantCards";
+import EmailPrefs from "@/components/EmailPrefs";
 
 async function loadPortal() {
   const sb = getBrowserClient();
@@ -192,6 +193,8 @@ export default function OwnerHome() {
           </Link>
         </div>
       </section>
+
+      <EmailPrefs />
     </div>
   );
 }

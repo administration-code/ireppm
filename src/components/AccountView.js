@@ -11,6 +11,7 @@ import AddressInput from "@/components/AddressInput";
 import ReferencesEditor from "@/components/ReferencesEditor";
 import MyApplicationExtras from "@/components/MyApplicationExtras";
 import ShowingAnswer from "@/components/ShowingAnswer";
+import EmailPrefs from "@/components/EmailPrefs";
 
 const STATUS_LABEL = {
   requested: "Requested",
@@ -405,6 +406,8 @@ export default function AccountView() {
             </div>
 
             <ProfileFields key={`${profile?.phone || ""}|${profile?.full_name || ""}`} profile={profile} onSave={saveProfile} />
+
+            <EmailPrefs />
 
             <ReferencesEditor key={profile?.id} references={profile?.rental_references} onSave={saveProfile} />
 

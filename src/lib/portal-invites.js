@@ -25,6 +25,7 @@ export function ownerInviteEmail(owner, addresses = []) {
     ],
     link: inviteLink("/owner", owner.email),
     linkLabel: "Open your owner portal",
+    marketing: true,
   };
 }
 
@@ -44,6 +45,7 @@ export function tenantInviteEmail(person, tenancy) {
     ],
     link: inviteLink("/account", person.email),
     linkLabel: "Open your tenant account",
+    marketing: true,
   };
 }
 

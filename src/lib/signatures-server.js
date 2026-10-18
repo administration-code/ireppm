@@ -3,6 +3,7 @@ import { sendWelcome } from "@/lib/tenant-notices";
 import { Resend } from "resend";
 import { escapeHtml } from "@/lib/staff-alerts";
 import { ds, getDocument, getEnvelope, getRecipients, summarizeRecipients } from "@/lib/docusign";
+import { mfaSatisfied } from "@/lib/staff-mfa";
 
 export const SIGNED_BUCKET = "signed-documents";
 const ADMIN_URL = "https://ireppm.ca/admin";
@@ -18,7 +19,7 @@ export async function staffUser(sb, request) {
   const token = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
   if (!token) return null;
   const { data, error } = await sb.auth.getUser(token);
-  if (error || !data?.user) return null;
+  if (error || !data?.user || !mfaSatisfied(data.user, token)) return null;
   const { data: profile } = await sb.from("profiles").select("role, full_name").eq("id", data.user.id).maybeSingle();
   if (!profile || !["staff", "admin"].includes(profile.role)) return null;
   return { ...data.user, full_name: profile.full_name || data.user.email };

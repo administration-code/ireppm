@@ -92,6 +92,19 @@ const SECTIONS = [
       ["Review add-on prices and rates for the new year.", "/admin/rates", "Add-ons & rates"],
     ],
   },
+  {
+    id: "breach",
+    title: "Privacy breach response",
+    steps: [
+      ["A breach is any loss of, or access to, personal information that shouldn't have happened: an email or document sent to the wrong person, a lost phone or laptop, a hacked account, paperwork left behind at a showing. Tell the Privacy Officer (administration@ireppm.ca) the same day."],
+      ["Contain it right away: ask the wrong recipient to delete it and confirm, sign the account out everywhere and change its password, reset two-step sign-in, or pull the document from the website."],
+      ["Log it in the breach record the same day, even if it seems minor. PIPEDA requires us to keep every breach on record for at least 24 months.", "/admin/privacy-breaches", "Breach record"],
+      ["Decide whether there's a real risk of significant harm: how sensitive the information is (ID, SIN, banking, credit reports, income are highly sensitive) and how likely it is to be misused. Write down why."],
+      ["If there's a real risk: report it to the Office of the Privacy Commissioner as soon as possible using their breach report form, and tell the people affected directly (email or phone): what happened, what information, what we've done, what they can do (e.g. watch their credit with Equifax and TransUnion) and who to contact.", "https://priv.gc.ca/en/report-a-concern/report-a-privacy-breach-at-your-organization/report-a-privacy-breach-at-your-business", "OPC breach report"],
+      ["Tell anyone else who can reduce the harm, such as the bank, PayProp or the police, and note it in the record."],
+      ["Close it out: record what was fixed so it doesn't happen again, and the date it was closed."],
+    ],
+  },
 ];
 
 export default function WorkflowPage() {
@@ -119,7 +132,7 @@ export default function WorkflowPage() {
                   {href ? (
                     <>
                       {" "}
-                      <Link href={href} className="small">{label} →</Link>
+                      <Link href={href} className="small" {...(href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}>{label} →</Link>
                     </>
                   ) : null}
                 </li>

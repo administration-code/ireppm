@@ -8,6 +8,7 @@ import DeleteRecord from "@/components/admin/DeleteRecord";
 import { deleteLeasingRecord } from "@/lib/delete-records";
 import AppFileButton from "@/components/AppFileButton";
 import ApplicationReview from "@/components/admin/ApplicationReview";
+import DeclineNotice from "@/components/admin/DeclineNotice";
 import { listingTitle } from "@/lib/format";
 import { INCOME_TYPES } from "@/lib/documents";
 import { docLabel } from "@/lib/application-client";
@@ -189,6 +190,7 @@ function ApplicationItem({ app, onChange, onRemove, earlier = [] }) {
           />
         </span>
       </div>
+      {app.status === "declined" ? <DeclineNotice app={app} onChange={onChange} /> : null}
       {app.status === "approved" ? (
         <>
           <Link className="btn ghost sm" style={{ justifySelf: "start" }} href={`/admin/signatures/new?kind=lease&application=${app.id}`}>

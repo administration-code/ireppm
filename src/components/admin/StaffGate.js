@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import { useStaff } from "@/lib/useStaff";
+import StaffMfa from "./StaffMfa";
 
 export default function StaffGate({ children }) {
   const { configured, openSignIn } = useAuth();
@@ -44,5 +45,5 @@ export default function StaffGate({ children }) {
       </div>
     );
   }
-  return children;
+  return <StaffMfa userId={user.id}>{children}</StaffMfa>;
 }

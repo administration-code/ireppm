@@ -3,6 +3,8 @@ import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { escapeHtml } from "@/lib/staff-alerts";
 import { SITE } from "@/lib/site";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { optedOut, unsubscribeLink } from "@/lib/unsubscribe";
 
 // Shared helpers for the landlord application review (see migration 0025).
 
@@ -61,7 +63,7 @@ export function emailButton(href, label) {
 <p style="margin:0 0 6px;font-size:12px;color:#6b6b6b;">Or open this link: <a href="${h}" style="color:#B41710;word-break:break-all;">${h}</a></p>`;
 }
 
-function brandedHtml(body, link, linkLabel) {
+function brandedHtml(body, link, linkLabel, unsubscribe) {
   return `<!doctype html><html lang="en-CA"><body style="margin:0;padding:0;background:#F7F4EE;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F7F4EE;padding:28px 12px;"><tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:580px;background:#ffffff;border-top:4px solid #B41710;">
@@ -72,23 +74,45 @@ ${link ? emailButton(link, linkLabel || "Open") : ""}
 </td></tr>
 <tr><td style="padding:16px 32px 24px;border-top:1px solid #E6E1D8;font-family:Arial,sans-serif;font-size:12px;line-height:1.5;color:#6b6b6b;">
 ${escapeHtml(SITE.name)}<br>${escapeHtml(SITE.address || "")}<br>${escapeHtml(SITE.phone)} · <a href="mailto:${SITE.email}" style="color:#6b6b6b;">${escapeHtml(SITE.email)}</a> · <a href="${SITE.url}" style="color:#6b6b6b;">ireppm.ca</a>
+${unsubscribe ? `<br><br>You're getting this because you rent or own a property managed by ${escapeHtml(SITE.name)}. <a href="${escapeHtml(unsubscribe)}" style="color:#6b6b6b;">Unsubscribe</a> from emails like this one. We'll still email you about your tenancy, application or payments.` : ""}
 </td></tr></table></td></tr></table></body></html>`;
 }
 
-// Branded email: a few paragraphs and one button.
-export async function sendMail({ to, subject, lines, link, linkLabel, replyTo, attachments }) {
+// Branded email: a few paragraphs and one button. Every email names the business, its mailing address
+// and how to reach us (CASL sender identification). `marketing: true` marks promotional email
+// (portal invitations and the like): it goes one recipient at a time with an unsubscribe link, and
+// skips anyone who has unsubscribed.
+export async function sendMail({ to, subject, lines, link, linkLabel, replyTo, attachments, marketing = false }) {
   const list = (Array.isArray(to) ? to : [to]).filter(Boolean);
   if (!process.env.RESEND_API_KEY || !list.length) return { skipped: true };
   const body = lines.filter(Boolean);
-  const html = brandedHtml(body, link, linkLabel);
+  if (marketing) {
+    const out = await optedOut(getSupabaseAdmin(), list);
+    if (!out) return { sent: false, skipped: true };
+    let sent = false;
+    for (const addr of list) {
+      if (out.has(addr.trim().toLowerCase())) continue;
+      const unsub = unsubscribeLink(SITE_URL, addr);
+      const r = await deliver({ to: [addr], subject, body, link, linkLabel, replyTo, attachments, unsub });
+      sent = sent || r.sent;
+    }
+    return sent ? { sent } : { sent: false, skipped: true, optedOut: true };
+  }
+  return deliver({ to: list, subject, body, link, linkLabel, replyTo, attachments });
+}
+
+async function deliver({ to, subject, body, link, linkLabel, replyTo, attachments, unsub }) {
+  const html = brandedHtml(body, link, linkLabel, unsub);
+  const footer = `${SITE.name}, ${SITE.address || ""} · ${SITE.phone} · ${SITE.email}`;
   try {
     const { error } = await new Resend(process.env.RESEND_API_KEY).emails.send({
       from: FROM,
-      to: list,
+      to,
       replyTo: replyTo || SITE.email,
       subject,
       html,
-      text: `${body.join("\n\n")}${link ? `\n\n${linkLabel || "Open"}: ${link}` : ""}`,
+      text: `${body.join("\n\n")}${link ? `\n\n${linkLabel || "Open"}: ${link}` : ""}\n\n--\n${footer}${unsub ? `\nUnsubscribe from emails like this: ${unsub}` : ""}`,
+      ...(unsub ? { headers: { "List-Unsubscribe": `<${unsub}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } } : {}),
       ...(attachments?.length ? { attachments } : {}),
     });
     if (error) console.error("[applications] email failed:", error.message || error);

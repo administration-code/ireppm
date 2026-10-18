@@ -42,7 +42,7 @@ export async function POST(request, { params }) {
       decision === "approved"
         ? "Next: accept the application and send the lease."
         : decision === "declined"
-          ? "Next: let the applicant know and decline the application."
+          ? "Next: set the application to Declined, then email the applicant from the same screen (it adds the credit report notice when needed)."
           : "The question has been sent to the applicant. We'll tell you and the landlord when they answer.",
     ],
     link: `${SITE_URL}/admin/requests?tab=applications`,

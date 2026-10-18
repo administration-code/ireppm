@@ -66,6 +66,7 @@ export const NAV_GROUPS = [
     items: [
       { key: "partners", label: "Partners", href: "/admin/partners" },
       { key: "rates", label: "Add-Ons & Rates", href: "/admin/rates" },
+      { key: "privacy-breaches", label: "Privacy Breach Record", href: "/admin/privacy-breaches" },
     ],
   },
 ];

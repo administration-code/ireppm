@@ -53,13 +53,40 @@ export default function PrivacyPage() {
           <p>We don't sell your information. We share it only with the landlord of the property you apply for and with the service providers we use to run the site and screen applications.</p>
           <p>
             Our service providers are Supabase (database and secure file storage, hosted in Canada), Vercel (website
-            hosting) and our tenant screening provider.
+            hosting), Resend (email delivery), Cloudflare (blocking automated sign-ups) and FrontLobby, our tenant
+            screening provider. Credit reports we obtain through FrontLobby come from Equifax Canada.
           </p>
 
           <h2>How We Protect It</h2>
           <p>
             Uploaded documents are kept in private storage. Only you and authorized {SITE.name} staff can open them.
-            Information is transferred over encrypted connections.
+            Information is transferred over encrypted connections, and staff accounts need a second sign-in step (a code
+            from an authenticator app).
+          </p>
+
+          <h2>If an Application Is Declined</h2>
+          <p>
+            If a decision on your application is based in whole or in part on a credit report, we tell you so when we
+            tell you the decision, and give you the name and address of the credit bureau (Equifax Canada) so you can get
+            a free copy of your file and correct anything that&apos;s wrong. If it&apos;s based on information from
+            someone else, such as a reference or previous landlord, you can ask us within 60 days what that information
+            was and where it came from. These rights come from Ontario&apos;s Consumer Reporting Act.
+          </p>
+
+          <h2>Emails From Us</h2>
+          <p>
+            We email you about your showings, application, tenancy, repairs and payments. We only send promotional email
+            (such as invitations to our portals) to people we already work with, and every one has an unsubscribe link.
+            You can also turn promotional email off in your profile or by emailing us. We act on unsubscribe requests
+            right away, and always within 10 business days.
+          </p>
+
+          <h2>If There&apos;s a Breach</h2>
+          <p>
+            If your personal information is lost, stolen or accessed without permission and there&apos;s a real risk of
+            significant harm to you, we&apos;ll tell you as soon as we can, report it to the Office of the Privacy
+            Commissioner of Canada, and tell you what we&apos;re doing about it and what you can do to protect yourself.
+            We keep a record of every breach, however small, for at least 24 months.
           </p>
 
           <h2>How Long We Keep It</h2>
@@ -74,6 +101,22 @@ export default function PrivacyPage() {
             You can see, correct or delete the information in your profile, or ask us to close your account, by emailing{" "}
             <b>{SITE.email}</b>.
           </p>
+
+          <h2>Privacy Officer</h2>
+          <p>
+            Our Privacy Officer is responsible for how {SITE.name} handles personal information. Contact them to see the
+            information we hold about you, correct it, withdraw your consent, or make a complaint. We answer within 30
+            days. If you&apos;re not satisfied with our answer, you can contact the{" "}
+            <a href="https://www.priv.gc.ca/en/report-a-concern/" target="_blank" rel="noopener noreferrer">
+              Office of the Privacy Commissioner of Canada
+            </a>
+            .
+          </p>
+          <ul>
+            <li>
+              Privacy Officer: <a href="mailto:administration@ireppm.ca">administration@ireppm.ca</a>
+            </li>
+          </ul>
 
           <h2>Contact</h2>
           <p>Questions about this policy or your information? Get in touch with {SITE.name}.</p>
