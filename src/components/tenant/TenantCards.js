@@ -1,5 +1,6 @@
 "use client";
 
+import { SITE } from "@/lib/site";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { getBrowserClient } from "@/lib/supabase";
@@ -256,7 +257,7 @@ const TENANT_STEPS = [
   ["Check your home details", "Your address and lease dates are above."],
   ["Set up rent payments", "Watch for the PayProp invitation, or ask us about e-Transfer."],
   ["Upload tenant insurance", "Due within a week of moving in."],
-  ["Report problems here", "Use Report a problem, with photos. Emergencies: call us."],
+  ["Report problems here", `Use Report a problem, with photos. Emergencies: call ${SITE.emergency.name} at ${SITE.emergency.phone}.`],
   ["Read your rights", "Our resources page has the Landlord and Tenant Board guides."],
   ["Add the app to your phone", "Open Get the App at the bottom of any page to put IRep on your home screen."],
 ];

@@ -54,7 +54,7 @@ export async function sendWelcome(sb, tenancyId) {
       `How to pay: ${PAYMENT_INFO.preferred} is our preferred way.\n• ${PAYMENT_INFO.preferredSteps.join("\n• ")}\nIf you can't use PayProp, ask us and we'll set you up for ${PAYMENT_INFO.fallback.replace(", on request", "")}.`,
       `Monthly draw: ${PAYMENT_INFO.draw}`,
       `Tenant insurance: please upload proof of your tenant insurance by ${longDay(due)} (within a week of moving in). You can upload it in your account.`,
-      "Repairs: report anything that needs fixing from your account, with photos. For emergencies (flooding, no heat in winter, gas smell, fire), call us right away and, if anyone is in danger, call 911 first.",
+      `Repairs: report anything that needs fixing from your account, with photos. For emergencies (flooding, no heat in winter, no power, a sewer backup), call ${SITE.emergency.name} right away at ${SITE.emergency.phone}. If you smell gas, there's a fire or anyone is in danger, call 911 first.`,
       `Your account: sign in with this email address to see your home, report problems and keep your documents in one place.`,
       `Questions? Reply to this email or call ${SITE.phone}. Useful information for tenants, including your rights under Ontario law, is on our resources page: ${RESOURCES}`,
     ],

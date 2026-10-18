@@ -19,7 +19,7 @@ export const LEASE_DEFAULTS = {
   paymentMethods: "PayProp (preferred). Interac e-Transfer to payment@ireppm.ca on request.",
   nsfCharge: "20.00",
   smokingRules: "See Schedule A.",
-  emergencyContact: `${SITE.name} ${SITE.phone}, ${SITE.email}`,
+  emergencyContact: `${SITE.emergency.name}, ${SITE.shortName}: ${SITE.emergency.phone}`,
   noticeAddress: {
     unit: SITE.office.unit,
     streetNumber: SITE.office.streetNumber,

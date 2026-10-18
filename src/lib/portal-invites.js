@@ -62,7 +62,7 @@ export function tenantInviteEmail(person, tenancy) {
         : "Tenant insurance: If we don't have your current tenant insurance on file yet, you can upload it in your account in a minute. It protects your belongings and covers you if something goes wrong.",
       SIGN_IN.replace("EMAIL", person.email),
       APP_LINE,
-      `Questions? Reply to this email or call ${SITE.phone}. For emergencies (flooding, no heat in winter, gas smell, fire), call us right away, and call 911 first if anyone is in danger.`,
+      `Questions? Reply to this email or call ${SITE.phone}. For emergencies (flooding, no heat in winter, no power, a sewer backup), call ${SITE.emergency.name} right away at ${SITE.emergency.phone}. If you smell gas, there's a fire or anyone is in danger, call 911 first.`,
     ],
     link: inviteLink("/account", person.email),
     linkLabel: "Open your tenant account",

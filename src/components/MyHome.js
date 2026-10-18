@@ -243,8 +243,8 @@ function ReportForm({ user, homes, onCancel, onSent }) {
       </div>
 
       <div className="emergency-box" role="note">
-        <b>Emergency?</b> No heat, flooding, no power or a sewer backup: call us right away at{" "}
-        <a href={`tel:${SITE.phone.replace(/[^\d+]/g, "")}`}>{SITE.phone}</a>. If you smell gas or there&apos;s a fire, leave
+        <b>Emergency?</b> No heat, flooding, no power or a sewer backup: call {SITE.emergency.name} right away at{" "}
+        <a href={`tel:${SITE.emergency.phone.replace(/[^\d+]/g, "")}`}>{SITE.emergency.phone}</a>. If you smell gas or there&apos;s a fire, leave
         and call 911.
       </div>
 

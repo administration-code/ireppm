@@ -64,8 +64,8 @@ export default function ResourcesPage() {
               is coming. We give 24 hours&apos; written notice before entering, except in an emergency.
             </li>
             <li>
-              Emergencies (flooding, no heat in winter, a gas smell, fire, a break-in): call us right away at{" "}
-              <a href={`tel:${SITE.phone}`}>{SITE.phone}</a>. If anyone is in danger, call 911 first.
+              Emergencies (flooding, no heat in winter, a gas smell, fire, a break-in): call {SITE.emergency.name} right away at{" "}
+              <a href={`tel:${SITE.emergency.phone.replace(/[^\d+]/g, "")}`}>{SITE.emergency.phone}</a>. If anyone is in danger, call 911 first.
             </li>
           </ul>
 

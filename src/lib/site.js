@@ -5,6 +5,8 @@ export const SITE = {
   url: "https://ireppm.ca",
   email: "administration@ireppm.ca",
   phone: "519-590-7200",
+  // Emergencies (flooding, no heat, sewer backup…) go straight to Chuck, day or night.
+  emergency: { name: "Chuck", phone: "519-999-9742" },
   address: "6-2557 Dougall Ave, Suite 223, Windsor, ON N8X 1T5",
   facebook: "https://www.facebook.com/IRepPM",
   hours: null, // e.g. "Mon–Fri, 9 am – 5 pm"
