@@ -10,6 +10,7 @@ import { COUNTS_EVENT, loadNavCounts } from "@/lib/admin-nav";
 // `count` is a key from loadNavCounts(). Muted counts show only inside the menu.
 export const NAV_GROUPS = [
   { key: "dashboard", label: "Dashboard", href: "/admin" },
+  { key: "workflow", label: "Staff workflow", href: "/admin/workflow" },
   {
     key: "leasing",
     label: "Leasing",
