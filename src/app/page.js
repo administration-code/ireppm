@@ -43,7 +43,7 @@ export default async function HomePage() {
               <h3>Hand us the keys, keep the income.</h3>
               <ul>
                 <li>Every applicant screened, and you approve every tenant</li>
-                <li>Rent received by the 7th is paid out to you by the 7th</li>
+                <li>Rent received by the 7th is paid out to you that month</li>
                 <li>Your own owner portal with monthly statements and a T776-ready year end</li>
                 <li>One year to start, then month to month at the same rate</li>
               </ul>

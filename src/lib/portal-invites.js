@@ -11,6 +11,10 @@ const first = (name) => String(name || "").trim().split(/\s+/)[0] || "there";
 const inviteLink = (path, email) => `${SITE_URL}${path}?invite=${encodeURIComponent(email)}`;
 const placeOf = (unit) => [unit?.property?.address, unit?.label].filter(Boolean).join(", ");
 
+const SIGN_IN =
+  'Click the button below. Your email (EMAIL) is filled in for you. Choose "Continue with Google" if it\'s a Gmail address, or add your mobile number and we\'ll email you a one-time sign-in link. There\'s no password to remember.';
+const APP_LINE = "Tip: add IRep to your phone's home screen from Get the App at the bottom of any page on our website, so it opens like an app.";
+
 export function ownerInviteEmail(owner, addresses = []) {
   const homes = addresses.length ? addresses.join(", ") : "your property";
   return {
@@ -20,13 +24,26 @@ export function ownerInviteEmail(owner, addresses = []) {
       `Hi ${first(owner.name)},`,
       `Thanks for trusting IRep Property Management with ${homes}. Your owner portal is now set up, so everything about your property is in one place, any time.`,
       "In your portal you can:\n• See rent collected and what's been paid out to you each month\n• Read your monthly summary and landlord letters\n• Approve repairs and see maintenance as it happens\n• Review applicants and tenant insurance\n• Download your year-end statement for your T776 rental income",
-      `To get in, click "Open your owner portal" below. Your email (${owner.email}) is filled in for you: add your mobile number and we'll email you a one-time sign-in link. There's no password to remember.`,
+      "Payouts: Each month we pay out the rent received by the 7th, less fees and any repairs. Tenants pay by PayProp, Interac e-Transfer or cash, so we can't control exactly when rent arrives; rent that comes in after the 7th is included in the next month's payout.",
+      "Repairs: Emergencies are handled right away. Other repairs over $250 wait for your OK in the portal.",
+      "Late rent: If rent is still unpaid after the 7th, we email you an N4 to sign around the 8th, then deliver it to the tenant, usually within about 3 days of your signature.",
+      "Refer a landlord: When a landlord you refer signs with us, you get a month's management fee free.",
+      SIGN_IN.replace("EMAIL", owner.email),
+      APP_LINE,
       `Questions? Reply to this email or call ${SITE.phone}.`,
     ],
     link: inviteLink("/owner", owner.email),
     linkLabel: "Open your owner portal",
     marketing: true,
   };
+}
+
+// New tenants (moved in within the last two weeks, or moving in soon) are told insurance is due within
+// a week of moving in; existing tenants get a gentle reminder instead.
+function isNewTenancy(tenancy) {
+  if (tenancy?.status === "upcoming") return true;
+  const start = tenancy?.start_date ? new Date(`${tenancy.start_date}T12:00:00`) : null;
+  return Boolean(start) && Date.now() - start.getTime() < 14 * 864e5;
 }
 
 export function tenantInviteEmail(person, tenancy) {
@@ -37,10 +54,14 @@ export function tenantInviteEmail(person, tenancy) {
     lines: [
       `Hi ${first(person.full_name)},`,
       `IRep Property Management looks after ${place} for your landlord. We've opened a tenant account for you on our website to make things easier.`,
-      "In your account you can:\n• Report repairs with photos and follow them until they're fixed\n• See your lease, rent and payment details\n• Upload proof of tenant insurance\n• Tell us your plans when your lease is coming up for its end date",
-      `Rent: ${PAYMENT_INFO.preferred} is our preferred way to pay. If you haven't set it up yet, watch for PayProp's welcome letter. Can't use PayProp? Ask us about Interac e-Transfer to ${PAYMENT_INFO.etransferEmail}.`,
+      "In your account you can:\n• Report repairs with photos and follow them until they're fixed\n• See your lease, rent and payment details, including your PayProp welcome letter\n• Upload proof of tenant insurance\n• Tell us your plans when your lease is coming up for its end date",
+      `Rent: Rent is due on the 1st of each month. ${PAYMENT_INFO.preferred} is our preferred way to pay; your PayProp welcome letter, with your reference number, is in your account. You can also pay by Interac e-Transfer to ${PAYMENT_INFO.etransferEmail} (put your unit address in the message) or ask us about cash.`,
       `Monthly draw: ${PAYMENT_INFO.draw}`,
-      `To get in, click "Open your tenant account" below. Your email (${person.email}) is filled in for you: add your mobile number and we'll email you a one-time sign-in link. There's no password to remember.`,
+      isNewTenancy(tenancy)
+        ? "Tenant insurance: Please upload proof of your tenant insurance in your account within a week of moving in."
+        : "Tenant insurance: If we don't have your current tenant insurance on file yet, you can upload it in your account in a minute. It protects your belongings and covers you if something goes wrong.",
+      SIGN_IN.replace("EMAIL", person.email),
+      APP_LINE,
       `Questions? Reply to this email or call ${SITE.phone}. For emergencies (flooding, no heat in winter, gas smell, fire), call us right away, and call 911 first if anyone is in danger.`,
     ],
     link: inviteLink("/account", person.email),
@@ -58,7 +79,7 @@ export async function inviteCandidates(admin) {
       .order("name"),
     admin
       .from("tenancy_tenants")
-      .select("id, full_name, email, profile_id, portal_invited_at, tenancy:tenancies(id, status, unit:units(label, property:properties(address)))")
+      .select("id, full_name, email, profile_id, portal_invited_at, tenancy:tenancies(id, status, start_date, unit:units(label, property:properties(address)))")
       .order("full_name"),
   ]);
   if (owners.error) throw new Error(owners.error.message);
@@ -104,7 +125,7 @@ export async function sendInvites(admin, { owners = [], tenants = [] }) {
   if (tenants.length) {
     const { data } = await admin
       .from("tenancy_tenants")
-      .select("id, full_name, email, profile_id, tenancy:tenancies(unit:units(label, property:properties(address)))")
+      .select("id, full_name, email, profile_id, tenancy:tenancies(status, start_date, unit:units(label, property:properties(address)))")
       .in("id", tenants);
     for (const p of data || []) {
       if (!p.email || p.profile_id) { skipped.push(p.full_name); continue; }

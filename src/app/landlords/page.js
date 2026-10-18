@@ -6,7 +6,7 @@ import { LANDLORD_PROMISES, LANDLORD_PROTECTIONS } from "@/lib/site";
 export const metadata = {
   title: "Property Management for Windsor Landlords",
   description:
-    "Screened tenants, showings answered within 24 hours, payouts by the 7th and a T776-ready year end. See your costs and get a free rent estimate.",
+    "Screened tenants, showings answered within 24 hours, monthly payouts of rent received by the 7th and a T776-ready year end. See your costs and get a free rent estimate.",
 };
 
 export default function LandlordsPage() {
