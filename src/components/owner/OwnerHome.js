@@ -1,5 +1,7 @@
 "use client";
 
+import { useLiveRefresh } from "@/lib/useLiveRefresh";
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
@@ -41,6 +43,8 @@ async function loadPortal() {
 export default function OwnerHome() {
   const { user } = useAuth();
   const [state, setState] = useState({ loading: true, properties: [], letters: [], error: "" });
+
+  useLiveRefresh(() => loadPortal().then((d) => setState({ loading: false, ...d, error: "" })), 300000);
 
   useEffect(() => {
     let alive = true;

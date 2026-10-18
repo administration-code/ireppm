@@ -1,5 +1,7 @@
 "use client";
 
+import { useLiveRefresh } from "@/lib/useLiveRefresh";
+
 import { useCallback, useEffect, useState } from "react";
 import NeedsAttention from "@/components/admin/dashboard/NeedsAttention";
 import PayoutReminders from "@/components/admin/PayoutReminders";
@@ -37,6 +39,7 @@ export default function StaffDashboard() {
   useEffect(() => {
     refresh();
   }, [refresh]);
+  useLiveRefresh(refresh, 60000);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 30000);

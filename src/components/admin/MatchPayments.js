@@ -1,5 +1,7 @@
 "use client";
 
+import { useLiveRefresh } from "@/lib/useLiveRefresh";
+
 import { useEffect, useState } from "react";
 import { getBrowserClient } from "@/lib/supabase";
 import { refreshStaffCounts } from "@/lib/admin-nav";
@@ -39,6 +41,8 @@ async function loadToMatch() {
 export default function MatchPayments() {
   const [state, setState] = useState({ loading: true, payments: [], tenancies: [], error: "" });
   const [done, setDone] = useState("");
+
+  useLiveRefresh(() => loadToMatch().then((data) => setState({ loading: false, error: "", ...data })), 60000);
 
   useEffect(() => {
     let alive = true;

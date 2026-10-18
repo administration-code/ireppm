@@ -1,5 +1,7 @@
 "use client";
 
+import { useLiveRefresh } from "@/lib/useLiveRefresh";
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
@@ -15,6 +17,8 @@ const ROLE = { showings: "Showings", maintenance: "Maintenance", lawn_snow: "Law
 export default function AgentPortal() {
   const { user, ready, openSignIn } = useAuth();
   const [state, setState] = useState({ loading: true, data: null });
+
+  useLiveRefresh(() => user && getBrowserClient().rpc("agent_portal").then(({ data }) => data && setState({ loading: false, data })), 60000);
 
   useEffect(() => {
     if (!user) return undefined;

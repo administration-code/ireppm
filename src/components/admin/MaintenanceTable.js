@@ -1,5 +1,7 @@
 "use client";
 
+import { useLiveRefresh } from "@/lib/useLiveRefresh";
+
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { getBrowserClient } from "@/lib/supabase";
@@ -17,6 +19,16 @@ export default function MaintenanceTable() {
   const [status, setStatus] = useState("open");
   const [urgency, setUrgency] = useState("");
   const [propertyId, setPropertyId] = useState("");
+
+  useLiveRefresh(
+    () =>
+      getBrowserClient()
+        .from("maintenance_requests")
+        .select(LIST_SELECT)
+        .order("created_at", { ascending: false })
+        .then(({ data, error }) => !error && setState({ loading: false, rows: data || [], error: "" })),
+    60000
+  );
 
   useEffect(() => {
     let alive = true;

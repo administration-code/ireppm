@@ -1,5 +1,7 @@
 "use client";
 
+import { useLiveRefresh } from "@/lib/useLiveRefresh";
+
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { getBrowserClient } from "@/lib/supabase";
@@ -26,6 +28,7 @@ export default function PayoutReminders({ compact = false }) {
   useEffect(() => {
     load();
   }, [load]);
+  useLiveRefresh(load, 60000);
 
   async function markSent(r) {
     setBusy(r.id);

@@ -1,5 +1,7 @@
 "use client";
 
+import { useLiveRefresh } from "@/lib/useLiveRefresh";
+
 import { useCallback, useEffect, useState } from "react";
 import { getBrowserClient } from "@/lib/supabase";
 
@@ -28,6 +30,7 @@ export default function ReviewsAdmin() {
   useEffect(() => {
     load();
   }, [load]);
+  useLiveRefresh(load, 120000);
 
   async function act(id, action, extra = {}) {
     setBusy(id + action);

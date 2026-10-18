@@ -1,5 +1,7 @@
 "use client";
 
+import { useLiveRefresh } from "@/lib/useLiveRefresh";
+
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import ShowingsPanel from "@/components/admin/ShowingsPanel";
@@ -16,6 +18,8 @@ export default function RequestsInbox() {
   const requested = params.get("tab");
   const tab = TABS.some((t) => t.key === requested) ? requested : "showings";
   const [state, setState] = useState({ loading: true, showings: [], applications: [], inquiries: [], drafts: 0, error: "" });
+
+  useLiveRefresh(() => loadInbox().then((data) => setState({ loading: false, ...data })), 60000);
 
   useEffect(() => {
     let alive = true;

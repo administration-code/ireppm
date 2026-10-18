@@ -1,5 +1,7 @@
 "use client";
 
+import { useLiveRefresh } from "@/lib/useLiveRefresh";
+
 import { useCallback, useEffect, useState } from "react";
 import { getBrowserClient } from "@/lib/supabase";
 import { SITE } from "@/lib/site";
@@ -40,6 +42,7 @@ export default function MyHome({ user }) {
   useEffect(() => {
     load();
   }, [load]);
+  useLiveRefresh(load, 300000);
 
   const { loading, homes, requests } = state;
   if (loading || homes.length === 0) return null;
