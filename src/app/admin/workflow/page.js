@@ -16,6 +16,7 @@ const SECTIONS = [
       ["Triage new maintenance requests. Emergencies right away; anything over $250 that isn't an emergency needs the landlord's OK first.", "/admin/maintenance", "Maintenance"],
       ["Match incoming payments (PayProp and Interac emails) to tenancies.", "/admin/rent", "Rent"],
       ["Reply to new landlord inquiries and free rent estimate requests the same day.", "/admin/requests?tab=inquiries", "Inquiries"],
+      ["Approve new reviews. Publish genuine ones, good or bad, and reply to any that raise a problem.", "/admin/reviews", "Reviews"],
     ],
   },
   {
@@ -56,6 +57,7 @@ const SECTIONS = [
       ["Collect first and last month's rent and proof of tenant insurance before keys.", "/admin/rent", "Rent"],
       ["Move-in inspection with photos, then hand over keys.", "/admin/inspections", "Inspections"],
       ["Invite the tenant to their portal.", "/admin/invites", "Portal invitations"],
+      ["About a month after move-in, ask the tenant (and the landlord, after their first payout) for a review at ireppm.ca/reviews.", "/admin/reviews", "Reviews"],
     ],
   },
   {

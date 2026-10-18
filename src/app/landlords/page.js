@@ -25,6 +25,9 @@ export default function LandlordsPage() {
               <Link className="btn primary" href="#estimate">Get a free rent estimate</Link>
               <Link className="btn ghost" href="#calculator">Work out your fee</Link>
             </div>
+            <p className="small" style={{ marginTop: 12 }}>
+              <Link href="/reviews?who=landlord">Read what landlords say about us</Link>
+            </p>
           </div>
 
           <ul className="promises">
