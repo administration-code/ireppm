@@ -78,7 +78,7 @@ export default async function GuidePage({ params }) {
         ) : null}
         <div className="boxed guide-cta">
           <b>Want us to handle this for you?</b>
-          <span className="pmuted">IRep looks after notices, rent increases and the Board paperwork for the landlords we manage for.</span>
+          <span className="pmuted">IRep prepares and serves notices and handles rent increases for the landlords we manage for, and can connect you with a paralegal for anything at the Board.</span>
           <div className="row">
             <Link className="btn primary" href="/landlords">Why landlords choose IRep</Link>
             <Link className="btn ghost" href="/landlords#estimate">Free rent estimate</Link>
