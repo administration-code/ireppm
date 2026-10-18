@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import NeedsAttention from "@/components/admin/dashboard/NeedsAttention";
+import PayoutReminders from "@/components/admin/PayoutReminders";
 import KeyNumbers from "@/components/admin/dashboard/KeyNumbers";
 import RentTrendChart from "@/components/admin/dashboard/RentTrendChart";
 import ArrearsTable from "@/components/admin/dashboard/ArrearsTable";
@@ -72,6 +73,7 @@ export default function StaffDashboard() {
       ) : d ? (
         <>
           <NeedsAttention data={d} />
+          <PayoutReminders compact />
           <KeyNumbers data={d} />
           <div className="dash-grid">
             <RentTrendChart trend={d.rent_trend} />

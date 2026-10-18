@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { useAuth } from "./AuthProvider";
+import { PROFILE_EVENT, useAuth } from "./AuthProvider";
 import MyHome from "./MyHome";
 import { getBrowserClient } from "@/lib/supabase";
 import { ACCEPT, CONSENT_TEXT, DOC_BUCKET, DOC_TYPES, INCOME_TYPES, MAX_FILE_MB, consentCurrent } from "@/lib/documents";
@@ -101,6 +101,20 @@ export default function AccountView() {
     if (ready && user) load();
     else if (ready) setLoading(false);
   }, [ready, user, load]);
+
+  // The phone typed at sign-in (and Google's name) are saved just after the page opens: show them.
+  useEffect(() => {
+    if (!user) return undefined;
+    const refresh = () =>
+      getBrowserClient()
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .maybeSingle()
+        .then(({ data }) => data && setProfile(data));
+    window.addEventListener(PROFILE_EVENT, refresh);
+    return () => window.removeEventListener(PROFILE_EVENT, refresh);
+  }, [user]);
 
   if (!configured) {
     return (
@@ -390,7 +404,7 @@ export default function AccountView() {
               </p>
             </div>
 
-            <ProfileFields profile={profile} onSave={saveProfile} />
+            <ProfileFields key={`${profile?.phone || ""}|${profile?.full_name || ""}`} profile={profile} onSave={saveProfile} />
 
             <ReferencesEditor key={profile?.id} references={profile?.rental_references} onSave={saveProfile} />
 

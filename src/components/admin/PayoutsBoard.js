@@ -1,5 +1,7 @@
 "use client";
 
+import PayoutReminders from "./PayoutReminders";
+
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { getBrowserClient } from "@/lib/supabase";
@@ -88,6 +90,8 @@ export default function PayoutsBoard({ initialMonth }) {
           Rent Collection
         </Link>
       </RentHead>
+
+      <PayoutReminders />
 
       <div className="filters">
         <div className="field" style={{ flex: "0 1 220px" }}>

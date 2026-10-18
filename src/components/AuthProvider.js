@@ -18,6 +18,7 @@ export function useAuth() {
 }
 
 const PENDING_PHONE = "irep_pending_phone";
+export const PROFILE_EVENT = "irep:profile-updated";
 
 export default function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
@@ -55,7 +56,8 @@ export default function AuthProvider({ children }) {
         pending = localStorage.getItem(PENDING_PHONE);
       } catch {}
       if (pending) {
-        await sb.from("profiles").update({ phone: pending }).eq("id", userId).is("phone", null);
+        // The number typed at sign-in is the latest one, so it replaces any older number.
+        await sb.from("profiles").update({ phone: pending }).eq("id", userId);
         try {
           localStorage.removeItem(PENDING_PHONE);
         } catch {}
@@ -63,6 +65,8 @@ export default function AuthProvider({ children }) {
       // Phone typed at sign-in (kept on the server, so it works even if the email link was opened
       // in another browser) and the name from Google, when the profile doesn't have them yet.
       await sb.rpc("claim_signin_details");
+      // Let any open page (like My Profile) show the saved phone and name right away.
+      window.dispatchEvent(new Event(PROFILE_EVENT));
       const { data } = await sb.from("profiles").select("phone").eq("id", userId).maybeSingle();
       if (!cancelled && data && !data.phone) setAskPhone(true);
     })();
@@ -146,6 +150,7 @@ function PhoneModal({ userId, onDone }) {
     const { error: err } = await getBrowserClient().from("profiles").update({ phone: phone.trim() }).eq("id", userId);
     setBusy(false);
     if (err) return setError("We couldn't save that. Try again.");
+    window.dispatchEvent(new Event(PROFILE_EVENT));
     onDone();
   }
 
