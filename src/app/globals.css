@@ -202,6 +202,7 @@ ol.steps { display: grid; grid-template-columns: repeat(5, 1fr); gap: 24px; coun
 .kv dt { color: var(--muted); font-size: .875rem; }
 .kv dd { margin: 0; font-weight: 500; min-width: 0; overflow-wrap: anywhere; }
 .boxed { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; }
+fieldset.boxed > legend { padding: 0 8px; margin-left: -8px; line-height: 1.3; }
 
 /* pricing */
 .plans { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
