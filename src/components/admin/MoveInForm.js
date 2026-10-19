@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { getBrowserClient } from "@/lib/supabase";
+import { isSpecialUnit } from "@/lib/maintenance-units";
 import { UNIT_STATUS, checkDollars, createTenancy, dollars, orNull, todayISO } from "@/lib/admin-properties";
 
 export default function MoveInForm({ app }) {
@@ -28,7 +29,7 @@ export default function MoveInForm({ app }) {
   }
 
   const property = properties?.find((p) => p.id === form.propertyId);
-  const units = [...(property?.units || [])].sort((a, b) => a.label.localeCompare(b.label, "en-CA", { numeric: true }));
+  const units = (property?.units || []).filter((u) => !isSpecialUnit(u)).sort((a, b) => a.label.localeCompare(b.label, "en-CA", { numeric: true }));
 
   const pickUnit = (unitId) => {
     const unit = units.find((u) => u.id === unitId);

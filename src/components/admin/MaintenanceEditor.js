@@ -22,6 +22,9 @@ import {
 } from "@/lib/maintenance";
 import { MaintenancePills } from "./MaintenanceBadges";
 import { partnerName } from "./MaintenanceTable";
+import ReporterEditor from "./ReporterEditor";
+import PhotoPicker, { uploadPhotos } from "./PhotoPicker";
+import { specialKind } from "@/lib/maintenance-units";
 
 const REQUEST_SELECT = `*,
   unit:units(id, label, property:properties(id, address, city, owner:owners(id, name, email, phone))),
@@ -134,6 +137,15 @@ export default function MaintenanceEditor({ id }) {
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState({ kind: "", text: "" });
+  const [editingReporter, setEditingReporter] = useState(false);
+  const [newFiles, setNewFiles] = useState([]);
+  const [photoMsg, setPhotoMsg] = useState("");
+  const [uploading, setUploading] = useState(false);
+
+  async function reload() {
+    const { data } = await getBrowserClient().from("maintenance_requests").select(REQUEST_SELECT).eq("id", id).maybeSingle();
+    if (data) setState((s) => ({ ...s, request: data }));
+  }
 
   useEffect(() => {
     let alive = true;
@@ -213,7 +225,34 @@ export default function MaintenanceEditor({ id }) {
     setMsg({ kind: "ok", text: "Entry notice marked as served." });
   }
 
+  async function addPhotos() {
+    if (!newFiles.length) return;
+    setUploading(true);
+    setPhotoMsg("");
+    const sb = getBrowserClient();
+    const { data: auth } = await sb.auth.getUser();
+    const up = await uploadPhotos(sb, auth?.user?.id || "staff", newFiles);
+    if (up.error) {
+      setUploading(false);
+      return setPhotoMsg(up.error);
+    }
+    const { error: saveError } = await sb
+      .from("maintenance_requests")
+      .update({ photos: [...(request.photos || []), ...up.photos] })
+      .eq("id", request.id);
+    if (saveError) {
+      await sb.storage.from(PHOTO_BUCKET).remove(up.photos.map((p) => p.path));
+      setUploading(false);
+      return setPhotoMsg("We couldn't attach the photos. Try again.");
+    }
+    setNewFiles([]);
+    setUploading(false);
+    setPhotoMsg("Photos added.");
+    await reload();
+  }
+
   const property = request.unit?.property;
+  const unitKind = specialKind(request.unit);
   const owner = property?.owner;
   const tenants = sortTenants(request.tenancy?.tenancy_tenants || []);
   const reporter =
@@ -288,6 +327,21 @@ export default function MaintenanceEditor({ id }) {
           {request.description ? <p className="pre">{request.description}</p> : <p className="small">No description.</p>}
           <h3 className="sub-title">Photos and Videos</h3>
           <Photos photos={request.photos} />
+          <PhotoPicker files={newFiles} setFiles={setNewFiles} onError={setPhotoMsg} id="m-new-files" label="Add more photos or videos" />
+          {newFiles.length || photoMsg ? (
+            <div className="req-actions">
+              {newFiles.length ? (
+                <button type="button" className="btn primary sm" onClick={addPhotos} disabled={uploading}>
+                  {uploading ? "Uploading…" : `Attach ${newFiles.length} ${newFiles.length === 1 ? "file" : "files"}`}
+                </button>
+              ) : null}
+              {photoMsg ? (
+                <span className="small" role="status">
+                  {photoMsg}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
         </section>
 
         <section className="boxed stack" aria-labelledby="sec-m-people">
@@ -299,15 +353,38 @@ export default function MaintenanceEditor({ id }) {
             {tenants.length ? (
               tenants.map((t, i) => <Contact key={`${t.full_name}-${i}`} person={t} />)
             ) : (
-              <p className="small">No tenancy is linked to this request.</p>
+              <p className="small">
+                {unitKind === "whole"
+                  ? "Whole-property work, not linked to one tenancy."
+                  : unitKind === "other"
+                    ? "Reported by someone not on an IRep lease."
+                    : "No tenancy is linked to this request."}
+              </p>
             )}
           </div>
-          {reporter ? (
-            <div className="stack">
-              <h3 className="sub-title">Reported By</h3>
-              <Contact person={reporter} />
-            </div>
-          ) : null}
+          <div className="stack">
+            <h3 className="sub-title">Reported By</h3>
+            {editingReporter ? (
+              <ReporterEditor
+                request={request}
+                onCancel={() => setEditingReporter(false)}
+                onSaved={async () => {
+                  setEditingReporter(false);
+                  await reload();
+                  setMsg({ kind: "ok", text: "Reporter updated." });
+                }}
+              />
+            ) : (
+              <>
+                {reporter ? <Contact person={reporter} /> : <p className="small">No reporter recorded.</p>}
+                <div>
+                  <button type="button" className="btn ghost sm" onClick={() => setEditingReporter(true)}>
+                    Change reporter or unit
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
           <div className="stack">
             <h3 className="sub-title">Owner</h3>
             {owner ? <Contact person={owner} /> : <p className="small">No owner set on this property.</p>}

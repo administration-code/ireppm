@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getBrowserClient } from "@/lib/supabase";
+import { isSpecialUnit } from "@/lib/maintenance-units";
 import { PROPERTY_SELECT, UNIT_FIELDS, propertyTitle } from "@/lib/admin-properties";
 import PropertyAddons from "./PropertyAddons";
 import PropertyAgents from "./PropertyAgents";
@@ -41,6 +42,7 @@ export default function PropertyEditor({ id, initialOwnerId }) {
   }, [id]);
 
   const { loading, property, units, error } = state;
+  const listed = units.filter((u) => !isSpecialUnit(u));
 
   if (loading) return <p className="small">Loading property…</p>;
   if (!property) {
@@ -140,9 +142,9 @@ export default function PropertyEditor({ id, initialOwnerId }) {
           </div>
         ) : null}
 
-        {units.length ? (
+        {listed.length ? (
           <ul className="unit-grid">
-            {units.map((u) => (
+            {listed.map((u) => (
               <UnitCard key={u.id} unit={u} propertyId={property.id} onSaved={saveUnit} />
             ))}
           </ul>

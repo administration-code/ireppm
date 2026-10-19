@@ -6,6 +6,16 @@ import { useRouter } from "next/navigation";
 import { getBrowserClient } from "@/lib/supabase";
 import { currentTenancy, orNull, propertyTitle } from "@/lib/admin-properties";
 import { CATEGORIES, SOURCES, STAFF_LOG_SOURCES, URGENCY, URGENCY_HELP } from "@/lib/maintenance";
+import {
+  SPECIAL_UNITS,
+  SPECIAL_VALUE,
+  currentTenants,
+  ensureSpecialUnit,
+  regularUnits,
+  specialKind,
+} from "@/lib/maintenance-units";
+import ReporterPicker from "./ReporterPicker";
+import PhotoPicker, { uploadPhotos } from "./PhotoPicker";
 
 const EMPTY = {
   property_id: "",
@@ -34,12 +44,15 @@ export default function LogRequestForm({ initialPropertyId = "", initialUnitId =
   });
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
+  const [files, setFiles] = useState([]);
 
   useEffect(() => {
     let alive = true;
     getBrowserClient()
       .from("properties")
-      .select("id, address, city, archived, units(id, label, tenancies(id, status))")
+      .select(
+        "id, address, city, archived, units(id, label, tenancies(id, status, tenancy_tenants(full_name, email, phone, is_primary)))"
+      )
       .eq("archived", false)
       .order("address")
       .then(({ data, error }) => {
@@ -47,7 +60,9 @@ export default function LogRequestForm({ initialPropertyId = "", initialUnitId =
         setState({ loading: false, properties: data || [], error: error ? "We couldn't load the properties." : "" });
         if (initialUnitId) {
           const owner = (data || []).find((p) => (p.units || []).some((u) => u.id === initialUnitId));
-          if (owner) setForm((f) => ({ ...f, property_id: owner.id, unit_id: initialUnitId }));
+          const u = owner?.units.find((x) => x.id === initialUnitId);
+          const kind = specialKind(u);
+          if (owner) setForm((f) => ({ ...f, property_id: owner.id, unit_id: kind ? SPECIAL_VALUE[kind] : initialUnitId }));
         }
       });
     return () => {
@@ -56,9 +71,25 @@ export default function LogRequestForm({ initialPropertyId = "", initialUnitId =
   }, [initialUnitId]);
 
   const property = state.properties.find((p) => p.id === form.property_id);
-  const units = [...(property?.units || [])].sort((a, b) => String(a.label).localeCompare(String(b.label)));
-  const unit = units.find((u) => u.id === form.unit_id) || (units.length === 1 ? units[0] : null);
+  const units = regularUnits(property?.units || []);
+  const special = Object.keys(SPECIAL_VALUE).find((k) => SPECIAL_VALUE[k] === form.unit_id) || null;
+  const unit = special ? null : units.find((u) => u.id === form.unit_id) || (units.length === 1 && !form.unit_id ? units[0] : null);
   const tenancy = unit ? currentTenancy(unit.tenancies || []) : null;
+  const tenants = currentTenants(state.properties);
+
+  // Fill in the reporter from a tenant. For whole-property or "other" requests the unit
+  // stays as chosen; otherwise the tenant's own unit is selected.
+  function pickTenant(t) {
+    setForm((f) => ({
+      ...f,
+      property_id: t.property_id,
+      unit_id: f.property_id === t.property_id && special ? f.unit_id : t.unit_id,
+      reporter_name: t.name,
+      reporter_phone: t.phone,
+      reporter_email: t.email,
+    }));
+    setMsg("");
+  }
 
   const set = (key, value) => {
     setForm((f) => ({ ...f, [key]: value }));
@@ -68,17 +99,37 @@ export default function LogRequestForm({ initialPropertyId = "", initialUnitId =
 
   async function submit(e) {
     e.preventDefault();
-    if (!unit) return setMsg("Choose the property and unit.");
+    if (!property || (!unit && !special)) return setMsg("Choose the property and unit.");
+    if (special === "other" && !form.reporter_name.trim() && !form.reporter_phone.trim() && !form.reporter_email.trim())
+      return setMsg("Add who reported it, since they aren't on an IRep lease.");
     if (!form.title.trim()) return setMsg("Add a short title.");
     if (form.reporter_email.trim() && !/^\S+@\S+\.\S+$/.test(form.reporter_email.trim()))
       return setMsg("Check the reporter's email address.");
     setSaving(true);
     const sb = getBrowserClient();
     const { data: auth } = await sb.auth.getUser();
+    let unitId = unit?.id;
+    if (special) {
+      try {
+        unitId = await ensureSpecialUnit(sb, property.id, special);
+      } catch {
+        setSaving(false);
+        return setMsg("We couldn't set up the whole-property option for this property. Try again.");
+      }
+    }
+    let photos = [];
+    if (files.length) {
+      const up = await uploadPhotos(sb, auth?.user?.id || "staff", files);
+      if (up.error) {
+        setSaving(false);
+        return setMsg(up.error);
+      }
+      photos = up.photos;
+    }
     const { data, error } = await sb
       .from("maintenance_requests")
       .insert({
-        unit_id: unit.id,
+        unit_id: unitId,
         tenancy_id: tenancy?.id || null,
         submitted_by: auth?.user?.id || null,
         source: form.source,
@@ -91,11 +142,12 @@ export default function LogRequestForm({ initialPropertyId = "", initialUnitId =
         urgency: form.urgency,
         permission_to_enter: form.permission_to_enter,
         access_notes: orNull(form.access_notes),
-        photos: [],
+        photos,
       })
       .select("id")
       .single();
     if (error) {
+      if (photos.length) await sb.storage.from("maintenance-photos").remove(photos.map((p) => p.path));
       setSaving(false);
       return setMsg("We couldn't log this request. Check the fields and try again.");
     }
@@ -148,17 +200,35 @@ export default function LogRequestForm({ initialPropertyId = "", initialUnitId =
             </div>
             <div className="field">
               <label htmlFor="l-unit">Unit</label>
-              <select id="l-unit" value={unit?.id || ""} onChange={update("unit_id")} disabled={!property}>
-                <option value="">{property && !units.length ? "No units on this property" : "Choose a unit"}</option>
-                {units.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.label || "Main unit"}
-                  </option>
-                ))}
+              <select id="l-unit" value={special ? form.unit_id : unit?.id || ""} onChange={update("unit_id")} disabled={!property}>
+                <option value="">Choose a unit</option>
+                {units.length ? (
+                  <optgroup label="Leased units">
+                    {units.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.label || "Main unit"}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null}
+                <optgroup label="Not one unit">
+                  {Object.entries(SPECIAL_UNITS).map(([k, v]) => (
+                    <option key={k} value={SPECIAL_VALUE[k]}>
+                      {v.option}
+                    </option>
+                  ))}
+                </optgroup>
               </select>
             </div>
           </div>
-          {unit ? (
+          {special === "whole" ? (
+            <p className="small">
+              For shared areas and the outside: stairs, yard, garbage bins, pests, items left at the property. It isn&apos;t
+              linked to one tenancy, so add who reported it below.
+            </p>
+          ) : special === "other" ? (
+            <p className="small">For someone living at the property who isn&apos;t on an IRep lease. Add who reported it below.</p>
+          ) : unit ? (
             <p className="small">
               {tenancy ? "This will be linked to the unit's current tenancy." : "This unit has no current tenancy."}
             </p>
@@ -169,6 +239,7 @@ export default function LogRequestForm({ initialPropertyId = "", initialUnitId =
           <h2 id="sec-log-who" className="sec-title">
             Who Reported It
           </h2>
+          <ReporterPicker tenants={tenants} propertyId={form.property_id} onPick={pickTenant} idPrefix="l-rp" />
           <div className="row2">
             <div className="field">
               <label htmlFor="l-source">How it came in</label>
@@ -181,7 +252,7 @@ export default function LogRequestForm({ initialPropertyId = "", initialUnitId =
               </select>
             </div>
             <div className="field">
-              <label htmlFor="l-rname">Name (optional)</label>
+              <label htmlFor="l-rname">Name{special === "other" ? "" : " (optional)"}</label>
               <input id="l-rname" value={form.reporter_name} onChange={update("reporter_name")} autoComplete="off" />
             </div>
           </div>
@@ -244,6 +315,7 @@ export default function LogRequestForm({ initialPropertyId = "", initialUnitId =
             <label htmlFor="l-access">Access notes</label>
             <textarea id="l-access" value={form.access_notes} onChange={update("access_notes")} rows={2} placeholder="Best times, entry instructions" />
           </div>
+          <PhotoPicker files={files} setFiles={setFiles} onError={setMsg} id="l-files" />
         </section>
 
         <div className="req-actions">

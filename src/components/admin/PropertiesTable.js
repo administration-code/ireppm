@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getBrowserClient } from "@/lib/supabase";
+import { isSpecialUnit } from "@/lib/maintenance-units";
 import { money } from "@/lib/format";
 import { PACKAGE_LABEL, PROPERTY_SELECT, propertyTitle } from "@/lib/admin-properties";
 import RenewalBadge from "./RenewalBadge";
@@ -48,7 +49,7 @@ function OwnerPortal({ o }) {
 // Offline units are neither occupied nor available, so they're counted on their own.
 function unitCounts(units = []) {
   const c = { occupied: 0, vacant: 0, turnover: 0, offline: 0 };
-  for (const u of units) if (u.status in c) c[u.status] += 1;
+  for (const u of units) if (u.status in c && !isSpecialUnit(u)) c[u.status] += 1;
   return c;
 }
 
@@ -87,7 +88,7 @@ export default function PropertiesTable() {
     let alive = true;
     getBrowserClient()
       .from("properties")
-      .select(`${PROPERTY_SELECT}, units(status)`)
+      .select(`${PROPERTY_SELECT}, units(status, label)`)
       .order("address")
       .then(({ data, error }) => {
         if (!alive) return;
