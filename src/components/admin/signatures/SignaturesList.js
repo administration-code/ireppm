@@ -6,13 +6,47 @@ import { getBrowserClient } from "@/lib/supabase";
 import SigStatus from "@/components/admin/signatures/SigStatus";
 import DeleteRecord from "@/components/admin/DeleteRecord";
 import { canDeleteSignature, deleteSignatureRequest } from "@/lib/delete-records";
-import { SIG_FILTERS, SIG_KIND, SIG_LIST_SELECT, outTo, shortDate } from "@/lib/signatures";
+import { SIG_FILTERS, SIG_KIND, SIG_LIST_SELECT, docusignApi, outTo, shortDate } from "@/lib/signatures";
 
 export default function SignaturesList() {
   const [filter, setFilter] = useState("awaiting");
   const [kind, setKind] = useState("");
   const [rows, setRows] = useState(null);
   const [error, setError] = useState("");
+  const [syncing, setSyncing] = useState(false);
+  const [syncNote, setSyncNote] = useState("");
+  const [version, setVersion] = useState(0);
+  const [busy, setBusy] = useState({});
+
+  // Pull the latest from DocuSign (statuses, and envelopes made directly in DocuSign) when the page opens.
+  const sync = async () => {
+    setSyncing(true);
+    setSyncNote("");
+    try {
+      const r = await docusignApi("/sync");
+      if (r?.error) setSyncNote(`Couldn't check DocuSign: ${r.error}`);
+      else if (r?.imported) setSyncNote(`Added ${r.imported} envelope${r.imported === 1 ? "" : "s"} from DocuSign.`);
+      setVersion((v) => v + 1);
+    } catch (err) {
+      setSyncNote(`Couldn't check DocuSign: ${err.message}`);
+    } finally {
+      setSyncing(false);
+    }
+  };
+  useEffect(() => {
+    sync();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const resend = async (r) => {
+    setBusy((b) => ({ ...b, [r.id]: "Resending…" }));
+    try {
+      const res = await docusignApi(`/requests/${r.id}`, { body: { action: "remind" } });
+      setBusy((b) => ({ ...b, [r.id]: res?.error ? `Couldn't resend: ${res.error}` : "Resent" }));
+    } catch (err) {
+      setBusy((b) => ({ ...b, [r.id]: `Couldn't resend: ${err.message}` }));
+    }
+  };
 
   useEffect(() => {
     let live = true;
@@ -32,7 +66,7 @@ export default function SignaturesList() {
     return () => {
       live = false;
     };
-  }, [filter, kind]);
+  }, [filter, kind, version]);
 
   return (
     <div className="stack" style={{ gap: 24 }}>
@@ -43,9 +77,14 @@ export default function SignaturesList() {
             <h1 className="admin-title">Signatures</h1>
             <p className="small">Leases, contracts and notices sent through DocuSign.</p>
           </div>
-          <Link className="btn ghost sm" href="/admin/signatures/templates">
-            Check Templates
-          </Link>
+          <div className="req-actions">
+            <button type="button" className="btn ghost sm" onClick={sync} disabled={syncing}>
+              {syncing ? "Checking DocuSign…" : "Refresh from DocuSign"}
+            </button>
+            <Link className="btn ghost sm" href="/admin/signatures/templates">
+              Check Templates
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -73,6 +112,7 @@ export default function SignaturesList() {
       </div>
 
       {error ? <div className="warnbox">{error}</div> : null}
+      {syncNote ? <p className="small" role="status">{syncNote}</p> : null}
       {rows === null ? (
         <p className="small">Loading…</p>
       ) : rows.length === 0 ? (
@@ -102,6 +142,7 @@ export default function SignaturesList() {
                     <Link className="addr" href={`/admin/signatures/${r.id}`}>
                       {r.title}
                     </Link>
+                    {r.terms?.imported ? <span className="small muted"> · made in DocuSign</span> : null}
                   </td>
                   <td>{SIG_KIND[r.kind] || r.kind}</td>
                   <td className="small">{outTo(r) || "—"}</td>
@@ -111,6 +152,15 @@ export default function SignaturesList() {
                   <td className="small">{shortDate(r.sent_at) || "—"}</td>
                   <td className="small">{shortDate(r.completed_at) || "—"}</td>
                   <td className="r">
+                    {["sent", "delivered"].includes(r.status) ? (
+                      busy[r.id] ? (
+                        <span className="small">{busy[r.id]}</span>
+                      ) : (
+                        <button type="button" className="link-btn small" onClick={() => resend(r)}>
+                          Resend
+                        </button>
+                      )
+                    ) : null}
                     {canDeleteSignature(r) ? (
                       <DeleteRecord
                         summary={`"${r.title}"`}

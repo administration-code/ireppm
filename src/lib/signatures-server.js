@@ -247,6 +247,14 @@ export async function syncRequest(sb, row, { eventStatus } = {}) {
   if (error) throw new Error(error.message);
   let current = updated || { ...row, ...changes };
 
+  // Envelopes picked up from DocuSign (not made on the website) only track their status: there's no
+  // tenancy or property data to apply when they're signed.
+  if (current.terms?.imported) {
+    if (current.status === "completed" && before !== "completed") await alertStaff(`Signed: ${current.title}`, [`${current.title} has been signed by everyone.`], row.id);
+    const { data: fresh } = await sb.from("signature_requests").select("*").eq("id", row.id).maybeSingle();
+    return fresh || current;
+  }
+
   if (current.kind === "lease" && ["sent", "delivered", "completed"].includes(current.status) && before === "draft") {
     await sendLeaseConsents(sb, current);
   }

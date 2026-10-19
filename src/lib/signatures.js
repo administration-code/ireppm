@@ -3,8 +3,8 @@ import { getBrowserClient } from "@/lib/supabase";
 export const SIG_STATUS = {
   draft: "Draft",
   sent: "Sent",
-  delivered: "Opened",
-  completed: "Completed",
+  delivered: "Viewed",
+  completed: "Signed",
   declined: "Declined",
   voided: "Voided",
   error: "Error",
@@ -26,13 +26,13 @@ export const AWAITING = ["draft", "sent", "delivered"];
 
 export const SIG_FILTERS = [
   { key: "awaiting", label: "Awaiting signature", statuses: AWAITING },
-  { key: "completed", label: "Completed", statuses: ["completed"] },
+  { key: "completed", label: "Signed", statuses: ["completed"] },
   { key: "closed", label: "Declined/Voided", statuses: ["declined", "voided"] },
   { key: "errors", label: "Errors", statuses: ["error"] },
 ];
 
 export const SIG_LIST_SELECT =
-  "id, kind, title, status, envelope_id, recipients, sent_at, completed_at, created_at, tenancy_id, property_id, application_id, unit_id, notice_id";
+  "id, kind, title, status, envelope_id, recipients, terms, sent_at, completed_at, created_at, tenancy_id, property_id, application_id, unit_id, notice_id";
 
 export function statusTone(status) {
   if (status === "completed") return "ok";
