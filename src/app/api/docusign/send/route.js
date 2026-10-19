@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { createEnvelope, removeEmptyRecipients, resolveTemplates, sendDraftEnvelope, senderViewUrl } from "@/lib/docusign";
+import { addTabsByRole, createEnvelope, removeEmptyRecipients, resolveTemplates, sendDraftEnvelope, senderViewUrl } from "@/lib/docusign";
 import { staffUser } from "@/lib/signatures-server";
 import {
   KIND_TEMPLATES,
@@ -33,6 +33,11 @@ function validate(kind, f) {
     const owners = (f.owners || []).filter((o) => str(o.name) || str(o.email));
     if (!owners.length) return "Add at least one owner signer.";
     if (owners.some((o) => !str(o.name) || !EMAIL.test(str(o.email)))) return "Every owner signer needs a name and an email.";
+    const c = f.contract || {};
+    if (!c.effective_date || !c.commencement_date) return "Add the effective date and the commencement date.";
+    if (!str(c.property_address)) return "Add the property address.";
+    if (!str(c.notice_address)) return "Add the landlord's address for notices.";
+    if (c.engagement === "resign" && !c.managed_since) return "Add the date we started managing the property (re-signing).";
   }
   if (kind === "N1" && (!f.increase_date || !(Number(f.new_rent) > 0))) return "Add the increase date and the new rent.";
   if (kind === "N4" && (!f.termination_date || !(Number(f.amount_owing) > 0))) return "Add the termination date and the amount owing.";
@@ -152,8 +157,9 @@ export async function POST(request) {
     // then send it or open it for review.
     const env = await createEnvelope({ ...built.definition, emailSubject, status: "created" });
     await removeEmptyRecipients(env.envelopeId);
-    // Management contracts: the extra fields (initials, boxes, phones) are added from the request page
-    // once the contract's field data is filled in, because the generated document's layout depends on it.
+    // Management contracts: initials, boxes, phones and the contract's details (dates, addresses, fees)
+    // are added straight away, anchored to the contract's own words and hidden markers.
+    if (built.extraTabs) await addTabsByRole(env.envelopeId, built.extraTabs);
     if (mode === "send") await sendDraftEnvelope(env.envelopeId);
     const now = new Date().toISOString();
     await sb

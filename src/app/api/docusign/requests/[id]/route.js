@@ -76,7 +76,11 @@ export async function POST(request, { params }) {
         const { data: addons } = row.property_id
           ? await sb.from("property_addons").select("addon_key").eq("property_id", row.property_id)
           : { data: [] };
-        const added = await addTabsByRole(row.envelope_id, pmContractTabs(owners, { corporation, addons: (addons || []).map((a) => a.addon_key) }), { replace: PM_TAB_LABELS });
+        const added = await addTabsByRole(
+          row.envelope_id,
+          pmContractTabs(owners, { corporation, addons: (addons || []).map((a) => a.addon_key), contract: row.terms?.contract || null }),
+          { replace: PM_TAB_LABELS }
+        );
         return NextResponse.json({ ok: true, added });
       }
       case "page-image": {

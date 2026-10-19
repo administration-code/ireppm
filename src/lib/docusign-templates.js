@@ -706,9 +706,9 @@ export function buildConsent(f, ids, owner) {
 
 // Offsets were calibrated against a generated contract (Oct 2026); anchors are case-sensitive so the
 // lowercase "where the Landlord is a corporation" in sections 1.9 and 1.10 isn't matched.
-// Fields the saved DocuSign template doesn't have, added to a management contract draft once its
-// field data is filled in (the generated document's length varies, so most fields are anchored to
-// the contract's own words rather than fixed page positions). Offsets are in points from the anchor.
+// Fields the saved DocuSign template doesn't have, added to a management contract draft when it's
+// made. They're anchored to the contract's own words or to hidden "/pm.../" markers in the Word file,
+// so they land in place whatever the page layout. Offsets are in points from the anchor.
 const PM_ANCHORS = {
   landlordInitials: { text: "Landlord initials", x: 54, y: 12 },
   managerInitials: { text: "Manager initials", x: 54, y: 14 },
@@ -732,7 +732,59 @@ const PM_ANCHORS = {
 // rows, "/pmst/" in the Authorized Signatory section).
 const PM_PHONE = { x: 0, y: -1 };
 // "IRep Phone" stays in the list so a refresh removes the field from drafts made before the phone was printed.
-export const PM_TAB_LABELS = /^(Landlord|Manager|Owner \d) Initials|^Landlord Is Corporation$|^Multiple Owners$|^Service |^Owner (\d )?Phone|^IRep Phone$/;
+export const PM_TAB_LABELS = /^(Landlord|Manager|Owner \d) Initials|^Landlord Is Corporation$|^Multiple Owners$|^Service |^Owner (\d )?Phone|^IRep Phone$|^Contract |^Engagement /;
+
+// Schedule A monthly rates as printed in the contract (Part 2).
+export const PM_ADDON_RATES = { snow_lawn: 50, surveillance: 15, appliance: 50, plumbing: 40, cleaning: 150 };
+const PM_ADDON_MARKER = { snow_lawn: "pmfsnow", surveillance: "pmfsec", appliance: "pmfapp", plumbing: "pmfplumb", cleaning: "pmfclean" };
+const cad = (n) => `$${Number(n || 0).toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const longDay = (iso) => {
+  const d = iso ? new Date(`${String(iso).slice(0, 10)}T12:00:00`) : null;
+  return d && !Number.isNaN(d.getTime()) ? d.toLocaleDateString("en-CA", { month: "long", day: "numeric", year: "numeric" }) : "";
+};
+
+// Fees for the contract's Schedule A, from the number of Leases, the selected add-ons and any first-year discount.
+export function pmContractFees({ leases = 1, addons = [], monthlyDiscount = 0, customFee = null } = {}) {
+  const n = Math.max(1, Math.round(Number(leases) || 1));
+  const management = customFee != null && Number(customFee) > 0 ? Number(customFee) : 175 + 25 * (n - 1);
+  const additionalLeases = Math.max(management - 175, 0);
+  const services = Object.fromEntries(Object.keys(PM_ADDON_RATES).filter((k) => addons.includes(k)).map((k) => [k, PM_ADDON_RATES[k]]));
+  const optional = Object.values(services).reduce((a, b) => a + b, 0);
+  const discount = Math.max(0, Math.min(Number(monthlyDiscount) || 0, management));
+  const subtotal = Math.round((management + optional - discount) * 100) / 100;
+  const hst = Math.round(subtotal * 0.13 * 100) / 100;
+  return { leases: n, management, additionalLeases, services, optional, discount, annualDiscount: discount * 12, subtotal, hst, total: Math.round((subtotal + hst) * 100) / 100 };
+}
+
+// The values printed into the contract, keyed by the hidden anchor in the Word file.
+export function pmContractValues(c = {}) {
+  const fees = pmContractFees({ leases: c.leases, addons: c.addons || [], monthlyDiscount: c.monthly_discount, customFee: c.custom_fee });
+  const v = {
+    pmfeff: longDay(c.effective_date),
+    pmfms: c.engagement === "resign" ? longDay(c.managed_since) : "",
+    pmfcorp: str(c.corporation_name),
+    pmfcorpno: str(c.corporation_number),
+    pmfnotice: str(c.notice_address),
+    pmfaddr: str(c.property_address),
+    pmfcity: str(c.city_postal),
+    pmfstart: longDay(c.commencement_date),
+    pmleases: String(fees.leases),
+    pmfdisca: fees.discount ? cad(fees.annualDiscount) : "Not applicable",
+    pmfdiscm: fees.discount ? cad(fees.discount) : "Not applicable",
+    pmfresp: str(c.response_time) || "48 hours",
+    pmfaddl: cad(fees.additionalLeases),
+    pmfmgmt: cad(fees.management),
+    pmfopt: cad(fees.optional),
+    pmftmgmt: cad(fees.management),
+    pmftopt: cad(fees.optional),
+    pmftdisc: fees.discount ? `−${cad(fees.discount)}` : cad(0),
+    pmftsub: cad(fees.subtotal),
+    pmfthst: cad(fees.hst),
+    pmfttot: cad(fees.total),
+  };
+  for (const [k, marker] of Object.entries(PM_ADDON_MARKER)) v[marker] = fees.services[k] ? cad(fees.services[k]) : "";
+  return { values: v, fees };
+}
 const CORPORATE = /\b(inc|incorporated|ltd|limited|corp|corporation|llc|ulc|co)\.?$/i;
 export const looksCorporate = (name) => CORPORATE.test(str(name).replace(/[.,\s]+$/, ""));
 
@@ -747,13 +799,13 @@ export function buildPmContract(f, ids) {
     },
     prefill: {},
     recipients: owners.map((o, i) => ({ role: roleFor(i), name: str(o.name), email: str(o.email), status: "created" })),
-    terms: { agreement_start: str(f.agreement_start), agreement_renewal: str(f.agreement_renewal), corporation },
-    extraTabs: pmContractTabs(owners, { corporation, addons: f.addons || [] }),
+    terms: { agreement_start: str(f.agreement_start), agreement_renewal: str(f.agreement_renewal), corporation, contract: f.contract || null },
+    extraTabs: pmContractTabs(owners, { corporation, addons: f.addons || [], contract: f.contract || null }),
   };
 }
 
 // { roleName: tabs } for the fields the template is missing.
-export function pmContractTabs(owners, { corporation, addons = [] }) {
+export function pmContractTabs(owners, { corporation, addons = [], contract = null }) {
   const anchor = (a, dx = a.x, dy = a.y) => ({
     anchorString: a.text, anchorXOffset: String(dx), anchorYOffset: String(dy), anchorUnits: "pixels",
     anchorIgnoreIfNotPresent: "true", anchorCaseSensitive: "true", anchorMatchWholeWord: "false",
@@ -784,6 +836,23 @@ export function pmContractTabs(owners, { corporation, addons = [] }) {
       initialHereTabs: [initials("Manager", anchor(PM_ANCHORS.managerInitials))],
     },
   };
+  // The contract's own details (dates, addresses, fees), printed in place as locked fields.
+  if (contract) {
+    const { values } = pmContractValues({ ...contract, addons });
+    const lead = out["Landlord (Authorized Signatory)"];
+    const wide = { pmfnotice: 330, pmfaddr: 330, pmfcity: 330, pmfcorp: 135, pmfcorpno: 125, pmfeff: 120, pmfstart: 200, pmfms: 110 };
+    for (const [marker, value] of Object.entries(values)) {
+      if (!value) continue;
+      lead.textTabs.push({
+        ...anchor({ text: `/${marker}/`, x: 0, y: -9 }), documentId: "1", tabLabel: `Contract ${marker}`, value, locked: "true", required: "false",
+        width: String(wide[marker] || 95), height: "14", font: "calibri", fontSize: "size10", fontColor: "black",
+      });
+    }
+    lead.checkboxTabs.push(
+      check("Engagement New", anchor({ text: "/pmeng1/", x: -20, y: -9 }), contract.engagement !== "resign"),
+      check("Engagement Re-signing", anchor({ text: "/pmeng2/", x: -20, y: -9 }), contract.engagement === "resign")
+    );
+  }
   owners.slice(1).forEach((o, i) => {
     const n = i + 2;
     out[`Landlord (Owner ${n})`] = {

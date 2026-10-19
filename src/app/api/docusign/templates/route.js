@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { ds, isConfigured, resolveTemplateId, templateRecipients } from "@/lib/docusign";
-import { EXPECTED, TEMPLATES } from "@/lib/docusign-templates";
+import { addTabsByRole, ds, isConfigured, removeEmptyRecipients, resolveTemplateId, templateRecipients } from "@/lib/docusign";
+import { EXPECTED, TEMPLATES, pmContractTabs } from "@/lib/docusign-templates";
 import { staffUser } from "@/lib/signatures-server";
 
 export const runtime = "nodejs";
@@ -119,13 +119,32 @@ export async function POST(request) {
           emailSubject: "TEST (deleted automatically) IRep Property Management Contract",
           templateRoles: [
             { roleName: "Landlord (Authorized Signatory)", name: "Test Landlord", email: "administration@ireppm.ca" },
-            { roleName: "Landlord (Owner 2)", name: "Test Owner Two", email: "administration@ireppm.ca" },
+            { roleName: "Landlord (Owner 2)", name: "Test Owner Two", email: "administration+owner2@ireppm.ca" },
             { roleName: "Manager", name: "Zan Greksa", email: "chuckfixedmyhouse@gmail.com" },
           ],
         },
       });
       const envelopeId = env.envelopeId;
       try {
+        await removeEmptyRecipients(envelopeId);
+        await addTabsByRole(
+          envelopeId,
+          pmContractTabs(
+            [
+              { name: "Test Landlord", email: "administration@ireppm.ca", phone: "519-555-0101" },
+              { name: "Test Owner Two", email: "administration@ireppm.ca", phone: "519-555-0102" },
+            ],
+            {
+              corporation: true,
+              addons: ["snow_lawn", "appliance"],
+              contract: {
+                effective_date: "2026-10-19", commencement_date: "2026-11-01", engagement: "new", corporation_name: "Test Holdings Inc.",
+                corporation_number: "1234567", notice_address: "1 Test St, Windsor, ON N9A 1A1", property_address: "123 Sample St",
+                city_postal: "Windsor, ON N8X 1T5", leases: 3, monthly_discount: 50, response_time: "48 hours",
+              },
+            }
+          )
+        );
         const [fields, recips, docs] = await Promise.all([
           ds(`/envelopes/${envelopeId}/docGenFormFields`).catch((e) => ({ error: e.message })),
           ds(`/envelopes/${envelopeId}/recipients?include_tabs=true`),
@@ -144,7 +163,7 @@ export async function POST(request) {
           tabs,
         });
       } finally {
-        await ds("/folders/recyclebin", { method: "PUT", body: { envelopeIds: [envelopeId] } }).catch(() => {});
+        if (!body.keep) await ds("/folders/recyclebin", { method: "PUT", body: { envelopeIds: [envelopeId] } }).catch(() => {});
       }
     }
 

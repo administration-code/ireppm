@@ -125,13 +125,13 @@ export default function SignatureDetail({ id }) {
           ) : null}
           {row.kind === "pm_contract" && row.status === "draft" && row.envelope_id ? (
             <button type="button" className="btn ghost sm" disabled={Boolean(busy)} onClick={() => act("pm-fields", {}, "Added (or refreshed) initials, phone numbers, the corporation and multiple-owner boxes, and the Schedule A service boxes. Open it in DocuSign to check, then send.")}>
-              {busy === "pm-fields" ? "Adding…" : "Add Initials and Contract Fields"}
+              {busy === "pm-fields" ? "Refreshing…" : "Refresh Contract Fields"}
             </button>
           ) : null}
           {row.kind === "pm_contract" && row.status === "draft" && row.envelope_id ? (
             <p className="small" style={{ flexBasis: "100%", margin: 0 }}>
-              Management contract steps: 1. Open in DocuSign and fill in the field data. 2. Come back and click Add Initials and
-              Contract Fields (run it again if you change the field data). 3. Open in DocuSign, check, and send.
+              The contract&apos;s details, initials and boxes were added when the draft was made. Open in DocuSign, check, and send.
+              Refresh Contract Fields puts them back if any were moved or deleted.
             </p>
           ) : null}
           {["sent", "delivered"].includes(row.status) ? (

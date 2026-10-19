@@ -147,7 +147,7 @@ body.push(
     spacing: { after: pt(12) },
     children: [new TextRun({ text: "Residential Rental Property  •  Province of Ontario", color: "595959", font: FONT, size: 16 })],
   }),
-  P('This Property Management Agreement (the **"Agreement"**) is made as of {{ Effective Date }} (the **"Effective Date"**) between the parties identified below.', { spacing: { line: 259, after: pt(8) } })
+  P('This Property Management Agreement (the **"Agreement"**) is made as of [[pmfeff]]______________________ (the **"Effective Date"**) between the parties identified below.', { spacing: { line: 259, after: pt(8) } })
 );
 
 // Engagement type
@@ -159,8 +159,10 @@ const engage = new Paragraph({
 });
 const managedSince = new Paragraph({
   spacing: { line: 240, after: 0 },
+  tabStops: [{ type: TabStopType.LEFT, position: pt(90) }],
   children: [
-    ...runs("{{ Managed Since }} "),
+    ...runs("[[pmfms]]"),
+    new TextRun({ text: "\t", font: FONT, size: SZ }),
     new TextRun({ text: "Complete only when re-signing. If 12 months or more, this Agreement runs month-to-month under s. 2.10.", font: FONT, size: 15 }),
   ],
 });
@@ -177,11 +179,11 @@ body.push(
     row([label("Landlord is", 117), cell("[[pmlis]]", 351, { span: 3 })], 24),
     row([
       label(new Paragraph({ spacing: { line: 240, after: 0 }, children: [...runs("Corporation name "), new TextRun({ text: "(if any)", font: FONT, size: 15, color: "595959" })] }), 117),
-      cell("{{ Corporation Name }}", 144),
+      cell("[[pmfcorp]]", 144),
       label("Corp. number", 73),
-      cell("{{ Corporation Number }}", 134),
+      cell("[[pmfcorpno]]", 134),
     ]),
-    row([label("Address for notices", 117), cell("{{ Address for Notices }}", 351, { span: 3 })]),
+    row([label("Address for notices", 117), cell("[[pmfnotice]]", 351, { span: 3 })]),
   ])
 );
 
@@ -190,7 +192,7 @@ const ownerRows = [
   row([head("Owner / registered name", 183), head("Ownership %", 66), head("Phone", 99), head("Email", 120)]),
 ];
 for (let i = 0; i < 6; i++)
-  ownerRows.push(row([cell(`[[pmo${i + 1}n]]`, 183), cell(`[[pmo${i + 1}p]]`, 66), cell(`[[pmo${i + 1}t]]{{ Phone Number }}`, 99), cell(`[[pmo${i + 1}e]]`, 120)], 26));
+  ownerRows.push(row([cell(`[[pmo${i + 1}n]]`, 183), cell(`[[pmo${i + 1}p]]`, 66), cell(`[[pmo${i + 1}t]]`, 99), cell(`[[pmo${i + 1}e]]`, 120)], 26));
 body.push(table([183, 66, 99, 120], ownerRows));
 
 body.push(
@@ -198,7 +200,7 @@ body.push(
 );
 body.push(
   table([117, 144, 73, 134], [
-    row([label("Name", 117), cell("[[pmsn]]", 144), label("Phone", 73), cell("[[pmst]]{{ Phone Number }}", 134)], 24),
+    row([label("Name", 117), cell("[[pmsn]]", 144), label("Phone", 73), cell("[[pmst]]", 134)], 24),
     row([label("Capacity", 117), cell("[[pmsc]]", 144), label("Email", 73), cell("[[pmse]]", 134)], 24),
   ])
 );
@@ -207,19 +209,19 @@ body.push(SECTION_LABEL("MANAGER", 0, 6));
 body.push(
   table([81, 153, 64, 170], [
     row([label("Legal name", 81), cell("**IRep Property Management**", 153), label("Phone", 64), cell("519-590-7200", 170)]),
-    row([label("Address", 81), cell("{{ IRep Address }}", 153), label("Email", 64), cell("administration@IRepPM.ca", 170)]),
+    row([label("Address", 81), cell("6-2557 Dougall Ave, Suite 223, Windsor, ON N8X 1T5", 153), label("Email", 64), cell("administration@IRepPM.ca", 170)]),
     row([label("HST No.", 81), cell("72502 0143 RT0001", 153), cell("", 64), cell("", 170)]),
   ])
 );
 body.push(SECTION_LABEL("THE PROPERTY", 16, 6));
 body.push(
   table([117, 351], [
-    row([label("Municipal address", 117), cell("{{ Property Address }}", 351)]),
-    row([label("City / Postal code", 117), cell("{{ City and Postal Code }}", 351)]),
+    row([label("Municipal address", 117), cell("[[pmfaddr]]", 351)]),
+    row([label("City / Postal code", 117), cell("[[pmfcity]]", 351)]),
     row([label("Property type", 117), cell("[[pmptype]]", 351)], 24),
     row([label("Units / bedrooms", 117), cell("[[pmunits]]", 351)], 24),
     row([label("Leases anticipated", 117), cell("[[pmleases]]", 351)], 24),
-    row([label("Commencement date", 117), cell("{{ Execution Date }}", 351)]),
+    row([label("Commencement date", 117), cell("[[pmfstart]]", 351)]),
   ])
 );
 
@@ -314,7 +316,7 @@ C("5.3", "Example: a room-rental home with seven (7) bedrooms rented on seven (7
 C("5.4", "The management fee is a fixed monthly amount based on the number of Leases anticipated at the Property as recorded on page 2. It is payable in full each month whether or not every room or unit is rented, including while a unit is vacant, between tenants or under repair, or after a Lease has ended or been broken. There is no reduction, proration or suspension for vacancy or loss of rent, except as the Manager waives under section 5.9.");
 C("5.5", "The management fee and all Schedule A fees are payable monthly in advance and are deducted from rent collected under section 8. If rent collected in a month is insufficient, the balance is payable by the Landlord on invoice.");
 C("5.6", "All fees in this Agreement are exclusive of HST. HST at 13% is added to all fees. Manager’s HST registration number: 72502 0143 RT0001.");
-C("5.7", "**First-year discount (if applicable).** A total discount of {{ Annual Discount.value }} {{ Annual Discount.currencyCode }} is granted, applied as {{ Monthly Discount.value }} {{ Monthly Discount.currencyCode }} per month for the twelve (12) months following the Effective Date. This includes an existing landlord moved to this Agreement as a new engagement under section 2.10(a). The discount ends automatically after those twelve months without further notice, does not apply to Schedule A optional service fees, and ends early if this Agreement ends.");
+C("5.7", "**First-year discount (if applicable).** A total discount of [[pmfdisca]]________________ is granted, applied as [[pmfdiscm]]______________ per month for the twelve (12) months following the Effective Date. This includes an existing landlord moved to this Agreement as a new engagement under section 2.10(a). The discount ends automatically after those twelve months without further notice, does not apply to Schedule A optional service fees, and ends early if this Agreement ends.");
 C("5.8", "**Changes to the number of Leases.** The number of Leases changes only when the configuration of the Property permanently changes, as agreed in writing by the Authorized Signatory: a room or unit is added, removed or taken out of rental use, or the Property converts between whole-home and room rental. The change takes effect on the first day of the following month and is recorded by amending Schedule A, Part 1. Tenant turnover does not change the number of Leases.");
 C("5.9", "**Waivers.** The Manager may, at its sole discretion, waive or reduce any fee for any month. For example, it may waive the management fee for a month in which all rent collected comes from a Lease that began that month. A waiver applies only to the month and amount stated and does not waive any other fee.");
 C("5.10", "**Overdue amounts.** Any amount owing to the Manager that is unpaid fifteen (15) days after invoice bears interest from the due date until paid at two percent (2%) per month, which is twenty-four percent (24%) per year, calculated and compounded monthly. While any amount is overdue, the Manager may suspend any or all services, including optional services, without liability.");
@@ -327,7 +329,7 @@ C("6.4", "The detailed terms, inclusions and exclusions for each optional servic
 
 S("7.   LANDLORD OBLIGATIONS");
 C("7.1", "The Landlord shall provide the Manager with keys and access devices, copies of all existing leases, tenant ledgers, records of deposits held, and any known information about defects or outstanding issues at the Property.");
-C("7.2", "The Landlord shall respond to any request for approval from the Manager within {{ Response Time (Maintenance) }} (if left blank, forty-eight (48) hours). If the Landlord does not respond in time, the Manager is not obliged to carry out the work and is not liable for any consequence of the delay.");
+C("7.2", "The Landlord shall respond to any request for approval from the Manager within [[pmfresp]]________________ (if left blank, forty-eight (48) hours). If the Landlord does not respond in time, the Manager is not obliged to carry out the work and is not liable for any consequence of the delay.");
 C("7.3", "The Landlord remains responsible for compliance with the Residential Tenancies Act, 2006, the Ontario Fire Code, the Building Code, municipal by-laws, and any applicable rental, lodging house or licensing requirements affecting the Property.");
 C("7.4", "The Landlord shall maintain property insurance and commercial general liability insurance on the Property of not less than $2,000,000 per occurrence, shall name the Manager as an additional insured, and shall provide evidence of that coverage on request and on each renewal.");
 C("7.5", "The Landlord shall not give instructions directly to tenants, contractors or vendors in respect of the Property without first informing the Manager, and shall promptly forward to the Manager any communication received from a tenant.");
@@ -444,9 +446,9 @@ body.push(
     row([
       cell("Additional Leases (each Lease beyond the first) × $25.00", 270),
       cell("$25.00", 76, { align: AlignmentType.CENTER }),
-      cell("{{ Additional Lease Cost.value }} {{ Additional Lease Cost.currencyCode }}", 122, { align: AlignmentType.CENTER }),
+      cell("[[pmfaddl]]", 122),
     ]),
-    row([cell("**Subtotal — management fee**", 270, { fill: LABEL_FILL }), cell("", 76, { fill: LABEL_FILL }), cell("", 122, { fill: LABEL_FILL })]),
+    row([cell("**Subtotal — management fee**", 270, { fill: LABEL_FILL }), cell("", 76, { fill: LABEL_FILL }), cell("[[pmfmgmt]]", 122, { fill: LABEL_FILL })]),
   ])
 );
 body.push(P('A "Lease" is one tenancy agreement, however many tenants are named on it (section 1.4).'));
@@ -458,19 +460,19 @@ const svc = (name, rest, rate, term, monthly, italic) =>
     cell(italic ? `*${name}${rest}*` : `**${name}**${rest}`, 208),
     cell(rate, 89, { align: AlignmentType.CENTER }),
     cell(term, 60, { align: AlignmentType.CENTER }),
-    cell(monthly, 90, { align: AlignmentType.CENTER }),
+    cell(monthly, 90, { align: monthly.startsWith("[[") ? undefined : AlignmentType.CENTER }),
   ]);
 body.push(
   table([21, 208, 89, 60, 90], [
     row([head("", 21), head("Service", 208), head("Fixed rate", 89, { align: AlignmentType.CENTER }), head("Min. term", 60, { align: AlignmentType.CENTER }), head("Monthly", 90, { align: AlignmentType.CENTER })]),
-    svc("Lawn maintenance & snow removal", " — monthly plan", "$50.00 / month", "1 year", "{{ Lawn/Snow Cost.value }} {{ Lawn/Snow Cost.currencyCode }}"),
+    svc("Lawn maintenance & snow removal", " — monthly plan", "$50.00 / month", "1 year", "[[pmfsnow]]"),
     svc("Lawn maintenance & snow removal", " — per service (no monthly plan)", "$75.00 per service", "None", "As used"),
-    svc("Security package", " — 1–2 exterior cameras", "$15.00 / month", "None", "{{ Security Cost.value }} {{ Security Cost.currencyCode }}"),
+    svc("Security package", " — 1–2 exterior cameras", "$15.00 / month", "None", "[[pmfsec]]"),
     svc("Security package", " — one-time installation", "$100.00 one time", "—", "", true),
-    svc("Appliance coverage", " — fridge, stove, washer, dryer", "$50.00 / month", "1 year", "{{ Appliance Cost.value }} {{ Appliance Cost.currencyCode }}"),
-    svc("Plumbing package", " — basic plumbing repairs", "$40.00 / month", "1 year", "{{ Plumbing Cost.value }} {{ Plumbing Cost.currencyCode }}"),
-    svc("Common space cleaning", " — shared areas of the Property", "$150.00 / month", "None", "{{ Cleaning Cost.value }} {{ Cleaning Cost.currencyCode }}"),
-    row([cell("", 21, { fill: LABEL_FILL }), cell("**Subtotal — optional services (monthly)**", 208, { fill: LABEL_FILL }), cell("", 89, { fill: LABEL_FILL }), cell("", 60, { fill: LABEL_FILL }), cell("", 90, { fill: LABEL_FILL })]),
+    svc("Appliance coverage", " — fridge, stove, washer, dryer", "$50.00 / month", "1 year", "[[pmfapp]]"),
+    svc("Plumbing package", " — basic plumbing repairs", "$40.00 / month", "1 year", "[[pmfplumb]]"),
+    svc("Common space cleaning", " — shared areas of the Property", "$150.00 / month", "None", "[[pmfclean]]"),
+    row([cell("", 21, { fill: LABEL_FILL }), cell("**Subtotal — optional services (monthly)**", 208, { fill: LABEL_FILL }), cell("", 89, { fill: LABEL_FILL }), cell("", 60, { fill: LABEL_FILL }), cell("[[pmfopt]]", 90, { fill: LABEL_FILL })]),
   ])
 );
 body.push(P("Detailed terms, inclusions and exclusions for each optional service are set out in Schedule B."));
@@ -485,15 +487,15 @@ body.push(
 body.push(P("The leasing fee is earned on execution of the Lease and is deducted from rent collected. It is charged per Lease signed and is exclusive of HST."));
 
 body.push(SUB("Part 4 — Monthly fee summary"));
-const sumRow = (l, v, bold) => row([cell(bold ? `**${l}**` : l, 330), cell(v, 138, { align: AlignmentType.CENTER })]);
+const sumRow = (l, v, bold) => row([cell(bold ? `**${l}**` : l, 330), cell(v, 138)], 18);
 body.push(
   table([330, 138], [
-    sumRow("Management fee (Part 1)", "{{ Total Management Cost.value }} {{ Total Management Cost.currencyCode }}"),
-    sumRow("Optional services (Part 2)", "{{ Additional Services Cost.value }} {{ Additional Services Cost.currencyCode }}"),
-    sumRow("Less first-year discount, if any (section 5.7)", "{{ Monthly Discount.value }} {{ Monthly Discount.currencyCode }}"),
-    sumRow("Subtotal", "{{ Subtotal Fee.value }} {{ Subtotal Fee.currencyCode }}", true),
-    sumRow("HST @ 13%", "{{ Fee HST.value }} {{ Fee HST.currencyCode }}"),
-    sumRow("TOTAL MONTHLY, HST included", "{{ Total Fee Monthly.value }} {{ Total Fee Monthly.currencyCode }}", true),
+    sumRow("Management fee (Part 1)", "[[pmftmgmt]]"),
+    sumRow("Optional services (Part 2)", "[[pmftopt]]"),
+    sumRow("Less first-year discount, if any (section 5.7)", "[[pmftdisc]]"),
+    sumRow("Subtotal", "[[pmftsub]]", true),
+    sumRow("HST @ 13%", "[[pmfthst]]"),
+    sumRow("TOTAL MONTHLY, HST included", "[[pmfttot]]", true),
   ])
 );
 body.push(P("One-time charges at start-up (e.g. camera installation $100.00 + HST) are billed in the first month."));
