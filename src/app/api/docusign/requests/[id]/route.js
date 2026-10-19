@@ -73,7 +73,10 @@ export async function POST(request, { params }) {
           phone: i === 0 || String(s.email).toLowerCase() === String(owner?.email || "").toLowerCase() ? owner?.phone || "" : "",
         }));
         const corporation = body.corporation === undefined ? looksCorporate(owners[0]?.name || owner?.name) : Boolean(body.corporation);
-        const added = await addTabsByRole(row.envelope_id, pmContractTabs(owners, { corporation }));
+        const { data: addons } = row.property_id
+          ? await sb.from("property_addons").select("addon_key").eq("property_id", row.property_id)
+          : { data: [] };
+        const added = await addTabsByRole(row.envelope_id, pmContractTabs(owners, { corporation, addons: (addons || []).map((a) => a.addon_key) }));
         return NextResponse.json({ ok: true, added });
       }
       case "page-image": {

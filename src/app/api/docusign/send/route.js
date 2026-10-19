@@ -111,7 +111,12 @@ export async function POST(request) {
   let built;
   if (kind === "lease") built = buildLease(f, ids, owner);
   else if (kind === "consent") built = buildConsent(f, ids, owner);
-  else if (kind === "pm_contract") built = buildPmContract(f, ids);
+  else if (kind === "pm_contract") {
+    const { data: addons } = f.property_id
+      ? await sb.from("property_addons").select("addon_key").eq("property_id", f.property_id)
+      : { data: [] };
+    built = buildPmContract({ ...f, addons: (addons || []).map((a) => a.addon_key) }, ids);
+  }
   else if (kind === "certificate_of_service") built = buildCertificate(f, ids);
   else built = buildNForm(kind, f, ids, owner);
 

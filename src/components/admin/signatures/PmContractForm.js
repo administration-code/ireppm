@@ -68,7 +68,8 @@ export default function PmContractForm({ ctx }) {
         </label>
         <p className="small" style={{ margin: 0 }}>
           The contract also gets initials on pages 1 to 14 for the authorized signatory and Chuck, the owners&apos; phone numbers on
-          page 1, and the multiple-owners box when there&apos;s more than one owner.
+          page 1, IRep&apos;s phone number on page 2, the multiple-owners box when there&apos;s more than one owner, and the Schedule A
+          service boxes ticked from the property&apos;s add-ons.
         </p>
         <div className="row2">
           <div className="field">

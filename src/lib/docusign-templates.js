@@ -714,6 +714,17 @@ const PM_LAYOUT = {
   multipleOwnersCheck: { page: 10, x: 66, y: 399 }, // under the landlord's signature: more than one owner
   ownerPhone: [{ page: 1, x: 326, y: 403 }, { page: 1, x: 227, y: 676 }], // owner row and authorized signatory section
   coOwnerPhoneY: [435, 466, 498, 530, 562], // owners 2-6 rows on page 1
+  irepPhone: { page: 2, x: 373, y: 93 }, // Manager table, Phone cell
+  // Schedule A, Part 2 (page 11): the box beside each optional service, by add-on key.
+  services: [
+    ["snow_lawn", "Service Lawn Snow Monthly", 323],
+    [null, "Service Lawn Snow Per Visit", 356],
+    ["surveillance", "Service Security Package", 389],
+    ["surveillance_install", "Service Security Install", 417],
+    ["appliance", "Service Appliance Coverage", 432],
+    ["plumbing", "Service Plumbing Package", 465],
+    ["cleaning", "Service Common Space Cleaning", 487],
+  ],
 };
 const CORPORATE = /\b(inc|incorporated|ltd|limited|corp|corporation|llc|ulc|co)\.?$/i;
 export const looksCorporate = (name) => CORPORATE.test(str(name).replace(/[.,\s]+$/, ""));
@@ -730,12 +741,12 @@ export function buildPmContract(f, ids) {
     prefill: {},
     recipients: owners.map((o, i) => ({ role: roleFor(i), name: str(o.name), email: str(o.email), status: "created" })),
     terms: { agreement_start: str(f.agreement_start), agreement_renewal: str(f.agreement_renewal), corporation },
-    extraTabs: pmContractTabs(owners, { corporation }),
+    extraTabs: pmContractTabs(owners, { corporation, addons: f.addons || [] }),
   };
 }
 
 // { roleName: tabs } for the fields the template is missing.
-export function pmContractTabs(owners, { corporation }) {
+export function pmContractTabs(owners, { corporation, addons = [] }) {
   const pages = range(PM_PAGES); // 1..14
   const pos = (page, { x, y }) => ({ documentId: "1", pageNumber: String(page), xPosition: String(x), yPosition: String(y) });
   const initials = (where, label) =>
@@ -752,10 +763,18 @@ export function pmContractTabs(owners, { corporation }) {
     checkboxTabs: [
       check("Landlord Is Corporation", PM_LAYOUT.corporationCheck, corporation),
       check("Multiple Owners", PM_LAYOUT.multipleOwnersCheck, owners.length > 1),
+      // Optional services: ticked from the property's add-ons; the landlord can change them before signing.
+      ...PM_LAYOUT.services.map(([key, label, y]) => ({ ...check(label, { page: 11, x: 77, y }, key && addons.includes(key)), locked: "false" })),
     ],
     textTabs: str(lead.phone) ? PM_LAYOUT.ownerPhone.map((w, i) => phoneText(`Owner Phone ${i + 1}`, lead.phone, w)) : [],
   };
-  const out = { "Landlord (Authorized Signatory)": leadTabs, Manager: { initialHereTabs: initials(PM_LAYOUT.managerInitials, "Manager") } };
+  const out = {
+    "Landlord (Authorized Signatory)": leadTabs,
+    Manager: {
+      initialHereTabs: initials(PM_LAYOUT.managerInitials, "Manager"),
+      textTabs: [{ ...phoneText("IRep Phone", REP.phone || "519-590-7200", PM_LAYOUT.irepPhone), width: "150", locked: "true" }],
+    },
+  };
   owners.slice(1).forEach((o, i) => {
     if (str(o.phone)) out[`Landlord (Owner ${i + 2})`] = { textTabs: [phoneText(`Owner ${i + 2} Phone`, o.phone, { page: 1, x: 326, y: PM_LAYOUT.coOwnerPhoneY[i] })] };
   });
