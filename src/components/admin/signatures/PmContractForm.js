@@ -67,9 +67,10 @@ export default function PmContractForm({ ctx }) {
           The landlord is a corporation (ticks the corporation box under the landlord&apos;s signature)
         </label>
         <p className="small" style={{ margin: 0 }}>
-          The contract also gets initials on pages 1 to 14 for every owner and Chuck, the owners&apos; phone numbers on
-          page 1, IRep&apos;s phone number on page 2, the multiple-owners box when there&apos;s more than one owner, and the Schedule A
-          service boxes ticked from the property&apos;s add-ons.
+          After you fill in the contract&apos;s field data in DocuSign, come back to this request and click Add Initials and
+          Contract Fields. That adds initials on every page for every owner and Chuck, the phone numbers, the corporation and
+          multiple-owner boxes, and the Schedule A service boxes ticked from the property&apos;s add-ons. Then check it in DocuSign
+          and send.
         </p>
         <div className="row2">
           <div className="field">

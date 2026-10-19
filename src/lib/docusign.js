@@ -164,8 +164,21 @@ export async function removeEmptyRecipients(id) {
 
 // Adds fields to a draft envelope, by role: { "Role Name": { initialHereTabs: [...], ... } }.
 // Tabs whose label is already on that recipient are skipped, so running it twice adds nothing.
-export async function addTabsByRole(id, byRole) {
-  const data = await getRecipients(id, true);
+// With `replace` (a regex of tab labels), matching tabs are removed first and added fresh.
+export async function addTabsByRole(id, byRole, { replace } = {}) {
+  let data = await getRecipients(id, true);
+  if (replace) {
+    for (const r of data?.signers || []) {
+      const body = {};
+      for (const [kind, list] of Object.entries(r.tabs || {})) {
+        if (!Array.isArray(list)) continue;
+        const ours = list.filter((t) => t?.tabId && replace.test(String(t.tabLabel || ""))).map((t) => ({ tabId: t.tabId }));
+        if (ours.length) body[kind] = ours;
+      }
+      if (Object.keys(body).length) await ds(`/envelopes/${id}/recipients/${r.recipientId}/tabs`, { method: "DELETE", body });
+    }
+    data = await getRecipients(id, true);
+  }
   const added = [];
   for (const r of data?.signers || []) {
     const tabs = byRole?.[r.roleName];

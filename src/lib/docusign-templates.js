@@ -704,30 +704,35 @@ export function buildConsent(f, ids, owner) {
   };
 }
 
-// Fields the saved DocuSign template doesn't have, added to every new management contract
-// after it's created (see addPmContractTabs). Positions are DocuSign points on the 15-page contract.
-const PM_PAGES = 14;
-const PM_LAYOUT = {
-  landlordInitials: (page) => ({ x: page >= 10 ? 239 : 241, y: 731 }),
-  managerInitials: (page) => ({ x: page >= 10 ? 329 : 331, y: 733 }),
+// Fields the saved DocuSign template doesn't have, added to a management contract draft once its
+// field data is filled in (the generated document's length varies, so most fields are anchored to
+// the contract's own words rather than fixed page positions). Offsets are in points from the anchor.
+const PM_ANCHORS = {
+  landlordInitials: { text: "Landlord initials", x: 52, y: -18 },
+  managerInitials: { text: "Manager initials", x: 52, y: -16 },
   // Owners 2-6 initial in the empty footer space either side of "Landlord initials / Manager initials".
-  coOwnerInitialsX: [140, 95, 50, 440, 485],
-  corporationCheck: { page: 10, x: 66, y: 364 }, // under the landlord's signature: signing for a corporation
-  multipleOwnersCheck: { page: 10, x: 66, y: 399 }, // under the landlord's signature: more than one owner
+  coOwnerInitialsX: [-49, -94, -139, 251, 296],
+  corporation: { text: "Where the Landlord is a corporation", x: -20, y: -4 }, // page 10, under the signatures
+  multipleOwners: { text: "Where the Property has more than one owner", x: -20, y: -4 },
+  // Schedule A, Part 2: the box beside each optional service, by add-on key.
+  services: [
+    ["snow_lawn", "Service Lawn Snow Monthly", "Lawn maintenance & snow removal — monthly"],
+    ["snow_lawn_visit", "Service Lawn Snow Per Visit", "Lawn maintenance & snow removal — per"],
+    ["surveillance", "Service Security Package", "Security package — 1–2"],
+    ["surveillance_install", "Service Security Install", "Security package — one-time"],
+    ["appliance", "Service Appliance Coverage", "Appliance coverage — fridge"],
+    ["plumbing", "Service Plumbing Package", "Plumbing package — basic"],
+    ["cleaning", "Service Common Space Cleaning", "Common space cleaning — shared"],
+  ],
+  serviceBox: { x: -22, y: -1 },
+};
+// Page 1 and 2 don't move: phones go in fixed cells.
+const PM_FIXED = {
   ownerPhone: [{ page: 1, x: 326, y: 403 }, { page: 1, x: 227, y: 676 }], // owner row and authorized signatory section
   coOwnerPhoneY: [435, 466, 498, 530, 562], // owners 2-6 rows on page 1
   irepPhone: { page: 2, x: 373, y: 93 }, // Manager table, Phone cell
-  // Schedule A, Part 2 (page 11): the box beside each optional service, by add-on key.
-  services: [
-    ["snow_lawn", "Service Lawn Snow Monthly", 323],
-    [null, "Service Lawn Snow Per Visit", 356],
-    ["surveillance", "Service Security Package", 389],
-    ["surveillance_install", "Service Security Install", 417],
-    ["appliance", "Service Appliance Coverage", 432],
-    ["plumbing", "Service Plumbing Package", 465],
-    ["cleaning", "Service Common Space Cleaning", 487],
-  ],
 };
+export const PM_TAB_LABELS = /^(Landlord|Manager|Owner \d) Initials|^Landlord Is Corporation$|^Multiple Owners$|^Service |^Owner (\d )?Phone|^IRep Phone$/;
 const CORPORATE = /\b(inc|incorporated|ltd|limited|corp|corporation|llc|ulc|co)\.?$/i;
 export const looksCorporate = (name) => CORPORATE.test(str(name).replace(/[.,\s]+$/, ""));
 
@@ -749,39 +754,42 @@ export function buildPmContract(f, ids) {
 
 // { roleName: tabs } for the fields the template is missing.
 export function pmContractTabs(owners, { corporation, addons = [] }) {
-  const pages = range(PM_PAGES); // 1..14
+  const anchor = (a, dx = a.x, dy = a.y) => ({
+    anchorString: a.text, anchorXOffset: String(dx), anchorYOffset: String(dy), anchorUnits: "pixels",
+    anchorIgnoreIfNotPresent: "true", anchorCaseSensitive: "false", anchorMatchWholeWord: "false",
+  });
   const pos = (page, { x, y }) => ({ documentId: "1", pageNumber: String(page), xPosition: String(x), yPosition: String(y) });
-  const initials = (where, label) =>
-    pages.map((p) => ({ ...pos(p, where(p)), tabLabel: `${label} Initials p${p}`, name: "InitialHere", optional: "false", scaleValue: "1" }));
+  const initials = (label, where) => ({ ...where, tabLabel: `${label} Initials`, name: "InitialHere", optional: "false", scaleValue: "1" });
   const phoneText = (label, value, where) => ({
     ...pos(where.page, where), tabLabel: label, value: str(value), width: "84", height: "14", required: "false", locked: "false",
     font: "helvetica", fontSize: "size9", fontColor: "black",
   });
-  const check = (label, where, on) => ({ ...pos(where.page, where), tabLabel: label, name: label, selected: on ? "true" : "false", locked: "true", required: "false" });
+  const check = (label, where, on, locked = true) => ({ ...where, tabLabel: label, name: label, selected: on ? "true" : "false", locked: locked ? "true" : "false", required: "false" });
 
   const lead = owners[0] || {};
-  const leadTabs = {
-    initialHereTabs: initials(PM_LAYOUT.landlordInitials, "Landlord"),
-    checkboxTabs: [
-      check("Landlord Is Corporation", PM_LAYOUT.corporationCheck, corporation),
-      check("Multiple Owners", PM_LAYOUT.multipleOwnersCheck, owners.length > 1),
-      // Optional services: ticked from the property's add-ons; the landlord can change them before signing.
-      ...PM_LAYOUT.services.map(([key, label, y]) => ({ ...check(label, { page: 11, x: 77, y }, key && addons.includes(key)), locked: "false" })),
-    ],
-    textTabs: str(lead.phone) ? PM_LAYOUT.ownerPhone.map((w, i) => phoneText(`Owner Phone ${i + 1}`, lead.phone, w)) : [],
-  };
   const out = {
-    "Landlord (Authorized Signatory)": leadTabs,
+    "Landlord (Authorized Signatory)": {
+      initialHereTabs: [initials("Landlord", anchor(PM_ANCHORS.landlordInitials))],
+      checkboxTabs: [
+        check("Landlord Is Corporation", anchor(PM_ANCHORS.corporation), corporation),
+        check("Multiple Owners", anchor(PM_ANCHORS.multipleOwners), owners.length > 1),
+        // Optional services: ticked from the property's add-ons; the landlord can change them before signing.
+        ...PM_ANCHORS.services.map(([key, label, text]) =>
+          check(label, anchor({ text, ...PM_ANCHORS.serviceBox }), addons.includes(key), false)
+        ),
+      ],
+      textTabs: str(lead.phone) ? PM_FIXED.ownerPhone.map((w, i) => phoneText(`Owner Phone ${i + 1}`, lead.phone, w)) : [],
+    },
     Manager: {
-      initialHereTabs: initials(PM_LAYOUT.managerInitials, "Manager"),
-      textTabs: [{ ...phoneText("IRep Phone", REP.phone || "519-590-7200", PM_LAYOUT.irepPhone), width: "150", locked: "true" }],
+      initialHereTabs: [initials("Manager", anchor(PM_ANCHORS.managerInitials))],
+      textTabs: [{ ...phoneText("IRep Phone", REP.phone || "519-590-7200", PM_FIXED.irepPhone), width: "150", locked: "true" }],
     },
   };
   owners.slice(1).forEach((o, i) => {
     const n = i + 2;
     out[`Landlord (Owner ${n})`] = {
-      initialHereTabs: initials(() => ({ x: PM_LAYOUT.coOwnerInitialsX[i], y: 731 }), `Owner ${n}`),
-      textTabs: str(o.phone) ? [phoneText(`Owner ${n} Phone`, o.phone, { page: 1, x: 326, y: PM_LAYOUT.coOwnerPhoneY[i] })] : [],
+      initialHereTabs: [initials(`Owner ${n}`, anchor(PM_ANCHORS.landlordInitials, PM_ANCHORS.coOwnerInitialsX[i], PM_ANCHORS.landlordInitials.y))],
+      textTabs: str(o.phone) ? [phoneText(`Owner ${n} Phone`, o.phone, { page: 1, x: 326, y: PM_FIXED.coOwnerPhoneY[i] })] : [],
     };
   });
   return out;

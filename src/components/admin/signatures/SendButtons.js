@@ -48,9 +48,11 @@ export default function SendButtons({ kind, getForm, onCancel }) {
         <button type="button" className="btn primary" disabled={Boolean(blocked) || Boolean(busy)} onClick={() => submit("review")}>
           {busy === "review" ? "Opening DocuSign…" : "Review in DocuSign"}
         </button>
-        <button type="button" className="btn ghost" disabled={Boolean(blocked) || Boolean(busy)} onClick={() => submit("send")}>
-          {busy === "send" ? "Sending…" : "Send now"}
-        </button>
+        {kind !== "pm_contract" ? (
+          <button type="button" className="btn ghost" disabled={Boolean(blocked) || Boolean(busy)} onClick={() => submit("send")}>
+            {busy === "send" ? "Sending…" : "Send now"}
+          </button>
+        ) : null}
         {onCancel ? (
           <button type="button" className="link-btn small" onClick={onCancel} disabled={Boolean(busy)}>
             Cancel

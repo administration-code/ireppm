@@ -124,9 +124,15 @@ export default function SignatureDetail({ id }) {
             </button>
           ) : null}
           {row.kind === "pm_contract" && row.status === "draft" && row.envelope_id ? (
-            <button type="button" className="btn ghost sm" disabled={Boolean(busy)} onClick={() => act("pm-fields", {}, "Added initials, phone numbers, the page 10 boxes and the Schedule A service boxes to the draft. Open it in DocuSign to check.")}>
+            <button type="button" className="btn ghost sm" disabled={Boolean(busy)} onClick={() => act("pm-fields", {}, "Added (or refreshed) initials, phone numbers, the corporation and multiple-owner boxes, and the Schedule A service boxes. Open it in DocuSign to check, then send.")}>
               {busy === "pm-fields" ? "Adding…" : "Add Initials and Contract Fields"}
             </button>
+          ) : null}
+          {row.kind === "pm_contract" && row.status === "draft" && row.envelope_id ? (
+            <p className="small" style={{ flexBasis: "100%", margin: 0 }}>
+              Management contract steps: 1. Open in DocuSign and fill in the field data. 2. Come back and click Add Initials and
+              Contract Fields (run it again if you change the field data). 3. Open in DocuSign, check, and send.
+            </p>
           ) : null}
           {["sent", "delivered"].includes(row.status) ? (
             <button type="button" className="btn ghost sm" disabled={Boolean(busy)} onClick={() => act("remind", {}, "Reminder sent.")}>

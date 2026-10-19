@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { addTabsByRole, createEnvelope, removeEmptyRecipients, resolveTemplates, sendDraftEnvelope, senderViewUrl } from "@/lib/docusign";
+import { createEnvelope, removeEmptyRecipients, resolveTemplates, sendDraftEnvelope, senderViewUrl } from "@/lib/docusign";
 import { staffUser } from "@/lib/signatures-server";
 import {
   KIND_TEMPLATES,
@@ -152,13 +152,8 @@ export async function POST(request) {
     // then send it or open it for review.
     const env = await createEnvelope({ ...built.definition, emailSubject, status: "created" });
     await removeEmptyRecipients(env.envelopeId);
-    if (built.extraTabs) {
-      try {
-        await addTabsByRole(env.envelopeId, built.extraTabs);
-      } catch (err) {
-        console.error("[docusign] couldn't add contract fields:", err?.message || err);
-      }
-    }
+    // Management contracts: the extra fields (initials, boxes, phones) are added from the request page
+    // once the contract's field data is filled in, because the generated document's layout depends on it.
     if (mode === "send") await sendDraftEnvelope(env.envelopeId);
     const now = new Date().toISOString();
     await sb

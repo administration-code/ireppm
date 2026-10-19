@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { addTabsByRole, consoleViewUrl, getRecipients, pageImage, resendEnvelope, senderViewUrl, voidEnvelope } from "@/lib/docusign";
-import { looksCorporate, pmContractTabs } from "@/lib/docusign-templates";
+import { PM_TAB_LABELS, looksCorporate, pmContractTabs } from "@/lib/docusign-templates";
 import { SIGNED_BUCKET, staffUser, syncRequest } from "@/lib/signatures-server";
 
 export const runtime = "nodejs";
@@ -76,7 +76,7 @@ export async function POST(request, { params }) {
         const { data: addons } = row.property_id
           ? await sb.from("property_addons").select("addon_key").eq("property_id", row.property_id)
           : { data: [] };
-        const added = await addTabsByRole(row.envelope_id, pmContractTabs(owners, { corporation, addons: (addons || []).map((a) => a.addon_key) }));
+        const added = await addTabsByRole(row.envelope_id, pmContractTabs(owners, { corporation, addons: (addons || []).map((a) => a.addon_key) }), { replace: PM_TAB_LABELS });
         return NextResponse.json({ ok: true, added });
       }
       case "page-image": {
