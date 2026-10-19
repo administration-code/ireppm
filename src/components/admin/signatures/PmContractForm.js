@@ -7,6 +7,13 @@ import { placeOf } from "@/lib/signature-context";
 import { getBrowserClient } from "@/lib/supabase";
 
 const today = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" });
+const plusYear = (iso) => {
+  if (!iso) return "";
+  const [y, m, d] = iso.split("-").map(Number);
+  const dt = new Date(Date.UTC(y + 1, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() - 1); // a 12-month term ends the day before its anniversary
+  return dt.toISOString().slice(0, 10);
+};
 const money = (n) => `$${Number(n || 0).toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const ADDON_NAMES = { snow_lawn: "Lawn & snow (monthly)", surveillance: "Security package", appliance: "Appliance coverage", plumbing: "Plumbing package", cleaning: "Common space cleaning" };
 
@@ -29,7 +36,11 @@ export default function PmContractForm({ ctx }) {
     },
   ]);
   const [corporation, setCorporation] = useState(() => looksCorporate(ctx.owner?.name || p?.owner_name || ""));
-  const [dates, setDates] = useState({ agreement_start: p?.agreement_start || "", agreement_renewal: p?.agreement_renewal || "" });
+  // A new contract starts a new term: the commencement date follows the effective date and the renewal
+  // date is a year after it, until either is changed by hand (never the property's old agreement dates).
+  const [dates, setDates] = useState(() => ({ agreement_start: today(), agreement_renewal: plusYear(today()) }));
+  const [touched, setTouched] = useState({ start: false, renewal: false });
+  const setStart = (v) => setDates((d) => ({ agreement_start: v, agreement_renewal: touched.renewal ? d.agreement_renewal : plusYear(v) }));
   const setOwner = (i, k) => (e) => setOwners((list) => list.map((o, j) => (j === i ? { ...o, [k]: e.target.value } : o)));
   const [c, setC] = useState(() => ({
     effective_date: today(),
@@ -166,7 +177,15 @@ export default function PmContractForm({ ctx }) {
         <div className="row2">
           <div className="field">
             <label htmlFor="pm-eff">Effective date (date the contract is made)</label>
-            <input id="pm-eff" type="date" value={c.effective_date} onChange={setField("effective_date")} />
+            <input
+              id="pm-eff"
+              type="date"
+              value={c.effective_date}
+              onChange={(e) => {
+                setField("effective_date")(e);
+                if (!touched.start) setStart(e.target.value);
+              }}
+            />
           </div>
           <div className="field">
             <label htmlFor="pm-resp">Approval response time (section 7.2)</label>
@@ -224,11 +243,29 @@ export default function PmContractForm({ ctx }) {
         <div className="row2">
           <div className="field">
             <label htmlFor="pm-start">Commencement date (agreement start)</label>
-            <input id="pm-start" type="date" value={dates.agreement_start} onChange={(e) => setDates((d) => ({ ...d, agreement_start: e.target.value }))} />
+            <input
+              id="pm-start"
+              type="date"
+              value={dates.agreement_start}
+              onChange={(e) => {
+                setTouched((t) => ({ ...t, start: true }));
+                setStart(e.target.value);
+              }}
+            />
+            <span className="small">Usually the same as the effective date. The 12-month Initial Term and the first-year discount count from here.</span>
           </div>
           <div className="field">
             <label htmlFor="pm-renew">Renewal date</label>
-            <input id="pm-renew" type="date" value={dates.agreement_renewal} onChange={(e) => setDates((d) => ({ ...d, agreement_renewal: e.target.value }))} />
+            <input
+              id="pm-renew"
+              type="date"
+              value={dates.agreement_renewal}
+              onChange={(e) => {
+                setTouched((t) => ({ ...t, renewal: true }));
+                setDates((d) => ({ ...d, agreement_renewal: e.target.value }));
+              }}
+            />
+            <span className="small">End of the Initial Term; month to month after that.</span>
           </div>
         </div>
       </fieldset>
