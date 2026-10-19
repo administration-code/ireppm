@@ -184,8 +184,15 @@ export async function POST(request) {
 
     // Move leftover test drafts (subject starts "TEST" or "Draft check") to DocuSign's Deleted folder.
     if (body.action === "recyclebin") {
-      const bin = await ds("/folders/recyclebin?count=500");
-      return NextResponse.json({ keys: Object.keys(bin), raw: JSON.stringify(bin).slice(0, 1500) });
+      const from = new Date(Date.now() - 150 * 864e5).toISOString().slice(0, 10);
+      const [bin, drafts] = await Promise.all([
+        ds("/folders/recyclebin?include_items=true&count=500").catch((e) => ({ error: e.message })),
+        ds(`/envelopes?from_date=${from}&folder_ids=drafts&count=200`).catch((e) => ({ error: e.message })),
+      ]);
+      return NextResponse.json({
+        bin: JSON.stringify(bin).slice(0, 600),
+        drafts: drafts.error || (drafts.envelopes || []).map((e) => `${e.status}|${e.emailSubject}`),
+      });
     }
     if (body.action === "cleanup-tests") {
       const from = new Date(Date.now() - 150 * 864e5).toISOString().slice(0, 10);
