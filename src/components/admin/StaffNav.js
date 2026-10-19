@@ -43,6 +43,7 @@ export const NAV_GROUPS = [
       { key: "properties", label: "Properties", href: "/admin/properties" },
       { key: "owners", label: "Owners", href: "/admin/owners" },
       { key: "invites", label: "Portal Invitations", href: "/admin/invites" },
+      { key: "work-orders", label: "Work Orders", href: "/admin/work-orders" },
       { key: "payouts", label: "Landlord Payouts", href: "/admin/payouts" },
       { key: "letters", label: "Landlord Letters", href: "/admin/letters" },
       { key: "inquiries", label: "New Landlord Inquiries", href: "/admin/requests?tab=inquiries", count: "inquiries", note: "new" },
