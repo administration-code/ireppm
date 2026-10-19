@@ -182,6 +182,34 @@ export async function POST(request) {
       return NextResponse.json({ signers: (recips.signers || []).map((s) => ({ role: s.roleName, recipientId: s.recipientId, tabs: s.tabs || {} })) });
     }
 
+    // DocuSign Connect: tell DocuSign to notify the website whenever an envelope changes.
+    if (body.action === "connect-setup") {
+      const url = "https://ireppm.ca/api/docusign/connect";
+      const existing = await ds("/connect").catch((e) => ({ error: e.message }));
+      if (existing.error) return NextResponse.json({ error: `Couldn't read Connect settings: ${existing.error}` }, { status: 502 });
+      const mine = (existing.configurations || []).find((c) => c.urlToPublishTo === url);
+      const config = {
+        configurationType: "custom",
+        name: "IRep website",
+        urlToPublishTo: url,
+        allUsers: "true",
+        allowEnvelopePublish: "true",
+        enableLog: "true",
+        includeHMAC: "true",
+        deliveryMode: "SIM",
+        requiresAcknowledgement: "true",
+        eventData: { version: "restv2.1", format: "json", includeData: ["recipients"] },
+        events: [
+          "envelope-sent", "envelope-delivered", "envelope-completed", "envelope-declined", "envelope-voided",
+          "recipient-sent", "recipient-delivered", "recipient-completed", "recipient-declined",
+        ],
+      };
+      const saved = mine
+        ? await ds("/connect", { method: "PUT", body: { ...config, connectId: mine.connectId } })
+        : await ds("/connect", { method: "POST", body: config });
+      return NextResponse.json({ ok: true, updated: Boolean(mine), connectId: saved.connectId || mine?.connectId, others: (existing.configurations || []).filter((c) => c !== mine).map((c) => `${c.name}: ${c.urlToPublishTo}`) });
+    }
+
     // Remove every field from the template (before re-adding them with new placements).
     if (body.action === "pm-clear-tabs") {
       const recips = await ds(`/templates/${id}/recipients?include_tabs=true`);
