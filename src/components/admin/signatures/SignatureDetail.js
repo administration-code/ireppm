@@ -123,6 +123,11 @@ export default function SignatureDetail({ id }) {
               Open in DocuSign
             </button>
           ) : null}
+          {row.kind === "pm_contract" && row.status === "draft" && row.envelope_id ? (
+            <button type="button" className="btn ghost sm" disabled={Boolean(busy)} onClick={() => act("pm-fields", {}, "Initials, owner phone numbers and the page 10 boxes are on the draft. Open it in DocuSign to check.")}>
+              {busy === "pm-fields" ? "Adding…" : "Add Initials and Contract Fields"}
+            </button>
+          ) : null}
           {["sent", "delivered"].includes(row.status) ? (
             <button type="button" className="btn ghost sm" disabled={Boolean(busy)} onClick={() => act("remind", {}, "Reminder sent.")}>
               {busy === "remind" ? "Sending…" : "Send reminder"}

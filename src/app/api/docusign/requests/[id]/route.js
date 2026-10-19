@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { consoleViewUrl, resendEnvelope, senderViewUrl, voidEnvelope } from "@/lib/docusign";
+import { addTabsByRole, consoleViewUrl, getRecipients, pageImage, resendEnvelope, senderViewUrl, voidEnvelope } from "@/lib/docusign";
+import { looksCorporate, pmContractTabs } from "@/lib/docusign-templates";
 import { SIGNED_BUCKET, staffUser, syncRequest } from "@/lib/signatures-server";
 
 export const runtime = "nodejs";
@@ -57,6 +58,29 @@ export async function POST(request, { params }) {
       case "refresh": {
         const fresh = await syncRequest(sb, row);
         return NextResponse.json({ ok: true, status: fresh.status });
+      }
+      case "pm-fields": {
+        // Adds the fields the saved template lacks (initials, page-10 boxes, owner phones) to a draft contract.
+        if (row.kind !== "pm_contract" || row.status !== "draft" || !row.envelope_id)
+          return NextResponse.json({ error: "Only a draft management contract can be updated." }, { status: 400 });
+        const env = await getRecipients(row.envelope_id);
+        const signers = (env.signers || []).filter((s) => /^Landlord/.test(s.roleName) && s.email);
+        signers.sort((a, b) => (a.roleName.includes("Authorized") ? -1 : b.roleName.includes("Authorized") ? 1 : a.roleName.localeCompare(b.roleName)));
+        const { data: owner } = row.owner_id ? await sb.from("owners").select("name, email, phone").eq("id", row.owner_id).maybeSingle() : { data: null };
+        const owners = signers.map((s, i) => ({
+          name: s.name,
+          email: s.email,
+          phone: i === 0 || String(s.email).toLowerCase() === String(owner?.email || "").toLowerCase() ? owner?.phone || "" : "",
+        }));
+        const corporation = body.corporation === undefined ? looksCorporate(owners[0]?.name || owner?.name) : Boolean(body.corporation);
+        const added = await addTabsByRole(row.envelope_id, pmContractTabs(owners, { corporation }));
+        return NextResponse.json({ ok: true, added });
+      }
+      case "page-image": {
+        if (!row.envelope_id) return NextResponse.json({ error: "No envelope." }, { status: 400 });
+        const page = Math.max(1, Math.min(40, Number(body.page) || 1));
+        const png = await pageImage(row.envelope_id, page);
+        return NextResponse.json({ page, png: png.toString("base64") });
       }
       default:
         return NextResponse.json({ error: "Unknown action." }, { status: 400 });

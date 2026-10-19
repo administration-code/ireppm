@@ -78,13 +78,13 @@ async function getToken() {
   return cached.token;
 }
 
-export async function ds(path, { method = "GET", body, binary = false } = {}) {
+export async function ds(path, { method = "GET", body, binary = false, accept } = {}) {
   const token = await getToken();
   const res = await fetch(`${apiBase()}${path}`, {
     method,
     headers: {
       Authorization: `Bearer ${token}`,
-      Accept: binary ? "application/pdf" : "application/json",
+      Accept: accept || (binary ? "application/pdf" : "application/json"),
       ...(body ? { "Content-Type": "application/json" } : {}),
     },
     body: body ? JSON.stringify(body) : undefined,
@@ -161,6 +161,32 @@ export async function removeEmptyRecipients(id) {
   if (Object.keys(body).length) await ds(`/envelopes/${id}/recipients`, { method: "DELETE", body });
   return body;
 }
+
+// Adds fields to a draft envelope, by role: { "Role Name": { initialHereTabs: [...], ... } }.
+// Tabs whose label is already on that recipient are skipped, so running it twice adds nothing.
+export async function addTabsByRole(id, byRole) {
+  const data = await getRecipients(id, true);
+  const added = [];
+  for (const r of data?.signers || []) {
+    const tabs = byRole?.[r.roleName];
+    if (!tabs) continue;
+    const have = new Set(Object.values(r.tabs || {}).flat().map((t) => t?.tabLabel).filter(Boolean));
+    const body = Object.fromEntries(
+      Object.entries(tabs)
+        .map(([k, v]) => [k, (v || []).filter((t) => !have.has(t.tabLabel))])
+        .filter(([, v]) => v.length)
+    );
+    if (Object.keys(body).length) {
+      await ds(`/envelopes/${id}/recipients/${r.recipientId}/tabs`, { method: "POST", body });
+      added.push(`${r.roleName}: ${Object.values(body).flat().length}`);
+    }
+  }
+  return added;
+}
+
+// One page of an envelope's document as a PNG (for checking where fields sit).
+export const pageImage = (id, page, doc = "1") =>
+  ds(`/envelopes/${id}/documents/${doc}/pages/${page}/page_image?dpi=72&max_width=612`, { binary: true, accept: "image/png" });
 
 export const sendDraftEnvelope = (id) => ds(`/envelopes/${id}`, { method: "PUT", body: { status: "sent" } });
 

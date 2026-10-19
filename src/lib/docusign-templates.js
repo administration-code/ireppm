@@ -704,9 +704,24 @@ export function buildConsent(f, ids, owner) {
   };
 }
 
+// Fields the saved DocuSign template doesn't have, added to every new management contract
+// after it's created (see addPmContractTabs). Positions are DocuSign points on the 15-page contract.
+const PM_PAGES = 14;
+const PM_LAYOUT = {
+  landlordInitials: (page) => ({ x: page >= 10 ? 239 : 241, y: 731 }),
+  managerInitials: (page) => ({ x: page >= 10 ? 329 : 331, y: 733 }),
+  corporationCheck: { page: 10, x: 66, y: 364 }, // under the landlord's signature: signing for a corporation
+  multipleOwnersCheck: { page: 10, x: 66, y: 399 }, // under the landlord's signature: more than one owner
+  ownerPhone: [{ page: 1, x: 326, y: 403 }, { page: 1, x: 227, y: 676 }], // owner row and authorized signatory section
+  coOwnerPhoneY: [435, 466, 498, 530, 562], // owners 2-6 rows on page 1
+};
+const CORPORATE = /\b(inc|incorporated|ltd|limited|corp|corporation|llc|ulc|co)\.?$/i;
+export const looksCorporate = (name) => CORPORATE.test(str(name).replace(/[.,\s]+$/, ""));
+
 export function buildPmContract(f, ids) {
   const owners = (f.owners || []).filter((o) => str(o.name) && str(o.email)).slice(0, MAX_OWNERS);
   const roleFor = (i) => (i === 0 ? "Landlord (Authorized Signatory)" : `Landlord (Owner ${i + 1})`);
+  const corporation = f.corporation === undefined ? looksCorporate(owners[0]?.name) : Boolean(f.corporation);
   return {
     definition: {
       templateId: ids.pm_contract,
@@ -714,8 +729,37 @@ export function buildPmContract(f, ids) {
     },
     prefill: {},
     recipients: owners.map((o, i) => ({ role: roleFor(i), name: str(o.name), email: str(o.email), status: "created" })),
-    terms: { agreement_start: str(f.agreement_start), agreement_renewal: str(f.agreement_renewal) },
+    terms: { agreement_start: str(f.agreement_start), agreement_renewal: str(f.agreement_renewal), corporation },
+    extraTabs: pmContractTabs(owners, { corporation }),
   };
+}
+
+// { roleName: tabs } for the fields the template is missing.
+export function pmContractTabs(owners, { corporation }) {
+  const pages = range(PM_PAGES); // 1..14
+  const pos = (page, { x, y }) => ({ documentId: "1", pageNumber: String(page), xPosition: String(x), yPosition: String(y) });
+  const initials = (where, label) =>
+    pages.map((p) => ({ ...pos(p, where(p)), tabLabel: `${label} Initials p${p}`, name: "InitialHere", optional: "false", scaleValue: "1" }));
+  const phoneText = (label, value, where) => ({
+    ...pos(where.page, where), tabLabel: label, value: str(value), width: "84", height: "14", required: "false", locked: "false",
+    font: "helvetica", fontSize: "size9", fontColor: "black",
+  });
+  const check = (label, where, on) => ({ ...pos(where.page, where), tabLabel: label, name: label, selected: on ? "true" : "false", locked: "true", required: "false" });
+
+  const lead = owners[0] || {};
+  const leadTabs = {
+    initialHereTabs: initials(PM_LAYOUT.landlordInitials, "Landlord"),
+    checkboxTabs: [
+      check("Landlord Is Corporation", PM_LAYOUT.corporationCheck, corporation),
+      check("Multiple Owners", PM_LAYOUT.multipleOwnersCheck, owners.length > 1),
+    ],
+    textTabs: str(lead.phone) ? PM_LAYOUT.ownerPhone.map((w, i) => phoneText(`Owner Phone ${i + 1}`, lead.phone, w)) : [],
+  };
+  const out = { "Landlord (Authorized Signatory)": leadTabs, Manager: { initialHereTabs: initials(PM_LAYOUT.managerInitials, "Manager") } };
+  owners.slice(1).forEach((o, i) => {
+    if (str(o.phone)) out[`Landlord (Owner ${i + 2})`] = { textTabs: [phoneText(`Owner ${i + 2} Phone`, o.phone, { page: 1, x: 326, y: PM_LAYOUT.coOwnerPhoneY[i] })] };
+  });
+  return out;
 }
 
 // N-forms are always signed by the landlord (never IRep as representative).
