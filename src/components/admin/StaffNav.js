@@ -11,6 +11,7 @@ import { COUNTS_EVENT, loadNavCounts } from "@/lib/admin-nav";
 export const NAV_GROUPS = [
   { key: "dashboard", label: "Dashboard", href: "/admin" },
   { key: "workflow", label: "Staff Workflow", href: "/admin/workflow" },
+  { key: "hours", label: "My Hours", href: "/admin/hours" },
   {
     key: "leasing",
     label: "Leasing",
