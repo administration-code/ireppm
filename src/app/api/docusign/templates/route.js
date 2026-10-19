@@ -183,10 +183,9 @@ export async function POST(request) {
     }
 
     // Move leftover test drafts (subject starts "TEST" or "Draft check") to DocuSign's Deleted folder.
-    if (body.action === "envelope-folders") {
-      const from = new Date(Date.now() - 150 * 864e5).toISOString().slice(0, 10);
-      const list = await ds(`/envelopes?from_date=${from}&status=created,sent,delivered&count=200&include=folders`);
-      return NextResponse.json((list.envelopes || []).map((e) => ({ s: e.emailSubject, st: e.status, f: (e.folders || []).map((f) => `${f.type}|${f.name}`) })));
+    if (body.action === "recyclebin") {
+      const bin = await ds("/folders/recyclebin?count=500");
+      return NextResponse.json({ ids: (bin.folders || []).flatMap((f) => (f.folderItems || []).map((i) => `${i.envelopeId}|${i.subject || ""}`)) });
     }
     if (body.action === "cleanup-tests") {
       const from = new Date(Date.now() - 150 * 864e5).toISOString().slice(0, 10);

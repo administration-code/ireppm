@@ -39,9 +39,16 @@ export async function syncOutstanding(sb) {
 
   const from = new Date(Date.now() - LOOKBACK_DAYS * 864e5).toISOString().slice(0, 10);
   const list = await ds(`/envelopes?from_date=${from}&status=created,sent,delivered&count=200&order_by=created&order=desc&include=folders`);
-  // Skip anything sitting in DocuSign's Deleted folder (deleted drafts stay "created").
-  const deleted = (e) => (e.folders || []).some((f) => /recycle/i.test(`${f.type || ""} ${f.name || ""} ${f.folderId || ""}`));
-  const envelopes = (list.envelopes || []).filter((e) => !deleted(e));
+  // Skip anything sitting in DocuSign's Deleted folder (deleted drafts still report "created").
+  const binned = new Set();
+  try {
+    const bin = await ds("/folders/recyclebin?count=500");
+    for (const f of bin.folders || []) for (const item of f.folderItems || []) if (item.envelopeId) binned.add(item.envelopeId);
+  } catch (err) {
+    result.errors.push(`Deleted folder: ${err.message}`);
+    return result; // don't risk listing deleted drafts
+  }
+  const envelopes = (list.envelopes || []).filter((e) => !binned.has(e.envelopeId));
   if (!envelopes.length) return result;
 
   const { data: known } = await sb
