@@ -15,7 +15,17 @@ const pt = (n) => Math.round(n * 20);
 
 // ---------- text helpers ----------
 // "**bold**" and "*italic*" markers inside strings.
+// "[[name]]" puts a DocuSign anchor "/name/" in tiny white text: template fields are anchored to these,
+// so they land in the right cell however DocuSign lays the pages out.
 function runs(text, base = {}) {
+  const parts = String(text).split(/\[\[([a-z0-9]+)\]\]/i);
+  if (parts.length > 1)
+    return parts.flatMap((t, i) =>
+      i % 2 ? [new TextRun({ text: `/${t}/`, font: FONT, size: 2, color: "FFFFFF" })] : t ? plainRuns(t, base) : []
+    );
+  return plainRuns(text, base);
+}
+function plainRuns(text, base = {}) {
   const out = [];
   const re = /(\*\*[^*]+\*\*|\*[^*]+\*)/g;
   let last = 0, m;
@@ -145,7 +155,7 @@ const engage = new Paragraph({
   spacing: { line: 240, after: 0 },
   indent: { firstLine: pt(19) },
   tabStops: [{ type: TabStopType.LEFT, position: pt(287) }],
-  children: runs("New engagement — 12-month Initial Term applies (s. 2.1)\tRe-signing an existing landlord (s. 2.10)"),
+  children: runs("[[pmeng1]]New engagement — 12-month Initial Term applies (s. 2.1)\t[[pmeng2]]Re-signing an existing landlord (s. 2.10)"),
 });
 const managedSince = new Paragraph({
   spacing: { line: 240, after: 0 },
@@ -156,61 +166,61 @@ const managedSince = new Paragraph({
 });
 body.push(
   table([117, 351], [
-    row([label("Engagement type", 117), cell(engage, 351, { valign: VerticalAlign.BOTTOM })], 39, HeightRule.EXACT),
-    row([label("Managed since", 117), cell(managedSince, 351)], 31, HeightRule.EXACT),
+    row([label("Engagement type", 117), cell(engage, 351, { valign: VerticalAlign.BOTTOM })], 34),
+    row([label("Managed since", 117), cell(managedSince, 351)], 26),
   ])
 );
 
 body.push(SECTION_LABEL("LANDLORD"));
 body.push(
   table([117, 144, 73, 134], [
-    row([label("Landlord is", 117), cell("", 351, { span: 3 })], 28, HeightRule.EXACT),
+    row([label("Landlord is", 117), cell("[[pmlis]]", 351, { span: 3 })], 24),
     row([
       label(new Paragraph({ spacing: { line: 240, after: 0 }, children: [...runs("Corporation name "), new TextRun({ text: "(if any)", font: FONT, size: 15, color: "595959" })] }), 117),
       cell("{{ Corporation Name }}", 144),
       label("Corp. number", 73),
       cell("{{ Corporation Number }}", 134),
-    ], 20, HeightRule.EXACT),
-    row([label("Address for notices", 117), cell("{{ Address for Notices }}", 351, { span: 3 })], 20, HeightRule.EXACT),
+    ]),
+    row([label("Address for notices", 117), cell("{{ Address for Notices }}", 351, { span: 3 })]),
   ])
 );
 
-body.push(P("Owner(s) of the Property — list every registered owner:", { spacing: { before: pt(18), after: pt(5) } }));
+body.push(P("Owner(s) of the Property — list every registered owner:", { spacing: { before: pt(12), after: pt(5) } }));
 const ownerRows = [
-  row([head("Owner / registered name", 183), head("Ownership %", 66), head("Phone", 99), head("Email", 120)], 33, HeightRule.EXACT),
+  row([head("Owner / registered name", 183), head("Ownership %", 66), head("Phone", 99), head("Email", 120)]),
 ];
 for (let i = 0; i < 6; i++)
-  ownerRows.push(row([cell("", 183), cell("", 66), cell("{{ Phone Number }}", 99), cell("", 120)], 31.8, HeightRule.EXACT));
+  ownerRows.push(row([cell(`[[pmo${i + 1}n]]`, 183), cell(`[[pmo${i + 1}p]]`, 66), cell(`[[pmo${i + 1}t]]{{ Phone Number }}`, 99), cell(`[[pmo${i + 1}e]]`, 120)], 26));
 body.push(table([183, 66, 99, 120], ownerRows));
 
 body.push(
-  P("**Authorized Signatory** — the one individual with authority to sign this Agreement and to give instructions and approvals on behalf of all owners (section 1.6):", { spacing: { before: pt(18), after: pt(4) } })
+  P("**Authorized Signatory** — the one individual with authority to sign this Agreement and to give instructions and approvals on behalf of all owners (section 1.6):", { spacing: { before: pt(12), after: pt(4) } })
 );
 body.push(
   table([117, 144, 73, 134], [
-    row([label("Name", 117), cell("", 351, { span: 3 })], 28, HeightRule.EXACT),
-    row([label("Capacity", 117), cell("", 351, { span: 3 })], 28, HeightRule.EXACT),
-    row([label("Phone", 117), cell("{{ Phone Number }}", 144), label("Email", 73), cell("", 134)], 28, HeightRule.EXACT),
+    row([label("Name", 117), cell("[[pmsn]]", 351, { span: 3 })], 24),
+    row([label("Capacity", 117), cell("[[pmsc]]", 351, { span: 3 })], 24),
+    row([label("Phone", 117), cell("[[pmst]]{{ Phone Number }}", 144), label("Email", 73), cell("[[pmse]]", 134)], 24),
   ])
 );
-body.push(new Paragraph({ pageBreakBefore: true, spacing: { line: pt(30), lineRule: "exact", after: 0 }, children: [] }));
+body.push(pageBreak());
 body.push(SECTION_LABEL("MANAGER", 0, 6));
 body.push(
   table([81, 153, 64, 170], [
-    row([label("Legal name", 81), cell("**IRep Property Management**", 153), label("Phone", 64), cell("519-590-7200", 170)], 20, HeightRule.EXACT),
-    row([label("Address", 81), cell("{{ IRep Address }}", 153), label("Email", 64), cell("administration@IRepPM.ca", 170)], 20, HeightRule.EXACT),
-    row([label("HST No.", 81), cell("72502 0143 RT0001", 153), cell("", 64), cell("", 170)], 20, HeightRule.EXACT),
+    row([label("Legal name", 81), cell("**IRep Property Management**", 153), label("Phone", 64), cell("519-590-7200", 170)]),
+    row([label("Address", 81), cell("{{ IRep Address }}", 153), label("Email", 64), cell("administration@IRepPM.ca", 170)]),
+    row([label("HST No.", 81), cell("72502 0143 RT0001", 153), cell("", 64), cell("", 170)]),
   ])
 );
-body.push(SECTION_LABEL("THE PROPERTY", 29, 6));
+body.push(SECTION_LABEL("THE PROPERTY", 16, 6));
 body.push(
   table([117, 351], [
-    row([label("Municipal address", 117), cell("{{ Property Address }}", 351)], 20, HeightRule.EXACT),
-    row([label("City / Postal code", 117), cell("{{ City and Postal Code }}", 351)], 20, HeightRule.EXACT),
-    row([label("Property type", 117), cell("", 351)], 28, HeightRule.EXACT),
-    row([label("Units / bedrooms", 117), cell("", 351)], 28, HeightRule.EXACT),
-    row([label("Leases anticipated", 117), cell("", 351)], 28, HeightRule.EXACT),
-    row([label("Commencement date", 117), cell("{{ Execution Date }}", 351)], 20, HeightRule.EXACT),
+    row([label("Municipal address", 117), cell("{{ Property Address }}", 351)]),
+    row([label("City / Postal code", 117), cell("{{ City and Postal Code }}", 351)]),
+    row([label("Property type", 117), cell("[[pmptype]]", 351)], 24),
+    row([label("Units / bedrooms", 117), cell("[[pmunits]]", 351)], 24),
+    row([label("Leases anticipated", 117), cell("[[pmleases]]", 351)], 24),
+    row([label("Commencement date", 117), cell("{{ Execution Date }}", 351)]),
   ])
 );
 
@@ -223,7 +233,7 @@ const I = (t, m) => body.push(item(t, m));
 const N = (t) => body.push(cont(t));
 const D = (t) => body.push(dash(t));
 
-body.push(H("1.   APPOINTMENT, PARTIES AND AUTHORITY", 15));
+body.push(H("1.   APPOINTMENT, PARTIES AND AUTHORITY", 12));
 C("1.1", "The Landlord appoints the Manager as the exclusive property manager of the Property, and the Manager accepts that appointment, on the terms of this Agreement.");
 C("1.2", "The Manager acts as agent of the Landlord only in respect of the services expressly described in this Agreement and only within the authority granted here. The Manager has no authority to bind the Landlord beyond that authority.");
 C("1.3", "The Manager is an independent contractor. Nothing in this Agreement creates a partnership, joint venture, employment or fiduciary relationship beyond that of a service provider and its client.");
@@ -402,8 +412,12 @@ const sigRows = [
     cell("**MANAGER**", 219, { borders: NOBORDERS, run: { color: NAVY, size: 16 } }),
   ], 20),
 ];
-for (const [l, r, h] of [["Signature", "Signature", 42], ["Print name", "Print name", 36], ["Capacity (owner / officer / attorney)", "Title", 36], ["Date", "Date", 36]]) {
-  sigRows.push(row([cell("", 225, { borders: sigLine }), cell("", 24, { borders: NOBORDERS }), cell("", 219, { borders: sigLine })], h, HeightRule.EXACT));
+for (const [l, r, h, a, b] of [["Signature", "Signature", 42, "pmsig1", "pmsig2"], ["Print name", "Print name", 36, "pmpn1", "pmpn2"], ["Capacity (owner / officer / attorney)", "Title", 36, "pmcap1", "pmttl2"], ["Date", "Date", 36, "pmdt1", "pmdt2"]]) {
+  sigRows.push(row([
+    cell(`[[${a}]]`, 225, { borders: sigLine, valign: VerticalAlign.BOTTOM }),
+    cell("", 24, { borders: NOBORDERS }),
+    cell(`[[${b}]]`, 219, { borders: sigLine, valign: VerticalAlign.BOTTOM }),
+  ], h, HeightRule.EXACT));
   sigRows.push(row([cell(small(l), 225, { borders: NOBORDERS }), cell("", 24, { borders: NOBORDERS }), cell(small(r), 219, { borders: NOBORDERS })], 16, HeightRule.EXACT));
 }
 body.push(table([225, 24, 219], sigRows));
@@ -489,7 +503,7 @@ body.push(SUB("Part 5 — Lease schedule"));
 body.push(P('Complete one row per Lease at the Property, one line for each unit or room. If a unit or room is vacant, enter "Vacant" under Tenant(s).'));
 const lw = [26, 82, 115, 76, 76, 93];
 const leaseRows = [row(["#", "Unit / room", "Tenant(s)", "Lease start", "Lease end", "Monthly rent"].map((t, i) => head(t, lw[i])))];
-for (let i = 1; i <= 12; i++) leaseRows.push(row(lw.map((w, j) => cell(j === 0 ? String(i) : "", w)), 31.8, HeightRule.EXACT));
+for (let i = 1; i <= 12; i++) leaseRows.push(row(lw.map((w, j) => cell(j === 0 ? String(i) : `[[pmL${i}c${j}]]`, w)), 28));
 body.push(table(lw, leaseRows));
 body.push(pageBreak());
 

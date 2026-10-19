@@ -68,7 +68,11 @@ export async function POST(request) {
           }))
         ),
       }));
-      return NextResponse.json({ templateId: id, documents: (docs.templateDocuments || []).map((d) => ({ id: d.documentId, name: d.name, pages: d.pages?.length ?? d.pages })), roles });
+      return NextResponse.json({
+        templateId: id,
+        documents: (docs.templateDocuments || []).map((d) => ({ id: d.documentId, name: d.name, pages: d.pages?.length ?? d.pages, docGen: d.isDocGenDocument, fields: d.docGenFormFields?.length })),
+        roles,
+      });
     }
 
     if (body.action === "pm-replace") {
@@ -102,6 +106,21 @@ export async function POST(request) {
         results.push({ recipientId: rid, moved: Object.values(tabs).flat().length, errors });
       }
       return NextResponse.json({ ok: true, results });
+    }
+
+    // Full tab definitions of an envelope made from the template (to rebuild template fields from).
+    if (body.action === "env-tabs") {
+      if (!/^[0-9a-f-]{36}$/i.test(String(body.envelopeId || ""))) return NextResponse.json({ error: "envelopeId required." }, { status: 400 });
+      const data = await ds(`/envelopes/${body.envelopeId}/recipients?include_tabs=true`);
+      return NextResponse.json({ signers: (data.signers || []).map((s) => ({ role: s.roleName, recipientId: s.recipientId, tabs: s.tabs || {} })) });
+    }
+
+    // Add fields to a template role: { recipientId, tabs: { textTabs: [...], ... } }
+    if (body.action === "pm-add-tabs") {
+      if (!body.recipientId || !body.tabs) return NextResponse.json({ error: "recipientId and tabs required." }, { status: 400 });
+      const out = await ds(`/templates/${id}/recipients/${body.recipientId}/tabs`, { method: "POST", body: body.tabs });
+      const errors = Object.values(out || {}).flat().filter((t) => t?.errorDetails).map((t) => `${t.tabLabel || t.tabId}: ${t.errorDetails.message}`);
+      return NextResponse.json({ ok: !errors.length, added: Object.values(out || {}).flat().length, errors });
     }
 
     return NextResponse.json({ error: "Unknown action." }, { status: 400 });

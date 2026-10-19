@@ -728,11 +728,9 @@ const PM_ANCHORS = {
   ],
   serviceBox: { x: -24, y: 0 },
 };
-// Page 1 and 2 don't move: phones go in fixed cells.
-const PM_FIXED = {
-  ownerPhone: [{ page: 1, x: 326, y: 403 }, { page: 1, x: 227, y: 676 }], // owner row and authorized signatory section
-  coOwnerPhoneY: [435, 466, 498, 530, 562], // owners 2-6 rows on page 1
-};
+// Phone cells carry hidden anchors in the contract's Word file ("/pmo1t/" ... "/pmo6t/" in the owner
+// rows, "/pmst/" in the Authorized Signatory section).
+const PM_PHONE = { x: 0, y: -1 };
 // "IRep Phone" stays in the list so a refresh removes the field from drafts made before the phone was printed.
 export const PM_TAB_LABELS = /^(Landlord|Manager|Owner \d) Initials|^Landlord Is Corporation$|^Multiple Owners$|^Service |^Owner (\d )?Phone|^IRep Phone$/;
 const CORPORATE = /\b(inc|incorporated|ltd|limited|corp|corporation|llc|ulc|co)\.?$/i;
@@ -760,10 +758,9 @@ export function pmContractTabs(owners, { corporation, addons = [] }) {
     anchorString: a.text, anchorXOffset: String(dx), anchorYOffset: String(dy), anchorUnits: "pixels",
     anchorIgnoreIfNotPresent: "true", anchorCaseSensitive: "true", anchorMatchWholeWord: "false",
   });
-  const pos = (page, { x, y }) => ({ documentId: "1", pageNumber: String(page), xPosition: String(x), yPosition: String(y) });
   const initials = (label, where) => ({ ...where, tabLabel: `${label} Initials`, name: "InitialHere", optional: "false", scaleValue: "1" });
-  const phoneText = (label, value, where) => ({
-    ...pos(where.page, where), tabLabel: label, value: str(value), width: "84", height: "14", required: "false", locked: "false",
+  const phoneText = (label, value, text) => ({
+    ...anchor({ text, ...PM_PHONE }), documentId: "1", tabLabel: label, value: str(value), width: "84", height: "14", required: "false", locked: "false",
     font: "helvetica", fontSize: "size9", fontColor: "black",
   });
   const check = (label, where, on, locked = true) => ({ ...where, tabLabel: label, name: label, selected: on ? "true" : "false", locked: locked ? "true" : "false", required: "false" });
@@ -780,7 +777,7 @@ export function pmContractTabs(owners, { corporation, addons = [] }) {
           check(label, anchor({ text, ...PM_ANCHORS.serviceBox }), addons.includes(key), false)
         ),
       ],
-      textTabs: str(lead.phone) ? PM_FIXED.ownerPhone.map((w, i) => phoneText(`Owner Phone ${i + 1}`, lead.phone, w)) : [],
+      textTabs: str(lead.phone) ? ["/pmo1t/", "/pmst/"].map((text, i) => phoneText(`Owner Phone ${i + 1}`, lead.phone, text)) : [],
     },
     Manager: {
       // IRep's phone is printed in the contract itself (page 2), so no field is added for it.
@@ -791,7 +788,7 @@ export function pmContractTabs(owners, { corporation, addons = [] }) {
     const n = i + 2;
     out[`Landlord (Owner ${n})`] = {
       initialHereTabs: [initials(`Owner ${n}`, anchor(PM_ANCHORS.landlordInitials, PM_ANCHORS.coOwnerInitialsX[i], PM_ANCHORS.landlordInitials.y))],
-      textTabs: str(o.phone) ? [phoneText(`Owner ${n} Phone`, o.phone, { page: 1, x: 326, y: PM_FIXED.coOwnerPhoneY[i] })] : [],
+      textTabs: str(o.phone) ? [phoneText(`Owner ${n} Phone`, o.phone, `/pmo${n}t/`)] : [],
     };
   });
   return out;
