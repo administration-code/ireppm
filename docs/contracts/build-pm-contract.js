@@ -157,17 +157,13 @@ const engage = [
   engageLine("[[pmeng1]]New engagement: a landlord we don’t currently manage (s. 2.1)"),
   engageLine("[[pmeng2]]Re-signing: an existing landlord, new 12-month term (s. 2.10)"),
 ];
-const managedSince = [
-  new Paragraph({ spacing: { line: 240, after: 0 }, children: runs("[[pmfms]]") }),
-  new Paragraph({
-    spacing: { line: 240, after: 0 },
-    children: [new TextRun({ text: "Complete when re-signing: the date the Manager began managing the Property.", font: FONT, size: 15, color: "595959" })],
-  }),
-];
 body.push(
   table([117, 351], [
     row([label("Engagement type", 117), cell(engage, 351)], 34),
-    row([label("Managed since", 117), cell(managedSince, 351)], 26),
+    row([
+      label(new Paragraph({ spacing: { line: 240, after: 0 }, children: [...runs("Managed since "), new TextRun({ text: "(re-signing only)", font: FONT, size: 15, color: "595959" })] }), 117),
+      cell("[[pmfms]]", 351),
+    ], 24),
   ])
 );
 
