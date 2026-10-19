@@ -44,6 +44,8 @@ export default function PmContractForm({ ctx }) {
   const setOwner = (i, k) => (e) => setOwners((list) => list.map((o, j) => (j === i ? { ...o, [k]: e.target.value } : o)));
   const [c, setC] = useState(() => ({
     effective_date: today(),
+    engagement: "new",
+    managed_since: "",
     corporation_name: "",
     corporation_number: "",
     notice_address: ctx.owner?.mailing_address || "",
@@ -190,17 +192,33 @@ export default function PmContractForm({ ctx }) {
             <input id="pm-resp" value={c.response_time} onChange={setField("response_time")} />
           </div>
         </div>
-        <p className="small" style={{ margin: 0 }}>
-          This contract is for a new landlord or a renewal for a new 12-month term. An existing landlord who doesn&apos;t
-          re-sign stays on their current agreement month to month, at the standard rates.
-        </p>
+        <div className="field">
+          <span className="label">Engagement type</span>
+          <label className="check">
+            <input type="radio" name="pm-eng" checked={c.engagement === "new"} onChange={() => setC((x) => ({ ...x, engagement: "new" }))} />
+            New engagement: a landlord we don&apos;t currently manage (any first-year promo goes in the discount below)
+          </label>
+          <label className="check">
+            <input type="radio" name="pm-eng" checked={c.engagement === "resign"} onChange={() => setC((x) => ({ ...x, engagement: "resign" }))} />
+            Re-signing: an existing landlord signing a new 12-month term at the rate agreed in the renewal email
+          </label>
+          <span className="small">
+            Landlords who don&apos;t re-sign aren&apos;t sent this. They carry on month to month at the standard rates, with no discount.
+          </span>
+        </div>
+        {c.engagement === "resign" ? (
+          <div className="field">
+            <label htmlFor="pm-since">Managed since</label>
+            <input id="pm-since" type="date" value={c.managed_since} onChange={setField("managed_since")} />
+          </div>
+        ) : null}
         <div className="row2">
           <div className="field">
             <label htmlFor="pm-leases">Leases anticipated</label>
             <input id="pm-leases" inputMode="numeric" value={c.leases} onChange={setField("leases")} />
           </div>
           <div className="field">
-            <label htmlFor="pm-disc">First-year discount per month (blank for none)</label>
+            <label htmlFor="pm-disc">Discount per month for the 12 months (first-year promo, or standard rate less the agreed renewal rate)</label>
             <input id="pm-disc" inputMode="decimal" value={c.monthly_discount} onChange={setField("monthly_discount")} />
           </div>
         </div>
@@ -237,7 +255,7 @@ export default function PmContractForm({ ctx }) {
                 setStart(e.target.value);
               }}
             />
-            <span className="small">When management under this contract starts: today for a new landlord starting now, later for a renewal (e.g. January 1). The Initial Term, the first-year discount and the switch from any earlier agreement count from here.</span>
+            <span className="small">When management under this contract starts: today for a new landlord starting now, later for a renewal (e.g. January 1). The 12-month term, the discount and the switch from any earlier agreement count from here.</span>
           </div>
           <div className="field">
             <label htmlFor="pm-renew">Renewal date</label>

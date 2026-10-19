@@ -763,6 +763,7 @@ export function pmContractValues(c = {}) {
   const fees = pmContractFees({ leases: c.leases, addons: c.addons || [], monthlyDiscount: c.monthly_discount, customFee: c.custom_fee });
   const v = {
     pmfeff: longDay(c.effective_date),
+    pmfms: c.engagement === "resign" ? longDay(c.managed_since) : "",
     pmfcorp: str(c.corporation_name),
     pmfcorpno: str(c.corporation_number),
     pmfnotice: str(c.notice_address),
@@ -841,7 +842,7 @@ export function pmContractTabs(owners, { corporation, addons = [], contract = nu
   if (contract) {
     const { values } = pmContractValues({ ...contract, addons });
     const lead = out["Landlord (Authorized Signatory)"];
-    const wide = { pmfnotice: 330, pmfaddr: 330, pmfcity: 330, pmfcorp: 135, pmfcorpno: 125, pmfeff: 120, pmfstart: 200 };
+    const wide = { pmfnotice: 330, pmfaddr: 330, pmfcity: 330, pmfcorp: 135, pmfcorpno: 125, pmfeff: 120, pmfstart: 200, pmfms: 200 };
     for (const [marker, value] of Object.entries(values)) {
       if (!value) continue;
       lead.textTabs.push({
@@ -849,6 +850,12 @@ export function pmContractTabs(owners, { corporation, addons = [], contract = nu
         width: String(wide[marker] || 95), height: "14", font: "calibri", fontSize: "size10", fontColor: "black",
       });
     }
+  }
+  if (contract) {
+    out["Landlord (Authorized Signatory)"].checkboxTabs.push(
+      check("Engagement New", anchor({ text: "/pmeng1/", x: -14, y: 2 }), contract.engagement !== "resign"),
+      check("Engagement Re-signing", anchor({ text: "/pmeng2/", x: -14, y: 2 }), contract.engagement === "resign")
+    );
   }
   owners.slice(1).forEach((o, i) => {
     const n = i + 2;

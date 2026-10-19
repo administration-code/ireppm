@@ -139,7 +139,7 @@ export async function POST(request) {
               corporation: true,
               addons: ["snow_lawn", "appliance"],
               contract: {
-                effective_date: "2026-10-19", commencement_date: "2026-11-01", corporation_name: "Test Holdings Inc.",
+                effective_date: "2026-10-19", commencement_date: "2026-11-01", engagement: "resign", managed_since: "2025-08-31", corporation_name: "Test Holdings Inc.",
                 corporation_number: "1234567", notice_address: "1 Test St, Windsor, ON N9A 1A1", property_address: "123 Sample St",
                 city_postal: "Windsor, ON N8X 1T5", leases: 3, monthly_discount: 50, response_time: "48 hours",
               },
