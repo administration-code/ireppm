@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { addTabsByRole, consoleViewUrl, getRecipients, pageImage, resendEnvelope, senderViewUrl, voidEnvelope } from "@/lib/docusign";
+import { addTabsByRole, consoleViewUrl, ds, getRecipients, pageImage, resendEnvelope, senderViewUrl, voidEnvelope } from "@/lib/docusign";
 import { PM_TAB_LABELS, looksCorporate, pmContractTabs } from "@/lib/docusign-templates";
 import { SIGNED_BUCKET, staffUser, syncRequest } from "@/lib/signatures-server";
 import { fillLeaseSchedule, pmLeaseRows } from "@/lib/pm-lease-schedule";
@@ -42,7 +42,8 @@ export async function POST(request, { params }) {
         if (!reason) return NextResponse.json({ error: "Add a reason." }, { status: 400 });
         if (row.envelope_id && ["draft", "sent", "delivered"].includes(row.status)) {
           if (row.status === "draft") {
-            // Drafts can't be voided in DocuSign; mark ours as voided.
+            // Drafts can't be voided in DocuSign: move the draft to DocuSign's Deleted folder and mark ours as voided.
+            await ds("/folders/recyclebin", { method: "PUT", body: { envelopeIds: [row.envelope_id] } }).catch(() => {});
             await sb.from("signature_requests").update({ status: "voided", void_reason: reason, status_changed_at: new Date().toISOString() }).eq("id", id);
           } else {
             await voidEnvelope(row.envelope_id, reason);
