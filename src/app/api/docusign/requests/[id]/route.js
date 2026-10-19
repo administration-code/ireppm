@@ -82,7 +82,7 @@ export async function POST(request, { params }) {
       case "page-image": {
         if (!row.envelope_id) return NextResponse.json({ error: "No envelope." }, { status: 400 });
         const page = Math.max(1, Math.min(40, Number(body.page) || 1));
-        const png = await pageImage(row.envelope_id, page);
+        const png = await pageImage(row.envelope_id, page, "1", [72, 110, 150].includes(Number(body.dpi)) ? Number(body.dpi) : 72);
         return NextResponse.json({ page, png: png.toString("base64") });
       }
       default:

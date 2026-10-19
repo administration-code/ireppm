@@ -185,8 +185,8 @@ export async function addTabsByRole(id, byRole) {
 }
 
 // One page of an envelope's document as a PNG (for checking where fields sit).
-export const pageImage = (id, page, doc = "1") =>
-  ds(`/envelopes/${id}/documents/${doc}/pages/${page}/page_image?dpi=72&max_width=612`, { binary: true, accept: "image/png" });
+export const pageImage = (id, page, doc = "1", dpi = 72) =>
+  ds(`/envelopes/${id}/documents/${doc}/pages/${page}/page_image?dpi=${dpi}&max_width=${Math.round(8.5 * dpi)}`, { binary: true, accept: "image/png" });
 
 export const sendDraftEnvelope = (id) => ds(`/envelopes/${id}`, { method: "PUT", body: { status: "sent" } });
 
