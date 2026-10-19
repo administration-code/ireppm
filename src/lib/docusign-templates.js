@@ -851,8 +851,8 @@ export function pmContractTabs(owners, { corporation, addons = [], contract = nu
       });
     }
     lead.checkboxTabs.push(
-      check("Engagement New", anchor({ text: "/pmeng1/", x: -20, y: 2 }), contract.engagement !== "resign"),
-      check("Engagement Re-signing", anchor({ text: "/pmeng2/", x: -20, y: 2 }), contract.engagement === "resign")
+      check("Engagement New", anchor({ text: "/pmeng1/", x: -14, y: 2 }), contract.engagement !== "resign"),
+      check("Engagement Re-signing", anchor({ text: "/pmeng2/", x: -14, y: 2 }), contract.engagement === "resign")
     );
   }
   owners.slice(1).forEach((o, i) => {
