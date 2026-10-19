@@ -176,6 +176,12 @@ export async function POST(request) {
       return NextResponse.json({ signers: (data.signers || []).map((s) => ({ role: s.roleName, recipientId: s.recipientId, tabs: s.tabs || {} })) });
     }
 
+    // Every role's fields exactly as stored (to put them back after the document is replaced).
+    if (body.action === "pm-raw-tabs") {
+      const recips = await ds(`/templates/${id}/recipients?include_tabs=true`);
+      return NextResponse.json({ signers: (recips.signers || []).map((s) => ({ role: s.roleName, recipientId: s.recipientId, tabs: s.tabs || {} })) });
+    }
+
     // Remove every field from the template (before re-adding them with new placements).
     if (body.action === "pm-clear-tabs") {
       const recips = await ds(`/templates/${id}/recipients?include_tabs=true`);
