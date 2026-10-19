@@ -210,6 +210,18 @@ export async function POST(request) {
       return NextResponse.json({ ok: true, updated: Boolean(mine), connectId: saved.connectId || mine?.connectId, others: (existing.configurations || []).filter((c) => c !== mine).map((c) => `${c.name}: ${c.urlToPublishTo}`) });
     }
 
+    if (body.action === "connect-log") {
+      const [logs, failures] = await Promise.all([
+        ds("/connect/logs").catch((e) => ({ error: e.message })),
+        ds("/connect/failures").catch((e) => ({ error: e.message })),
+      ]);
+      const brief = (l) => ({ created: l.created, status: l.status, env: l.envelopeId, error: l.error, url: l.connectUrl });
+      return NextResponse.json({
+        logs: logs.error || (logs.logs || []).slice(0, 10).map(brief),
+        failures: failures.error || (failures.failures || []).slice(0, 10).map(brief),
+      });
+    }
+
     // Remove every field from the template (before re-adding them with new placements).
     if (body.action === "pm-clear-tabs") {
       const recips = await ds(`/templates/${id}/recipients?include_tabs=true`);
