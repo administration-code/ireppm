@@ -24,7 +24,7 @@ export function ownerInviteEmail(owner, addresses = []) {
       `Hi ${first(owner.name)},`,
       `Thanks for trusting IRep Property Management with ${homes}. Your owner portal is now set up, so everything about your property is in one place, any time.`,
       "In your portal you can:\n• See rent collected and what's been paid out to you each month\n• Read your monthly summary and landlord letters\n• Approve repairs and see maintenance as it happens\n• Review applicants and tenant insurance\n• Download your year-end statement for your T776 rental income",
-      "Payouts: Each month we pay out the rent received by the 7th, less fees and any repairs. Tenants pay manually by PayProp or Interac e-Transfer, so we can't control exactly when rent arrives; rent that comes in after the 7th is paid out to you as soon as we receive it.",
+      "Payouts: If all your rent is in before the 7th, we pay you the next business day. Otherwise, on the 7th we pay you everything received so far, less fees and any repairs, and any rent that arrives later is paid the next business day after we receive it.",
       "Repairs: Emergencies are handled right away. Other repairs over $250 wait for your OK in the portal.",
       "Late rent: If rent is still unpaid after the 7th, we email you an N4 to sign around the 8th, then deliver it to the tenant, usually within about 3 days of your signature.",
       "Refer a landlord: When a landlord you refer signs with us, you get a month's management fee free.",

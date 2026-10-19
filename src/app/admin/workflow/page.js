@@ -28,7 +28,7 @@ const SECTIONS = [
       ["8th: staff get the paid-by-the-7th list by email. Check it, draw the $100 gift card winner from the PayProp entries, email the winner and send the card.", "/admin/rent/draw", "Paid by 7th & draw"],
       ["8th: prepare an N4 for anyone who hasn't paid in full and send it to the landlord to sign. Report missed rent through FrontLobby.", "/admin/signatures", "Signatures"],
       ["Once signed: Chuck delivers the N4, usually within 3 days. The termination date is at least 7 days after the day it's delivered. Chase landlords who haven't signed after 2 days.", "/admin/notices", "Notices"],
-      ["After the 7th: pay landlords the rent received by the 7th, less fees and repairs. Rent that comes in later is paid out as soon as it's received.", "/admin/payouts", "Payouts"],
+      ["Payouts: when a property's rent is all in before the 7th, pay the landlord the next business day. On the 7th, pay every landlord what's been received so far, less fees and repairs. After that, pay each late rent the next business day after it arrives.", "/admin/payouts", "Payouts"],
       ["After the N4 date passes: tell the landlord what's still owed and send the rent ledger. Filing an L1 is the landlord's decision and theirs to do; offer a paralegal referral if they ask. We don't file Board applications or attend hearings.", null],
     ],
   },
