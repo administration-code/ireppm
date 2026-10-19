@@ -174,6 +174,22 @@ export async function POST(request) {
       return NextResponse.json({ signers: (data.signers || []).map((s) => ({ role: s.roleName, recipientId: s.recipientId, tabs: s.tabs || {} })) });
     }
 
+    // Remove every field from the template (before re-adding them with new placements).
+    if (body.action === "pm-clear-tabs") {
+      const recips = await ds(`/templates/${id}/recipients?include_tabs=true`);
+      let removed = 0;
+      for (const s of recips.signers || []) {
+        const tabs = {};
+        for (const [group, list] of Object.entries(s.tabs || {})) {
+          if (Array.isArray(list) && list.length) tabs[group] = list.map((t) => ({ tabId: t.tabId }));
+        }
+        if (!Object.keys(tabs).length) continue;
+        await ds(`/templates/${id}/recipients/${s.recipientId}/tabs`, { method: "DELETE", body: tabs });
+        removed += Object.values(tabs).flat().length;
+      }
+      return NextResponse.json({ ok: true, removed });
+    }
+
     // Add fields to a template role: { recipientId, tabs: { textTabs: [...], ... } }
     if (body.action === "pm-add-tabs") {
       if (!body.recipientId || !body.tabs) return NextResponse.json({ error: "recipientId and tabs required." }, { status: 400 });

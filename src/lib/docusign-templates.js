@@ -730,7 +730,9 @@ const PM_ANCHORS = {
 };
 // Phone cells carry hidden anchors in the contract's Word file ("/pmo1t/" ... "/pmo6t/" in the owner
 // rows, "/pmst/" in the Authorized Signatory section).
-const PM_PHONE = { x: 0, y: -1 };
+// DocuSign puts a hidden marker's anchor about 8pt above the line it sits on (calibrated Oct 2026).
+const PM_PHONE = { x: 0, y: 8 };
+const PM_INLINE = new Set(["pmfeff", "pmfdisca", "pmfdiscm", "pmfresp"]); // markers inside a sentence, not alone in a cell
 // "IRep Phone" stays in the list so a refresh removes the field from drafts made before the phone was printed.
 export const PM_TAB_LABELS = /^(Landlord|Manager|Owner \d) Initials|^Landlord Is Corporation$|^Multiple Owners$|^Service |^Owner (\d )?Phone|^IRep Phone$|^Contract |^Engagement /;
 
@@ -844,13 +846,13 @@ export function pmContractTabs(owners, { corporation, addons = [], contract = nu
     for (const [marker, value] of Object.entries(values)) {
       if (!value) continue;
       lead.textTabs.push({
-        ...anchor({ text: `/${marker}/`, x: 0, y: -9 }), documentId: "1", tabLabel: `Contract ${marker}`, value, locked: "true", required: "false",
+        ...anchor({ text: `/${marker}/`, x: 0, y: PM_INLINE.has(marker) ? 0 : 8 }), documentId: "1", tabLabel: `Contract ${marker}`, value, locked: "true", required: "false",
         width: String(wide[marker] || 95), height: "14", font: "calibri", fontSize: "size10", fontColor: "black",
       });
     }
     lead.checkboxTabs.push(
-      check("Engagement New", anchor({ text: "/pmeng1/", x: -20, y: -9 }), contract.engagement !== "resign"),
-      check("Engagement Re-signing", anchor({ text: "/pmeng2/", x: -20, y: -9 }), contract.engagement === "resign")
+      check("Engagement New", anchor({ text: "/pmeng1/", x: -20, y: 2 }), contract.engagement !== "resign"),
+      check("Engagement Re-signing", anchor({ text: "/pmeng2/", x: -20, y: 2 }), contract.engagement === "resign")
     );
   }
   owners.slice(1).forEach((o, i) => {
