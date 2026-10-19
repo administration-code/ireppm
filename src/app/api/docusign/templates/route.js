@@ -108,6 +108,45 @@ export async function POST(request) {
       return NextResponse.json({ ok: true, results });
     }
 
+    // Test draft from the template: document-generation fields + where every field landed. The draft
+    // goes straight to the deleted folder afterwards.
+    if (body.action === "pm-test") {
+      const env = await ds("/envelopes", {
+        method: "POST",
+        body: {
+          templateId: id,
+          status: "created",
+          emailSubject: "TEST (deleted automatically) IRep Property Management Contract",
+          templateRoles: [
+            { roleName: "Landlord (Authorized Signatory)", name: "Test Landlord", email: "administration@ireppm.ca" },
+            { roleName: "Landlord (Owner 2)", name: "Test Owner Two", email: "administration@ireppm.ca" },
+            { roleName: "Manager", name: "Zan Greksa", email: "chuckfixedmyhouse@gmail.com" },
+          ],
+        },
+      });
+      const envelopeId = env.envelopeId;
+      try {
+        const [fields, recips, docs] = await Promise.all([
+          ds(`/envelopes/${envelopeId}/docGenFormFields`).catch((e) => ({ error: e.message })),
+          ds(`/envelopes/${envelopeId}/recipients?include_tabs=true`),
+          ds(`/envelopes/${envelopeId}/documents`),
+        ]);
+        const tabs = (recips.signers || []).flatMap((s) =>
+          Object.entries(s.tabs || {}).flatMap(([group, list]) =>
+            (Array.isArray(list) ? list : []).map((t) => ({ role: s.roleName, group, label: t.tabLabel, anchor: t.anchorString, page: Number(t.pageNumber), x: Number(t.xPosition), y: Number(t.yPosition) }))
+          )
+        );
+        return NextResponse.json({
+          envelopeId,
+          pages: (docs.envelopeDocuments || []).map((d) => d.pages?.length ?? d.pages),
+          docGen: fields.error ? { error: fields.error } : (fields.docGenFormFields || []).map((d) => ({ documentId: d.documentId, fields: (d.docGenFormFieldList || []).map((f) => f.name || f.Name) })),
+          tabs,
+        });
+      } finally {
+        await ds("/folders/recyclebin", { method: "PUT", body: { envelopeIds: [envelopeId] } }).catch(() => {});
+      }
+    }
+
     // Full tab definitions of an envelope made from the template (to rebuild template fields from).
     if (body.action === "env-tabs") {
       if (!/^[0-9a-f-]{36}$/i.test(String(body.envelopeId || ""))) return NextResponse.json({ error: "envelopeId required." }, { status: 400 });
