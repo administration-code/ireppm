@@ -237,8 +237,17 @@ export function LeaseEndCard({ home, onChoice }) {
         </p>
       ) : (
         <p className="small" style={{ margin: 0 }}>
-          What would you like to do? If you&apos;re moving out then, your notice must be given by {longDay(deadline)}. If you do nothing,
-          your tenancy simply continues month to month.
+          {daysUntil(deadline) >= 0 ? (
+            <>
+              What would you like to do? If you&apos;re moving out then, your notice must be given by {longDay(deadline)}. If you do
+              nothing, your tenancy simply continues month to month.
+            </>
+          ) : (
+            <>
+              After this date your tenancy carries on month to month on the same terms. If you&apos;d like to move out, give 60
+              days&apos; notice (form N9) ending on the last day of a month. What would you like to do?
+            </>
+          )}
         </p>
       )}
       <div className="row" style={{ flexWrap: "wrap" }}>

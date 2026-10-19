@@ -13,15 +13,24 @@ import { useLiveRefresh } from "@/lib/useLiveRefresh";
 // Every tenant in one place: edit details, move between tenancies, unassign (kept on file,
 // migration 0047), and send the portal invitation, move-in welcome email or PayProp letter.
 const SELECT =
-  "id, full_name, email, phone, is_primary, profile_id, portal_invited_at, created_at, tenancy_id, tenancy:tenancies(id, status, start_date, rent, payprop_letter_path, unit:units(id, label, property:properties(id, address, city)))";
+  "id, full_name, email, phone, is_primary, profile_id, portal_invited_at, created_at, tenancy_id, tenancy:tenancies(id, status, start_date, end_date, renewal_choice, renewal_prompted_at, rent, payprop_letter_path, unit:units(id, label, property:properties(id, address, city)))";
 
 const FILTERS = [
   { key: "current", label: "Current", test: (p) => p.tenancy && ["active", "notice"].includes(p.tenancy.status) },
   { key: "upcoming", label: "Moving In", test: (p) => p.tenancy?.status === "upcoming" },
+  { key: "ending", label: "Lease Ending", test: (p) => leaseEnding(p.tenancy) },
   { key: "past", label: "Past", test: (p) => p.tenancy?.status === "ended" },
   { key: "unassigned", label: "Unassigned", test: (p) => !p.tenancy },
   { key: "all", label: "All", test: () => true },
 ];
+
+// Active tenancies whose fixed term ends within 120 days (or ended in the last 30, still month to month).
+function leaseEnding(t) {
+  if (!t?.end_date || t.status !== "active") return false;
+  const days = (new Date(`${t.end_date}T12:00:00`) - Date.now()) / 864e5;
+  return days <= 120 && days >= -30;
+}
+const CHOICE_LABEL = { month_to_month: "staying month to month", new_lease: "wants a new lease", moving_out: "moving out" };
 
 const shortDay = (iso) => (iso ? new Date(iso).toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric" }) : "");
 const searchText = (p) => [p.full_name, p.email, p.phone, tenancyAddress(p.tenancy)].filter(Boolean).join(" ").toLowerCase();
@@ -383,6 +392,8 @@ function TenantPanel({ person, all, tenancies, onChanged, onRemoved }) {
     run("invite", () => staffApi("/api/admin/tenants", { action: "invite", tenantId: person.id }), `Portal invitation sent to ${person.email}.`);
   const welcome = () =>
     run("welcome", () => staffApi("/api/admin/tenants", { action: "welcome", tenancyId: t.id }), "Move-in welcome email sent to everyone on this tenancy.", { reload: false });
+  const leaseEnd = () =>
+    run("leaseEnd", () => staffApi("/api/admin/tenants", { action: "lease-end", tenancyId: t.id }), "Lease-end email sent to everyone on this tenancy.");
   const letter = () =>
     run("letter", () => staffApi("/api/tenancy/payprop-letter", { tenancy: t.id }), "PayProp letter emailed to everyone on this tenancy.", { reload: false });
 
@@ -451,6 +462,11 @@ function TenantPanel({ person, all, tenancies, onChanged, onRemoved }) {
           <button type="button" className="btn ghost sm" onClick={welcome} disabled={!t || Boolean(busy)}>
             {busy === "welcome" ? "Sending…" : "Send Move-In Welcome Email"}
           </button>
+          {t?.end_date ? (
+            <button type="button" className="btn ghost sm" onClick={leaseEnd} disabled={Boolean(busy)}>
+              {busy === "leaseEnd" ? "Sending…" : t.renewal_prompted_at ? "Send Lease-End Email Again" : "Send Lease-End Email"}
+            </button>
+          ) : null}
           <button type="button" className="btn ghost sm" onClick={letter} disabled={!t?.payprop_letter_path || Boolean(busy)}>
             {busy === "letter" ? "Sending…" : "Email PayProp Letter"}
           </button>
@@ -467,6 +483,9 @@ function TenantPanel({ person, all, tenancies, onChanged, onRemoved }) {
                 : "The portal invitation suits tenants already living there."}{" "}
           The move-in welcome email (rent, PayProp, insurance due date, emergencies) is for new tenants and goes to everyone on the tenancy.
           {t && !t.payprop_letter_path ? " Upload the PayProp letter on the unit page to email it." : ""}
+          {t?.end_date
+            ? ` Lease ends ${shortDay(`${t.end_date}T12:00:00`)}${t.renewal_prompted_at ? `; lease-end email sent ${shortDay(t.renewal_prompted_at)}` : ""}${t.renewal_choice ? `; tenant is ${CHOICE_LABEL[t.renewal_choice] || t.renewal_choice}` : ""}. The lease-end email explains staying month to month, asking for a new lease, or giving notice (with the earliest move-out date).`
+            : ""}
         </p>
       </div>
 

@@ -167,6 +167,55 @@ export async function insuranceReminders(sb) {
   return { reminded, overdue };
 }
 
+// The earliest move-out a tenant can give notice for today: at least 60 days away and the last
+// day of a month (monthly tenancies end on the last day of a rental period).
+export function earliestMoveOut(fromISO = today()) {
+  const d = new Date(`${addDays(fromISO, 60)}T12:00:00`);
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0, 12)).toISOString().slice(0, 10);
+}
+
+// Staff-sent lease-end email (Manage Tenants). Works before or after the 60-day deadline: once
+// it has passed, it explains the tenancy carries on month to month and gives the earliest
+// move-out date for a notice given now.
+export async function sendLeaseEndEmail(sb, tenancyId) {
+  const { data: t } = await sb.from("tenancies").select(TENANCY_SELECT).eq("id", tenancyId).maybeSingle();
+  if (!t) throw new Error("Tenancy not found.");
+  if (!t.end_date) throw new Error("This tenancy has no lease end date.");
+  if (!tenantEmails(t).length) throw new Error("No tenant email on file.");
+  const now = today();
+  const deadline = addDays(t.end_date, -60);
+  const late = deadline < now;
+  const ended = t.end_date < now;
+  const moveOut = late ? earliestMoveOut(now) : t.end_date;
+  const r = await sendMail({
+    to: tenantEmails(t),
+    subject: ended
+      ? `Your lease for ${placeOf(t)}: now month to month`
+      : `Your lease ends ${longDay(t.end_date)}: what happens next`,
+    lines: [
+      `Hi ${firstNames(t)},`,
+      ended
+        ? `The fixed term of your lease for ${placeOf(t)} ended on ${longDay(t.end_date)}. Under Ontario law your tenancy carries on month to month, on the same terms and rent. You don't need to sign anything.`
+        : `Your lease for ${placeOf(t)} ends on ${longDay(t.end_date)}. You don't need to do anything to stay: under Ontario law your tenancy carries on month to month after that, on the same terms and rent.`,
+      [
+        "Your options:",
+        "• Stay month to month: nothing to sign, and your rent and lease terms stay the same.",
+        "• Ask for a new lease: tell us and we'll speak with your landlord and send you a new lease to sign.",
+        late
+          ? `• Move out: give 60 days' written notice (form N9), ending on the last day of a month. If you give notice now, the earliest move-out date is ${longDay(moveOut)}.`
+          : `• Move out on ${longDay(t.end_date)}: give your 60-day notice (form N9) by ${longDay(deadline)}.`,
+      ].join("\n"),
+      "Let us know your plans in your account, or simply reply to this email.",
+      `Questions? Call ${SITE.phone}.`,
+    ],
+    link: `${PORTAL}#lease-end`,
+    linkLabel: "Tell us your plans",
+  });
+  if (!r?.sent) throw new Error("The email didn't go out. Try again.");
+  await sb.from("tenancies").update({ renewal_prompted_at: new Date().toISOString() }).eq("id", t.id);
+  return { sent: true };
+}
+
 // ---------------------------------------------------------------------------
 // Lease end: 90 days before a fixed term ends, ask the tenants what they'd like to do; remind
 // them a week before the 60-day notice deadline if they haven't answered.
