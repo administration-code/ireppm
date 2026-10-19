@@ -1,6 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
-import { Resend } from "resend";
+import { mailer, mailConfigured } from "@/lib/mailer";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { applicationEmail, landlordEmail, maintenanceEmail, showingEmail } from "@/lib/staff-alerts";
 import { decideBy, respondLink, showingAgents } from "@/lib/showings";
@@ -96,12 +96,12 @@ export async function POST(request) {
     const agents = table === "showing_requests" ? await showingAgents(getSupabaseAdmin(), record.listing_id) : null;
     const to = agents ? [...new Set([...agents.emails, ...staffRecipients()])] : staffRecipients();
     if (!to.length) throw new Error("STAFF_ALERT_EMAIL is not set");
-    if (!process.env.RESEND_API_KEY) throw new Error("RESEND_API_KEY is not set");
+    if (!mailConfigured()) throw new Error("Email is not set up (GMAIL_USER / GMAIL_APP_PASSWORD)");
 
     const email = await buildEmail(table, record);
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    const { error } = await resend.emails.send({ from: FROM, to, ...email });
-    if (error) throw new Error(`Resend: ${error.name || ""} ${error.message || ""}`.trim());
+    const mail = mailer();
+    const { error } = await mail.emails.send({ from: FROM, to, ...email });
+    if (error) throw new Error(`Email: ${error.name || ""} ${error.message || ""}`.trim());
 
     return NextResponse.json({ ok: true });
   } catch (err) {

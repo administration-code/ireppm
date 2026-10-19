@@ -53,7 +53,7 @@ export default function PrivacyPage() {
           <p>We don't sell your information. We share it only with the landlord of the property you apply for and with the service providers we use to run the site and screen applications.</p>
           <p>
             Our service providers are Supabase (database and secure file storage, hosted in Canada), Vercel (website
-            hosting), Resend (email delivery), Cloudflare (blocking automated sign-ups) and FrontLobby, our tenant
+            hosting), Google Workspace (email delivery), Cloudflare (blocking automated sign-ups) and FrontLobby, our tenant
             screening provider. Credit reports we obtain through FrontLobby come from Equifax Canada.
           </p>
 

@@ -1,6 +1,6 @@
 import "server-only";
 import { sendWelcome } from "@/lib/tenant-notices";
-import { Resend } from "resend";
+import { mailer, mailConfigured } from "@/lib/mailer";
 import { escapeHtml } from "@/lib/staff-alerts";
 import { ds, getDocument, getEnvelope, getRecipients, summarizeRecipients } from "@/lib/docusign";
 import { mfaSatisfied } from "@/lib/staff-mfa";
@@ -27,13 +27,13 @@ export async function staffUser(sb, request) {
 
 export async function alertStaff(subject, lines, requestId) {
   const to = (process.env.STAFF_ALERT_EMAIL || "").split(",").map((s) => s.trim()).filter(Boolean);
-  if (!process.env.RESEND_API_KEY || !to.length) return;
+  if (!mailConfigured() || !to.length) return;
   const link = requestId ? `${ADMIN_URL}/signatures/${requestId}` : `${ADMIN_URL}/signatures`;
   const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#161616">
 ${lines.map((l) => `<p style="margin:0 0 10px">${escapeHtml(l)}</p>`).join("")}
 <p style="margin:16px 0 0"><a href="${link}" style="color:#B41710">Open in the staff portal</a></p></div>`;
   try {
-    const { error } = await new Resend(process.env.RESEND_API_KEY).emails.send({
+    const { error } = await mailer().emails.send({
       from: FROM,
       to,
       subject,

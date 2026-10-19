@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { Resend } from "resend";
+import { mailer, mailConfigured } from "@/lib/mailer";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { ownerLetterEmail } from "@/lib/letter-email";
 import { SITE } from "@/lib/site";
@@ -37,8 +37,8 @@ export async function POST(request) {
   const ids = [...new Set(Array.isArray(body?.ids) ? body.ids.map(String) : [])].filter((id) => UUID.test(id));
   if (!ids.length) return NextResponse.json({ error: "Choose at least one letter." }, { status: 400 });
   if (ids.length > MAX_LETTERS) return NextResponse.json({ error: "Too many letters at once." }, { status: 400 });
-  if (!process.env.RESEND_API_KEY) {
-    return NextResponse.json({ error: "Email isn't set up yet (RESEND_API_KEY)." }, { status: 500 });
+  if (!mailConfigured()) {
+    return NextResponse.json({ error: "Email isn't set up yet (GMAIL_APP_PASSWORD)." }, { status: 500 });
   }
 
   const { data: letters, error } = await sb
@@ -48,7 +48,7 @@ export async function POST(request) {
     .eq("status", "draft");
   if (error) return NextResponse.json({ error: "We couldn't load those letters." }, { status: 500 });
 
-  const resend = new Resend(process.env.RESEND_API_KEY);
+  const mail = mailer();
   const sent = [];
   const skipped = [];
   const failed = [];
@@ -74,7 +74,7 @@ export async function POST(request) {
       continue;
     }
 
-    const { error: sendError } = await resend.emails.send({
+    const { error: sendError } = await mail.emails.send({
       from: FROM,
       to: [to],
       replyTo: SITE.email,

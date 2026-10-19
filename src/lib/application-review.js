@@ -1,6 +1,6 @@
 import "server-only";
 import { createClient } from "@supabase/supabase-js";
-import { Resend } from "resend";
+import { mailer, mailConfigured } from "@/lib/mailer";
 import { escapeHtml } from "@/lib/staff-alerts";
 import { SITE } from "@/lib/site";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
@@ -84,7 +84,7 @@ ${unsubscribe ? `<br><br>You're getting this because you rent or own a property 
 // skips anyone who has unsubscribed.
 export async function sendMail({ to, subject, lines, link, linkLabel, replyTo, attachments, marketing = false }) {
   const list = (Array.isArray(to) ? to : [to]).filter(Boolean);
-  if (!process.env.RESEND_API_KEY || !list.length) return { skipped: true };
+  if (!mailConfigured() || !list.length) return { skipped: true };
   const body = lines.filter(Boolean);
   if (marketing) {
     const out = await optedOut(getSupabaseAdmin(), list);
@@ -105,7 +105,7 @@ async function deliver({ to, subject, body, link, linkLabel, replyTo, attachment
   const html = brandedHtml(body, link, linkLabel, unsub);
   const footer = `${SITE.name}, ${SITE.address || ""} · ${SITE.phone} · ${SITE.email}`;
   try {
-    const { error } = await new Resend(process.env.RESEND_API_KEY).emails.send({
+    const { error } = await mailer().emails.send({
       from: FROM,
       to,
       replyTo: replyTo || SITE.email,

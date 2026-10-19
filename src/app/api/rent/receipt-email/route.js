@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { Resend } from "resend";
+import { mailer, mailConfigured } from "@/lib/mailer";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { loadReceipt, receiptParams } from "@/lib/receipt";
 import { receiptEmail } from "@/lib/receipt-email";
@@ -37,8 +37,8 @@ export async function POST(request) {
   const params = receiptParams(body || {});
   const to = String(body?.to || "").trim().toLowerCase();
   if (!params || !to) return NextResponse.json({ error: "Choose a receipt and a tenant." }, { status: 400 });
-  if (!process.env.RESEND_API_KEY) {
-    return NextResponse.json({ error: "Email isn't set up yet (RESEND_API_KEY)." }, { status: 500 });
+  if (!mailConfigured()) {
+    return NextResponse.json({ error: "Email isn't set up yet (GMAIL_APP_PASSWORD)." }, { status: 500 });
   }
 
   let receipt;
@@ -56,8 +56,8 @@ export async function POST(request) {
     return NextResponse.json({ error: "That email isn't on file for this tenancy." }, { status: 400 });
   }
 
-  const resend = new Resend(process.env.RESEND_API_KEY);
-  const { error } = await resend.emails.send({ from: FROM, to: [to], replyTo: SITE.email, ...receiptEmail(receipt) });
+  const mail = mailer();
+  const { error } = await mail.emails.send({ from: FROM, to: [to], replyTo: SITE.email, ...receiptEmail(receipt) });
   if (error) {
     console.error("[receipt-email] send failed:", error.name || "", error.message || "");
     return NextResponse.json({ error: "The email didn't send. Try again." }, { status: 502 });

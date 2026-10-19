@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { Resend } from "resend";
+import { mailer, mailConfigured } from "@/lib/mailer";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { SIGNED_BUCKET, staffUser } from "@/lib/signatures-server";
 import { escapeHtml } from "@/lib/staff-alerts";
@@ -16,7 +16,7 @@ export async function POST(request, { params }) {
   const sb = getSupabaseAdmin();
   const staff = await staffUser(sb, request);
   if (!staff) return NextResponse.json({ error: "Staff sign-in required." }, { status: 401 });
-  if (!process.env.RESEND_API_KEY) return NextResponse.json({ error: "Email isn't set up." }, { status: 500 });
+  if (!mailConfigured()) return NextResponse.json({ error: "Email isn't set up." }, { status: 500 });
 
   const { data: row } = await sb.from("signature_requests").select("*").eq("id", id).maybeSingle();
   if (!row) return NextResponse.json({ error: "Not found." }, { status: 404 });
@@ -55,7 +55,7 @@ export async function POST(request, { params }) {
     `${SITE.name}\n${SITE.phone}`,
   ];
 
-  const { error: sendError } = await new Resend(process.env.RESEND_API_KEY).emails.send({
+  const { error: sendError } = await mailer().emails.send({
     from: FROM,
     to,
     replyTo: SITE.email,

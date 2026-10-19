@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { insuranceReminders, leaseEndPrompts } from "@/lib/tenant-notices";
 import { showingReminders } from "@/lib/showings";
 import { drawDigest } from "@/lib/payprop-draw";
-import { Resend } from "resend";
+import { mailer, mailConfigured } from "@/lib/mailer";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { sendMail, staffEmails } from "@/lib/application-review";
 import { escapeHtml } from "@/lib/staff-alerts";
@@ -142,7 +142,7 @@ async function draftLastMonthsLetters(sb, today) {
 <p style="margin-top:24px"><a href="${escapeHtml(url)}" style="background:#B41710;color:#fff;padding:10px 16px;text-decoration:none;font-weight:bold">Review landlord letters</a></p>
 </div>`;
   const text = `${subject}\n\n${count ?? 0} draft letters are ready.\n\n${url}`;
-  const { error: sendError } = await new Resend(process.env.RESEND_API_KEY).emails.send({ from: FROM, to, subject, html, text });
+  const { error: sendError } = await mailer().emails.send({ from: FROM, to, subject, html, text });
   if (sendError) {
     console.error("[cron] letters email failed:", sendError.message);
     return { drafted: count, email: "failed" };
@@ -210,7 +210,7 @@ async function sendDigest(sb, today, result) {
 
   try {
     const { email, counts } = await buildDigest(sb, `${today.slice(0, 7)}-01`);
-    const { error: sendError } = await new Resend(process.env.RESEND_API_KEY).emails.send({ from: FROM, to, ...email });
+    const { error: sendError } = await mailer().emails.send({ from: FROM, to, ...email });
     if (sendError) throw new Error(sendError.message);
     result.digest = { sent: true, to: to.length, ...counts };
     return false;
@@ -303,7 +303,7 @@ ${s.accounts
     ]),
   ].join("\n");
 
-  const { error: sendError } = await new Resend(process.env.RESEND_API_KEY).emails.send({ from: FROM, to, subject, html, text });
+  const { error: sendError } = await mailer().emails.send({ from: FROM, to, subject, html, text });
   if (sendError) {
     console.error("[cron] reconciliation email failed:", sendError.message);
     return "failed";

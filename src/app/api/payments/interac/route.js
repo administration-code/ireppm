@@ -1,6 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
-import { Resend } from "resend";
+import { mailer, mailConfigured } from "@/lib/mailer";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { escapeHtml } from "@/lib/staff-alerts";
 import { money } from "@/lib/format";
@@ -36,8 +36,8 @@ const clip = (v, n) => (typeof v === "string" && v.trim() ? v.trim().slice(0, n)
 
 async function alertStaff(payment) {
   const to = staffRecipients();
-  if (!to.length || !process.env.RESEND_API_KEY) {
-    console.error("[interac] unmatched e-Transfer alert skipped: STAFF_ALERT_EMAIL or RESEND_API_KEY is not set");
+  if (!to.length || !mailConfigured()) {
+    console.error("[interac] unmatched e-Transfer alert skipped: STAFF_ALERT_EMAIL or email sending is not set up");
     return;
   }
   const payer = payment.payer_name || "an unknown sender";
@@ -62,8 +62,8 @@ async function alertStaff(payment) {
     </div></div>`;
   const text = [...rows.map(([k, v]) => `${k}: ${v}`), "", `Match it: ${MATCH_URL}`].join("\n");
 
-  const resend = new Resend(process.env.RESEND_API_KEY);
-  const { error } = await resend.emails.send({
+  const mail = mailer();
+  const { error } = await mail.emails.send({
     from: FROM,
     to,
     subject: `e-Transfer to match: ${money(payment.amount)} from ${payer}`,
