@@ -44,8 +44,6 @@ export default function PmContractForm({ ctx }) {
   const setOwner = (i, k) => (e) => setOwners((list) => list.map((o, j) => (j === i ? { ...o, [k]: e.target.value } : o)));
   const [c, setC] = useState(() => ({
     effective_date: today(),
-    engagement: "new",
-    managed_since: "",
     corporation_name: "",
     corporation_number: "",
     notice_address: ctx.owner?.mailing_address || "",
@@ -192,23 +190,10 @@ export default function PmContractForm({ ctx }) {
             <input id="pm-resp" value={c.response_time} onChange={setField("response_time")} />
           </div>
         </div>
-        <div className="field">
-          <span className="label">Engagement type</span>
-          <label className="check">
-            <input type="radio" name="pm-eng" checked={c.engagement === "new"} onChange={() => setC((x) => ({ ...x, engagement: "new" }))} />
-            New landlord, or a renewal for a new 12-month term (Initial Term, early termination charge and any first-year discount apply)
-          </label>
-          <label className="check">
-            <input type="radio" name="pm-eng" checked={c.engagement === "monthly"} onChange={() => setC((x) => ({ ...x, engagement: "monthly" }))} />
-            Existing landlord moving to this contract month to month, with no new term (section 2.10(b) or 2.11)
-          </label>
-        </div>
-        {c.engagement === "monthly" ? (
-          <div className="field">
-            <label htmlFor="pm-since">Managed since</label>
-            <input id="pm-since" type="date" value={c.managed_since} onChange={setField("managed_since")} />
-          </div>
-        ) : null}
+        <p className="small" style={{ margin: 0 }}>
+          This contract is for a new landlord or a renewal for a new 12-month term. An existing landlord who doesn&apos;t
+          re-sign stays on their current agreement month to month, at the standard rates.
+        </p>
         <div className="row2">
           <div className="field">
             <label htmlFor="pm-leases">Leases anticipated</label>

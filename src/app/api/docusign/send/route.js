@@ -38,7 +38,6 @@ function validate(kind, f) {
     if (!c.effective_date || !c.commencement_date) return "Add the effective date and the commencement date.";
     if (!str(c.property_address)) return "Add the property address.";
     if (!str(c.notice_address)) return "Add the landlord's address for notices.";
-    if (["monthly", "resign"].includes(c.engagement) && !c.managed_since) return "Add the date we started managing the property (month to month).";
   }
   if (kind === "N1" && (!f.increase_date || !(Number(f.new_rent) > 0))) return "Add the increase date and the new rent.";
   if (kind === "N4" && (!f.termination_date || !(Number(f.amount_owing) > 0))) return "Add the termination date and the amount owing.";
