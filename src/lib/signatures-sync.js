@@ -38,17 +38,14 @@ export async function syncOutstanding(sb) {
   }
 
   const from = new Date(Date.now() - LOOKBACK_DAYS * 864e5).toISOString().slice(0, 10);
-  const list = await ds(`/envelopes?from_date=${from}&status=created,sent,delivered&count=200&order_by=created&order=desc&include=folders`);
-  // Skip anything sitting in DocuSign's Deleted folder (deleted drafts still report "created").
-  const binned = new Set();
-  try {
-    const bin = await ds("/folders/recyclebin?count=500");
-    for (const f of bin.folders || []) for (const item of f.folderItems || []) if (item.envelopeId) binned.add(item.envelopeId);
-  } catch (err) {
-    result.errors.push(`Deleted folder: ${err.message}`);
-    return result; // don't risk listing deleted drafts
-  }
-  const envelopes = (list.envelopes || []).filter((e) => !binned.has(e.envelopeId));
+  // Drafts: only what's in DocuSign's Drafts folder (deleted drafts still report "created").
+  // Out for signature: anything sent or opened and not yet finished.
+  const [drafts, out] = await Promise.all([
+    ds(`/envelopes?from_date=${from}&folder_ids=drafts&count=200`),
+    ds(`/envelopes?from_date=${from}&status=sent,delivered&count=200`),
+  ]);
+  const seen = new Set();
+  const envelopes = [...(drafts.envelopes || []), ...(out.envelopes || [])].filter((e) => !seen.has(e.envelopeId) && seen.add(e.envelopeId));
   if (!envelopes.length) return result;
 
   const { data: known } = await sb

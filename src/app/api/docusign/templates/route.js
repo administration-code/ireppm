@@ -182,29 +182,6 @@ export async function POST(request) {
       return NextResponse.json({ signers: (recips.signers || []).map((s) => ({ role: s.roleName, recipientId: s.recipientId, tabs: s.tabs || {} })) });
     }
 
-    // Move leftover test drafts (subject starts "TEST" or "Draft check") to DocuSign's Deleted folder.
-    if (body.action === "recyclebin") {
-      const from = new Date(Date.now() - 150 * 864e5).toISOString().slice(0, 10);
-      const [bin, drafts] = await Promise.all([
-        ds("/folders/recyclebin?include_items=true&count=500").catch((e) => ({ error: e.message })),
-        ds(`/envelopes?from_date=${from}&folder_ids=drafts&count=200`).catch((e) => ({ error: e.message })),
-      ]);
-      return NextResponse.json({
-        bin: JSON.stringify(bin).slice(0, 600),
-        drafts: drafts.error || (drafts.envelopes || []).map((e) => `${e.status}|${e.emailSubject}`),
-      });
-    }
-    if (body.action === "cleanup-tests") {
-      const from = new Date(Date.now() - 150 * 864e5).toISOString().slice(0, 10);
-      const list = await ds(`/envelopes?from_date=${from}&status=created&count=200`);
-      const ids = (list.envelopes || [])
-        .filter((e) => /^(TEST\b|Draft check \(not sent\))/i.test(String(e.emailSubject || "")))
-        .map((e) => e.envelopeId);
-      if (!ids.length) return NextResponse.json({ moved: 0 });
-      const out = await ds("/folders/recyclebin", { method: "PUT", body: { envelopeIds: ids } }).catch((e) => ({ error: e.message }));
-      return NextResponse.json({ moved: ids.length, result: out });
-    }
-
     // Remove every field from the template (before re-adding them with new placements).
     if (body.action === "pm-clear-tabs") {
       const recips = await ds(`/templates/${id}/recipients?include_tabs=true`);
