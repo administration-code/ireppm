@@ -176,7 +176,7 @@ export default function PmContractForm({ ctx }) {
         </div>
         <div className="row2">
           <div className="field">
-            <label htmlFor="pm-eff">Effective date (date the contract is made)</label>
+            <label htmlFor="pm-eff">Effective date (today: the contract binds from here)</label>
             <input
               id="pm-eff"
               type="date"
@@ -252,7 +252,7 @@ export default function PmContractForm({ ctx }) {
                 setStart(e.target.value);
               }}
             />
-            <span className="small">Usually the same as the effective date. The 12-month Initial Term and the first-year discount count from here.</span>
+            <span className="small">When management under this contract starts: today for a new landlord starting now, later for a renewal (e.g. January 1). The Initial Term, the first-year discount and the switch from any earlier agreement count from here.</span>
           </div>
           <div className="field">
             <label htmlFor="pm-renew">Renewal date</label>
