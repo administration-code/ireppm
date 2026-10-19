@@ -710,6 +710,8 @@ const PM_PAGES = 14;
 const PM_LAYOUT = {
   landlordInitials: (page) => ({ x: page >= 10 ? 239 : 241, y: 731 }),
   managerInitials: (page) => ({ x: page >= 10 ? 329 : 331, y: 733 }),
+  // Owners 2-6 initial in the empty footer space either side of "Landlord initials / Manager initials".
+  coOwnerInitialsX: [140, 95, 50, 440, 485],
   corporationCheck: { page: 10, x: 66, y: 364 }, // under the landlord's signature: signing for a corporation
   multipleOwnersCheck: { page: 10, x: 66, y: 399 }, // under the landlord's signature: more than one owner
   ownerPhone: [{ page: 1, x: 326, y: 403 }, { page: 1, x: 227, y: 676 }], // owner row and authorized signatory section
@@ -776,7 +778,11 @@ export function pmContractTabs(owners, { corporation, addons = [] }) {
     },
   };
   owners.slice(1).forEach((o, i) => {
-    if (str(o.phone)) out[`Landlord (Owner ${i + 2})`] = { textTabs: [phoneText(`Owner ${i + 2} Phone`, o.phone, { page: 1, x: 326, y: PM_LAYOUT.coOwnerPhoneY[i] })] };
+    const n = i + 2;
+    out[`Landlord (Owner ${n})`] = {
+      initialHereTabs: initials(() => ({ x: PM_LAYOUT.coOwnerInitialsX[i], y: 731 }), `Owner ${n}`),
+      textTabs: str(o.phone) ? [phoneText(`Owner ${n} Phone`, o.phone, { page: 1, x: 326, y: PM_LAYOUT.coOwnerPhoneY[i] })] : [],
+    };
   });
   return out;
 }
