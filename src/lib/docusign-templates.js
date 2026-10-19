@@ -763,7 +763,7 @@ export function pmContractValues(c = {}) {
   const fees = pmContractFees({ leases: c.leases, addons: c.addons || [], monthlyDiscount: c.monthly_discount, customFee: c.custom_fee });
   const v = {
     pmfeff: longDay(c.effective_date),
-    pmfms: c.engagement === "resign" ? longDay(c.managed_since) : "",
+    pmfms: ["monthly", "resign"].includes(c.engagement) ? longDay(c.managed_since) : "",
     pmfcorp: str(c.corporation_name),
     pmfcorpno: str(c.corporation_number),
     pmfnotice: str(c.notice_address),
@@ -851,8 +851,8 @@ export function pmContractTabs(owners, { corporation, addons = [], contract = nu
       });
     }
     lead.checkboxTabs.push(
-      check("Engagement New", anchor({ text: "/pmeng1/", x: -14, y: 2 }), contract.engagement !== "resign"),
-      check("Engagement Re-signing", anchor({ text: "/pmeng2/", x: -14, y: 2 }), contract.engagement === "resign")
+      check("Engagement New", anchor({ text: "/pmeng1/", x: -14, y: 2 }), !["monthly", "resign"].includes(contract.engagement)),
+      check("Engagement Month To Month", anchor({ text: "/pmeng2/", x: -14, y: 2 }), ["monthly", "resign"].includes(contract.engagement))
     );
   }
   owners.slice(1).forEach((o, i) => {

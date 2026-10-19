@@ -196,14 +196,14 @@ export default function PmContractForm({ ctx }) {
           <span className="label">Engagement type</span>
           <label className="check">
             <input type="radio" name="pm-eng" checked={c.engagement === "new"} onChange={() => setC((x) => ({ ...x, engagement: "new" }))} />
-            New engagement: a fresh 12-month Initial Term and the first-year discount (also for existing landlords moving to this contract)
+            New landlord, or a renewal for a new 12-month term (Initial Term, early termination charge and any first-year discount apply)
           </label>
           <label className="check">
-            <input type="radio" name="pm-eng" checked={c.engagement === "resign"} onChange={() => setC((x) => ({ ...x, engagement: "resign" }))} />
-            Re-signing an existing landlord (section 2.10(b) or 2.11)
+            <input type="radio" name="pm-eng" checked={c.engagement === "monthly"} onChange={() => setC((x) => ({ ...x, engagement: "monthly" }))} />
+            Existing landlord moving to this contract month to month, with no new term (section 2.10(b) or 2.11)
           </label>
         </div>
-        {c.engagement === "resign" ? (
+        {c.engagement === "monthly" ? (
           <div className="field">
             <label htmlFor="pm-since">Managed since</label>
             <input id="pm-since" type="date" value={c.managed_since} onChange={setField("managed_since")} />

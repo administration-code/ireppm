@@ -151,24 +151,22 @@ body.push(
 );
 
 // Engagement type
-const engage = new Paragraph({
-  spacing: { line: 240, after: 0 },
-  indent: { firstLine: pt(19) },
-  tabStops: [{ type: TabStopType.LEFT, position: pt(287) }],
-  children: runs("[[pmeng1]]New engagement — 12-month Initial Term applies (s. 2.1)\t[[pmeng2]]Re-signing an existing landlord (s. 2.10)"),
-});
-const managedSince = new Paragraph({
-  spacing: { line: 240, after: 0 },
-  tabStops: [{ type: TabStopType.LEFT, position: pt(90) }],
-  children: [
-    ...runs("[[pmfms]]"),
-    new TextRun({ text: "\t", font: FONT, size: SZ }),
-    new TextRun({ text: "Complete only when re-signing. If 12 months or more, this Agreement runs month-to-month under s. 2.10.", font: FONT, size: 15 }),
-  ],
-});
+const engageLine = (t) =>
+  new Paragraph({ spacing: { line: 240, after: pt(2) }, indent: { left: pt(19) }, children: runs(t) });
+const engage = [
+  engageLine("[[pmeng1]]New landlord, or a renewal for a new 12-month term (s. 2.1, 2.10(a))"),
+  engageLine("[[pmeng2]]Existing landlord continuing month to month, no new term (s. 2.10(b))"),
+];
+const managedSince = [
+  new Paragraph({ spacing: { line: 240, after: 0 }, children: runs("[[pmfms]]") }),
+  new Paragraph({
+    spacing: { line: 240, after: 0 },
+    children: [new TextRun({ text: "Complete only for month to month. If under 12 months, the original term finishes first (s. 2.11).", font: FONT, size: 15, color: "595959" })],
+  }),
+];
 body.push(
   table([117, 351], [
-    row([label("Engagement type", 117), cell(engage, 351, { valign: VerticalAlign.BOTTOM })], 34),
+    row([label("Engagement type", 117), cell(engage, 351)], 34),
     row([label("Managed since", 117), cell(managedSince, 351)], 26),
   ])
 );
@@ -273,10 +271,10 @@ I("fees earned to the termination date remain payable.", "(e)");
 C("2.8", "**Early termination charge.** If, before the end of the Initial Term, the Landlord terminates this Agreement (other than under section 2.5 for the Manager’s breach), the Manager terminates it under section 2.5 for the Landlord’s breach, or it ends under section 2.6 on a sale, the Landlord shall pay out the remainder of the Initial Term. The amount payable is the total of the monthly management fee under section 5 and the monthly fees for all optional services then selected under Schedule A, multiplied by the number of whole and partial months remaining in the Initial Term, plus HST. That amount is due within fifteen (15) days of the termination date and may be deducted from any rent or funds held by the Manager. The parties agree this is a reasonable pre-estimate of the Manager’s loss and not a penalty. For clarity, amounts payable under section 2.4 for optional services are included in, and not charged in addition to, this amount for months falling within the Initial Term. This section does not apply to a termination by the Manager under section 2.3A.");
 C("2.9", "**Waiver on sale with IRep Realty Inc.** Where the Agreement is ending before the end of the Initial Term because the Landlord is selling the Property, the early termination charge in section 2.8 is waived in full if the Landlord lists the Property for sale with IRep Realty Inc., a real estate brokerage related to the Manager, under a signed listing agreement, and the sale of the Property closes through that listing. If that listing agreement is terminated, expires without a sale, or the Property is sold other than through IRep Realty Inc., the charge under section 2.8 revives and becomes payable on the earlier of the closing date and the date the listing ends. Nothing in this section obliges the Landlord to list with IRep Realty Inc., and the Landlord’s choice of brokerage is the Landlord’s alone. The Landlord acknowledges that the Manager has disclosed its relationship with IRep Realty Inc.");
 C("2.10", "**Existing landlords.** Where the Manager has managed the Property under an earlier agreement, the Engagement Type block on page 1 shows which of the following applies:");
-I("**New engagement:** this Agreement is treated as a new engagement from the Commencement Date. The Initial Term, the first-year discount under section 5.7 and the early termination charge under section 2.8 apply as for a new client, despite the earlier management, and section 2.11 does not apply.", "(a)");
-I("**Re-signing, where the Manager has managed the Property continuously for twelve (12) months or more as at the Commencement Date:** no new Initial Term applies. This Agreement runs month to month from the Commencement Date, the Landlord may end it on sixty (60) days’ written notice under section 2.3, and no early termination charge under section 2.8 is payable. Optional services already provided for twelve (12) months or more likewise continue month to month; an optional service newly added on or after the Commencement Date carries its own minimum term under section 6.2.", "(b)");
+I("**Renewal for a new term:** this Agreement starts a new twelve (12) month Initial Term on the Commencement Date. The first-year discount under section 5.7 and the early termination charge under section 2.8 apply as for a new client, despite the earlier management, and section 2.11 does not apply.", "(a)");
+I("**Continuing month to month:** no new Initial Term applies. Where the Manager has managed the Property for twelve (12) months or more as at the Commencement Date, this Agreement runs month to month from the Commencement Date, the Landlord may end it on sixty (60) days’ written notice under section 2.3, and no early termination charge under section 2.8 is payable. Optional services already provided for twelve (12) months or more likewise continue month to month; an optional service newly added on or after the Commencement Date carries its own minimum term under section 6.2. Where the Manager has managed the Property for less than twelve (12) months, section 2.11 applies.", "(b)");
 N("In either case, this Agreement replaces the earlier agreement from the Commencement Date, and the earlier agreement continues to apply until then. Amounts owing under the earlier agreement remain payable.");
-C("2.11", "**Re-signing a landlord managed for less than twelve months.** Where page 1 shows a re-signing and the Manager has managed the Property for less than twelve (12) months as at the Commencement Date, the Initial Term ends twelve (12) months after the date shown as “Managed since” on page 1, and not twelve months after the Commencement Date. Signing this Agreement does not restart or extend the original twelve-month commitment.");
+C("2.11", "**Month to month, managed for less than twelve months.** Where page 1 shows an existing landlord continuing month to month and the Manager has managed the Property for less than twelve (12) months as at the Commencement Date, the Initial Term ends twelve (12) months after the date shown as “Managed since” on page 1, and not twelve months after the Commencement Date. Signing this Agreement does not restart or extend the original twelve-month commitment.");
 
 S("3.   CORE MANAGEMENT SERVICES");
 body.push(P('For the management fee set out in section 5, the Manager will provide the following services (the **"Core Services"**):'));
@@ -316,7 +314,7 @@ C("5.3", "Example: a room-rental home with seven (7) bedrooms rented on seven (7
 C("5.4", "The management fee is a fixed monthly amount based on the number of Leases anticipated at the Property as recorded on page 2. It is payable in full each month whether or not every room or unit is rented, including while a unit is vacant, between tenants or under repair, or after a Lease has ended or been broken. There is no reduction, proration or suspension for vacancy or loss of rent, except as the Manager waives under section 5.9.");
 C("5.5", "The management fee and all Schedule A fees are payable monthly in advance and are deducted from rent collected under section 8. If rent collected in a month is insufficient, the balance is payable by the Landlord on invoice.");
 C("5.6", "All fees in this Agreement are exclusive of HST. HST at 13% is added to all fees. Manager’s HST registration number: 72502 0143 RT0001.");
-C("5.7", "**First-year discount (if applicable).** A total discount of [[pmfdisca]]________________ is granted, applied as [[pmfdiscm]]______________ per month for the twelve (12) months following the Commencement Date. This includes an existing landlord moved to this Agreement as a new engagement under section 2.10(a). The discount ends automatically after those twelve months without further notice, does not apply to Schedule A optional service fees, and ends early if this Agreement ends.");
+C("5.7", "**First-year discount (if applicable).** A total discount of [[pmfdisca]]________________ is granted, applied as [[pmfdiscm]]______________ per month for the twelve (12) months following the Commencement Date. This includes an existing landlord renewing for a new term under section 2.10(a). The discount ends automatically after those twelve months without further notice, does not apply to Schedule A optional service fees, and ends early if this Agreement ends.");
 C("5.8", "**Changes to the number of Leases.** The number of Leases changes only when the configuration of the Property permanently changes, as agreed in writing by the Authorized Signatory: a room or unit is added, removed or taken out of rental use, or the Property converts between whole-home and room rental. The change takes effect on the first day of the following month and is recorded by amending Schedule A, Part 1. Tenant turnover does not change the number of Leases.");
 C("5.9", "**Waivers.** The Manager may, at its sole discretion, waive or reduce any fee for any month. For example, it may waive the management fee for a month in which all rent collected comes from a Lease that began that month. A waiver applies only to the month and amount stated and does not waive any other fee.");
 C("5.10", "**Overdue amounts.** Any amount owing to the Manager that is unpaid fifteen (15) days after invoice bears interest from the due date until paid at two percent (2%) per month, which is twenty-four percent (24%) per year, calculated and compounded monthly. While any amount is overdue, the Manager may suspend any or all services, including optional services, without liability.");
