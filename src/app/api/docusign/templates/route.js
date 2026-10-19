@@ -70,7 +70,7 @@ export async function POST(request) {
       }));
       return NextResponse.json({
         templateId: id,
-        documents: (docs.templateDocuments || []).map((d) => ({ id: d.documentId, name: d.name, pages: d.pages?.length ?? d.pages, docGen: d.isDocGenDocument, fields: d.docGenFormFields?.length })),
+        documents: (docs.templateDocuments || []).map((d) => ({ id: d.documentId, name: d.name, pages: d.pages?.length ?? d.pages, docGen: d.isDocGenDocument, keys: Object.keys(d) })),
         roles,
       });
     }
@@ -79,7 +79,7 @@ export async function POST(request) {
       const { PM_CONTRACT_DOCX_BASE64, PM_CONTRACT_DOCX_NAME } = await import("@/lib/pm-contract-docx");
       await ds(`/templates/${id}/documents`, {
         method: "PUT",
-        body: { documents: [{ documentId: "1", name: PM_CONTRACT_DOCX_NAME, fileExtension: "docx", order: "1", documentBase64: PM_CONTRACT_DOCX_BASE64 }] },
+        body: { documents: [{ documentId: "1", name: PM_CONTRACT_DOCX_NAME, fileExtension: "docx", order: "1", isDocGenDocument: "true", documentBase64: PM_CONTRACT_DOCX_BASE64 }] },
       });
       const docs = await ds(`/templates/${id}/documents`);
       return NextResponse.json({ ok: true, documents: docs.templateDocuments || [] });
@@ -139,7 +139,8 @@ export async function POST(request) {
         return NextResponse.json({
           envelopeId,
           pages: (docs.envelopeDocuments || []).map((d) => d.pages?.length ?? d.pages),
-          docGen: fields.error ? { error: fields.error } : (fields.docGenFormFields || []).map((d) => ({ documentId: d.documentId, fields: (d.docGenFormFieldList || []).map((f) => f.name || f.Name) })),
+          docGen: fields.error ? { error: fields.error } : (fields.docGenFormFields || []).map((d) => ({ documentId: d.documentId, fields: (d.docGenFormFieldList || []).map((f) => f.name || f.Name || f.label) })),
+        documents: (docs.envelopeDocuments || []).map((d) => ({ id: d.documentId, name: d.name, docGen: d.isDocGenDocument, type: d.type })),
           tabs,
         });
       } finally {
