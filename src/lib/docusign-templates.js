@@ -704,16 +704,18 @@ export function buildConsent(f, ids, owner) {
   };
 }
 
+// Offsets were calibrated against a generated contract (Oct 2026); anchors are case-sensitive so the
+// lowercase "where the Landlord is a corporation" in sections 1.9 and 1.10 isn't matched.
 // Fields the saved DocuSign template doesn't have, added to a management contract draft once its
 // field data is filled in (the generated document's length varies, so most fields are anchored to
 // the contract's own words rather than fixed page positions). Offsets are in points from the anchor.
 const PM_ANCHORS = {
-  landlordInitials: { text: "Landlord initials", x: 52, y: -18 },
-  managerInitials: { text: "Manager initials", x: 52, y: -16 },
+  landlordInitials: { text: "Landlord initials", x: 54, y: 12 },
+  managerInitials: { text: "Manager initials", x: 54, y: 14 },
   // Owners 2-6 initial in the empty footer space either side of "Landlord initials / Manager initials".
-  coOwnerInitialsX: [-49, -94, -139, 251, 296],
-  corporation: { text: "Where the Landlord is a corporation", x: -20, y: -4 }, // page 10, under the signatures
-  multipleOwners: { text: "Where the Property has more than one owner", x: -20, y: -4 },
+  coOwnerInitialsX: [-47, -92, -137, 253, 298],
+  corporation: { text: "Where the Landlord is a corporation", x: -22, y: -3 }, // page 10, under the signatures
+  multipleOwners: { text: "Where the Property has more than one owner", x: -22, y: -3 },
   // Schedule A, Part 2: the box beside each optional service, by add-on key.
   services: [
     ["snow_lawn", "Service Lawn Snow Monthly", "Lawn maintenance & snow removal — monthly"],
@@ -724,7 +726,7 @@ const PM_ANCHORS = {
     ["plumbing", "Service Plumbing Package", "Plumbing package — basic"],
     ["cleaning", "Service Common Space Cleaning", "Common space cleaning — shared"],
   ],
-  serviceBox: { x: -22, y: -1 },
+  serviceBox: { x: -24, y: 0 },
 };
 // Page 1 and 2 don't move: phones go in fixed cells.
 const PM_FIXED = {
@@ -756,7 +758,7 @@ export function buildPmContract(f, ids) {
 export function pmContractTabs(owners, { corporation, addons = [] }) {
   const anchor = (a, dx = a.x, dy = a.y) => ({
     anchorString: a.text, anchorXOffset: String(dx), anchorYOffset: String(dy), anchorUnits: "pixels",
-    anchorIgnoreIfNotPresent: "true", anchorCaseSensitive: "false", anchorMatchWholeWord: "false",
+    anchorIgnoreIfNotPresent: "true", anchorCaseSensitive: "true", anchorMatchWholeWord: "false",
   });
   const pos = (page, { x, y }) => ({ documentId: "1", pageNumber: String(page), xPosition: String(x), yPosition: String(y) });
   const initials = (label, where) => ({ ...where, tabLabel: `${label} Initials`, name: "InitialHere", optional: "false", scaleValue: "1" });
