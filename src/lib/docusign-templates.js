@@ -714,7 +714,7 @@ const PM_ANCHORS = {
   managerInitials: { text: "Manager initials", x: 54, y: 14 },
   // Owners 2-6 initial in the empty footer space either side of "Landlord initials / Manager initials".
   coOwnerInitialsX: [-47, -92, -137, 253, 298],
-  corporation: { text: "Where the Landlord is a corporation", x: -22, y: -3 }, // page 10, under the signatures
+  corporation: { text: "Where the Landlord is a corporation", x: -22, y: -3 }, // signature page, under the signatures
   multipleOwners: { text: "Where the Property has more than one owner", x: -22, y: -3 },
   // Schedule A, Part 2: the box beside each optional service, by add-on key.
   services: [
@@ -732,8 +732,8 @@ const PM_ANCHORS = {
 const PM_FIXED = {
   ownerPhone: [{ page: 1, x: 326, y: 403 }, { page: 1, x: 227, y: 676 }], // owner row and authorized signatory section
   coOwnerPhoneY: [435, 466, 498, 530, 562], // owners 2-6 rows on page 1
-  irepPhone: { page: 2, x: 373, y: 93 }, // Manager table, Phone cell
 };
+// "IRep Phone" stays in the list so a refresh removes the field from drafts made before the phone was printed.
 export const PM_TAB_LABELS = /^(Landlord|Manager|Owner \d) Initials|^Landlord Is Corporation$|^Multiple Owners$|^Service |^Owner (\d )?Phone|^IRep Phone$/;
 const CORPORATE = /\b(inc|incorporated|ltd|limited|corp|corporation|llc|ulc|co)\.?$/i;
 export const looksCorporate = (name) => CORPORATE.test(str(name).replace(/[.,\s]+$/, ""));
@@ -783,8 +783,8 @@ export function pmContractTabs(owners, { corporation, addons = [] }) {
       textTabs: str(lead.phone) ? PM_FIXED.ownerPhone.map((w, i) => phoneText(`Owner Phone ${i + 1}`, lead.phone, w)) : [],
     },
     Manager: {
+      // IRep's phone is printed in the contract itself (page 2), so no field is added for it.
       initialHereTabs: [initials("Manager", anchor(PM_ANCHORS.managerInitials))],
-      textTabs: [{ ...phoneText("IRep Phone", REP.phone || "519-590-7200", PM_FIXED.irepPhone), width: "150", locked: "true" }],
     },
   };
   owners.slice(1).forEach((o, i) => {

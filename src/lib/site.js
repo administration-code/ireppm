@@ -74,7 +74,7 @@ export const PACKAGES = [
     items: [
       "Everything in Maintenance",
       "Free surveillance installation (hardware remains IRep's)",
-      "Major appliance coverage, up to 1 appliance per month",
+      "Major appliance coverage (fridge, stove, washer, dryer)",
     ],
   },
   {
@@ -113,7 +113,7 @@ export const INQUIRY_INTERESTS = [
 export const LANDLORD_PROMISES = [
   ["Every applicant screened", "ID, income and a credit check before you see an applicant, and you make the final call."],
   ["Showings answered within 24 hours", "Every showing request gets an answer within a day, and current tenants get proper written notice."],
-  ["Paid by the 7th", "Rent received by the 7th is paid out to you by the 7th, with a statement showing every dollar."],
+  ["Paid by the 7th, or sooner", "All rent in early? Paid out the next business day. Otherwise everything received is paid out on the 7th, with a statement showing every dollar."],
   ["T776-ready year end", "Monthly statements all year, then a year-end summary laid out for your rental income tax return."],
 ];
 
@@ -138,8 +138,8 @@ export const CALC = {
   leasingMonths: 0.5,
   addons: [
     { key: "snow_lawn", name: "Lawn & snow (lots up to 4,500 sq ft)", amount: 50, includedIn: ["maintenance", "protection"] },
-    { key: "plumbing", name: "Plumbing coverage", amount: 35, includedIn: [] },
-    { key: "appliance", name: "Appliance coverage", amount: 65, includedIn: ["protection"] },
+    { key: "plumbing", name: "Plumbing coverage", amount: 40, includedIn: [] },
+    { key: "appliance", name: "Appliance coverage", amount: 50, includedIn: ["protection"] },
     { key: "surveillance", name: "Surveillance ($100 one-time install)", amount: 15, includedIn: ["protection"] },
   ],
 };
