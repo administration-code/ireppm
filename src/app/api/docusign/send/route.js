@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { addTabsByRole, createEnvelope, removeEmptyRecipients, resolveTemplates, sendDraftEnvelope, senderViewUrl } from "@/lib/docusign";
 import { staffUser } from "@/lib/signatures-server";
+import { fillLeaseSchedule, pmLeaseRows } from "@/lib/pm-lease-schedule";
 import {
   KIND_TEMPLATES,
   buildCertificate,
@@ -160,6 +161,10 @@ export async function POST(request) {
     // Management contracts: initials, boxes, phones and the contract's details (dates, addresses, fees)
     // are added straight away, anchored to the contract's own words and hidden markers.
     if (built.extraTabs) await addTabsByRole(env.envelopeId, built.extraTabs);
+    // Lease schedule (Schedule A, Part 5) from the property's current tenancies.
+    if (kind === "pm_contract" && f.contract?.fill_leases !== false) {
+      await fillLeaseSchedule(env.envelopeId, await pmLeaseRows(sb, f.property_id));
+    }
     if (mode === "send") await sendDraftEnvelope(env.envelopeId);
     const now = new Date().toISOString();
     await sb

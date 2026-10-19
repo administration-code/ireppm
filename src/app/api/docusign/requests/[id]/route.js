@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { addTabsByRole, consoleViewUrl, getRecipients, pageImage, resendEnvelope, senderViewUrl, voidEnvelope } from "@/lib/docusign";
 import { PM_TAB_LABELS, looksCorporate, pmContractTabs } from "@/lib/docusign-templates";
 import { SIGNED_BUCKET, staffUser, syncRequest } from "@/lib/signatures-server";
+import { fillLeaseSchedule, pmLeaseRows } from "@/lib/pm-lease-schedule";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -81,6 +82,7 @@ export async function POST(request, { params }) {
           pmContractTabs(owners, { corporation, addons: (addons || []).map((a) => a.addon_key), contract: row.terms?.contract || null }),
           { replace: PM_TAB_LABELS }
         );
+        if (row.terms?.contract?.fill_leases !== false) await fillLeaseSchedule(row.envelope_id, await pmLeaseRows(sb, row.property_id));
         return NextResponse.json({ ok: true, added });
       }
       case "page-image": {

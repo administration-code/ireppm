@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { addTabsByRole, ds, isConfigured, removeEmptyRecipients, resolveTemplateId, templateRecipients } from "@/lib/docusign";
 import { EXPECTED, TEMPLATES, pmContractTabs } from "@/lib/docusign-templates";
 import { staffUser } from "@/lib/signatures-server";
+import { fillLeaseSchedule, pmLeaseRows } from "@/lib/pm-lease-schedule";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -145,6 +146,7 @@ export async function POST(request) {
             }
           )
         );
+        if (body.propertyId) await fillLeaseSchedule(envelopeId, await pmLeaseRows(sb, body.propertyId));
         const [fields, recips, docs] = await Promise.all([
           ds(`/envelopes/${envelopeId}/docGenFormFields`).catch((e) => ({ error: e.message })),
           ds(`/envelopes/${envelopeId}/recipients?include_tabs=true`),
@@ -152,7 +154,7 @@ export async function POST(request) {
         ]);
         const tabs = (recips.signers || []).flatMap((s) =>
           Object.entries(s.tabs || {}).flatMap(([group, list]) =>
-            (Array.isArray(list) ? list : []).map((t) => ({ role: s.roleName, group, label: t.tabLabel, anchor: t.anchorString, page: Number(t.pageNumber), x: Number(t.xPosition), y: Number(t.yPosition) }))
+            (Array.isArray(list) ? list : []).map((t) => ({ role: s.roleName, group, label: t.tabLabel, anchor: t.anchorString, page: Number(t.pageNumber), x: Number(t.xPosition), y: Number(t.yPosition), value: t.value }))
           )
         );
         return NextResponse.json({

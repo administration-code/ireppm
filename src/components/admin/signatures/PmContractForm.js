@@ -45,6 +45,8 @@ export default function PmContractForm({ ctx }) {
     response_time: "48 hours",
   }));
   const setField = (k) => (e) => setC((x) => ({ ...x, [k]: e.target.value }));
+  const [fillLeases, setFillLeases] = useState(true);
+  const [leaseRows, setLeaseRows] = useState(null);
   const [addons, setAddons] = useState([]);
   useEffect(() => {
     if (!p?.id) return;
@@ -53,6 +55,21 @@ export default function PmContractForm({ ctx }) {
       .select("addon_key")
       .eq("property_id", p.id)
       .then(({ data }) => setAddons((data || []).map((a) => a.addon_key)));
+    getBrowserClient()
+      .from("units")
+      .select("label, status, tenancies(status, tenancy_tenants(full_name))")
+      .eq("property_id", p.id)
+      .then(({ data }) =>
+        setLeaseRows(
+          (data || [])
+            .filter((u) => u.status !== "offline")
+            .sort((a, b) => String(a.label).localeCompare(String(b.label), "en", { numeric: true }))
+            .map((u) => {
+              const t = (u.tenancies || []).find((x) => ["active", "notice"].includes(x.status));
+              return `${u.label}: ${t ? (t.tenancy_tenants || []).map((x) => x.full_name).filter(Boolean).join(", ") || "Tenant" : "Vacant"}`;
+            })
+        )
+      );
   }, [p?.id]);
   const fees = useMemo(
     () => pmContractFees({ leases: c.leases, addons, monthlyDiscount: c.monthly_discount, customFee: p?.custom_fee ? p.monthly_fee : null }),
@@ -74,6 +91,7 @@ export default function PmContractForm({ ctx }) {
         corporation_name: corporation ? c.corporation_name || owners[0]?.name || "" : "",
         corporation_number: corporation ? c.corporation_number : "",
         monthly_discount: Number(c.monthly_discount) || 0,
+        fill_leases: fillLeases,
         custom_fee: p?.custom_fee ? Number(p.monthly_fee) || null : null,
       },
     };
@@ -188,6 +206,17 @@ export default function PmContractForm({ ctx }) {
           {fees.discount ? `, less ${money(fees.discount)} discount` : ""} = {money(fees.subtotal)} + HST {money(fees.hst)} ={" "}
           <strong>{money(fees.total)}</strong> a month. Optional services come from the property&apos;s add-ons.
         </p>
+        <label className="check">
+          <input type="checkbox" checked={fillLeases} onChange={(e) => setFillLeases(e.target.checked)} />
+          Fill the lease schedule (Schedule A, Part 5) from the current tenants
+        </label>
+        {fillLeases && leaseRows ? (
+          <p className="small" style={{ margin: 0 }}>
+            {leaseRows.length
+              ? `${leaseRows.slice(0, 12).join(" · ")}${leaseRows.length > 12 ? ` (first 12 of ${leaseRows.length} units)` : ""}. The landlord can correct these before signing.`
+              : "No units are set up for this property yet, so the schedule will be left blank."}
+          </p>
+        ) : null}
         <p className="small" style={{ margin: 0 }}>
           Everything above is printed into the contract, along with initials on every page for every owner and Chuck, the phone
           numbers, the corporation and multiple-owner boxes, and the Schedule A service boxes. Check it in DocuSign, then send.
