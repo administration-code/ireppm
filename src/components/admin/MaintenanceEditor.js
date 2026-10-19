@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { getBrowserClient } from "@/lib/supabase";
 import { refreshStaffCounts } from "@/lib/admin-nav";
 import { checkDollars, dollarsOrNull, orNull, propertyTitle, sortTenants, text } from "@/lib/admin-properties";
@@ -137,7 +138,10 @@ export default function MaintenanceEditor({ id }) {
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState({ kind: "", text: "" });
+  const router = useRouter();
   const [editingReporter, setEditingReporter] = useState(false);
+  const [confirming, setConfirming] = useState("");
+  const [reason, setReason] = useState("");
   const [newFiles, setNewFiles] = useState([]);
   const [photoMsg, setPhotoMsg] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -250,6 +254,41 @@ export default function MaintenanceEditor({ id }) {
     setPhotoMsg("Photos added.");
     await reload();
   }
+
+  async function withdraw() {
+    setSaving(true);
+    const stamp = new Date().toLocaleDateString("en-CA");
+    const note = `Withdrawn ${stamp}${reason.trim() ? `: ${reason.trim()}` : ""}`;
+    const { data, error: saveError } = await getBrowserClient()
+      .from("maintenance_requests")
+      .update({ status: "cancelled", staff_notes: [note, request.staff_notes].filter(Boolean).join("\n\n") })
+      .eq("id", request.id)
+      .select("*")
+      .single();
+    setSaving(false);
+    if (saveError) return setMsg({ kind: "err", text: "We couldn't withdraw this request. Try again." });
+    applySaved(data);
+    setConfirming("");
+    setReason("");
+    refreshStaffCounts();
+    setMsg({ kind: "ok", text: "Request withdrawn. It's kept as Cancelled." });
+  }
+
+  async function remove() {
+    setSaving(true);
+    const sb = getBrowserClient();
+    const { error: delError } = await sb.from("maintenance_requests").delete().eq("id", request.id);
+    if (delError) {
+      setSaving(false);
+      return setMsg({ kind: "err", text: "We couldn't delete this request. Try again." });
+    }
+    const paths = (request.photos || []).map((p) => p.path).filter(Boolean);
+    if (paths.length) await sb.storage.from(PHOTO_BUCKET).remove(paths);
+    refreshStaffCounts();
+    router.replace("/admin/maintenance");
+  }
+
+  const charged = request.status === "completed" && Number(request.actual_cost || 0) > 0;
 
   const property = request.unit?.property;
   const unitKind = specialKind(request.unit);
@@ -560,6 +599,68 @@ export default function MaintenanceEditor({ id }) {
           ) : null}
         </div>
       </form>
+
+      <section className="boxed stack" aria-labelledby="sec-m-remove">
+        <h2 id="sec-m-remove" className="sec-title">
+          Withdraw or Delete
+        </h2>
+        <p className="small">
+          Withdraw keeps the request as Cancelled with a note (use it when the tenant or landlord calls it off). Delete
+          removes it and its photos for good (use it for duplicates or mistakes).
+        </p>
+        {confirming === "withdraw" ? (
+          <div className="stack confirm-box" style={{ gap: 8 }}>
+            <div className="field">
+              <label htmlFor="m-withdraw-reason">Reason (optional, saved to staff notes)</label>
+              <input id="m-withdraw-reason" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Tenant fixed it themselves" />
+            </div>
+            <div className="req-actions">
+              <button type="button" className="btn primary sm" onClick={withdraw} disabled={saving}>
+                Withdraw request
+              </button>
+              <button type="button" className="btn ghost sm" onClick={() => setConfirming("")} disabled={saving}>
+                Keep it
+              </button>
+            </div>
+          </div>
+        ) : confirming === "delete" ? (
+          <div className="warnbox stack" style={{ gap: 8 }} role="alert">
+            <p>
+              <b>Delete “{request.title}” for good?</b> This can&apos;t be undone.
+            </p>
+            <div className="req-actions">
+              <button type="button" className="btn primary sm" onClick={remove} disabled={saving}>
+                {saving ? "Deleting…" : "Yes, delete it"}
+              </button>
+              <button type="button" className="btn ghost sm" onClick={() => setConfirming("")} disabled={saving}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="req-actions">
+            {request.status !== "cancelled" ? (
+              <button type="button" className="btn ghost sm" onClick={() => setConfirming("withdraw")}>
+                Withdraw request
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="btn ghost sm"
+              onClick={() => setConfirming("delete")}
+              disabled={charged}
+              aria-describedby={charged ? "m-del-hint" : undefined}
+            >
+              Delete request
+            </button>
+            {charged ? (
+              <span className="small" id="m-del-hint">
+                Completed with a cost, so it may be on a statement. Withdraw it instead, or clear the actual cost first.
+              </span>
+            ) : null}
+          </div>
+        )}
+      </section>
     </div>
   );
 }
