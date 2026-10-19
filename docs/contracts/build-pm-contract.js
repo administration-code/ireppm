@@ -171,7 +171,7 @@ body.push(
   ])
 );
 
-body.push(SECTION_LABEL("LANDLORD"));
+body.push(SECTION_LABEL("LANDLORD", 9, 5));
 body.push(
   table([117, 144, 73, 134], [
     row([label("Landlord is", 117), cell("[[pmlis]]", 351, { span: 3 })], 24),
@@ -185,7 +185,7 @@ body.push(
   ])
 );
 
-body.push(P("Owner(s) of the Property — list every registered owner:", { spacing: { before: pt(12), after: pt(5) } }));
+body.push(P("Owner(s) of the Property — list every registered owner:", { spacing: { before: pt(8), after: pt(4) } }));
 const ownerRows = [
   row([head("Owner / registered name", 183), head("Ownership %", 66), head("Phone", 99), head("Email", 120)]),
 ];
@@ -194,13 +194,12 @@ for (let i = 0; i < 6; i++)
 body.push(table([183, 66, 99, 120], ownerRows));
 
 body.push(
-  P("**Authorized Signatory** — the one individual with authority to sign this Agreement and to give instructions and approvals on behalf of all owners (section 1.6):", { spacing: { before: pt(12), after: pt(4) } })
+  P("**Authorized Signatory** — the one individual with authority to sign this Agreement and to give instructions and approvals on behalf of all owners (section 1.6):", { spacing: { before: pt(8), after: pt(4) } })
 );
 body.push(
   table([117, 144, 73, 134], [
-    row([label("Name", 117), cell("[[pmsn]]", 351, { span: 3 })], 24),
-    row([label("Capacity", 117), cell("[[pmsc]]", 351, { span: 3 })], 24),
-    row([label("Phone", 117), cell("[[pmst]]{{ Phone Number }}", 144), label("Email", 73), cell("[[pmse]]", 134)], 24),
+    row([label("Name", 117), cell("[[pmsn]]", 144), label("Phone", 73), cell("[[pmst]]{{ Phone Number }}", 134)], 24),
+    row([label("Capacity", 117), cell("[[pmsc]]", 144), label("Email", 73), cell("[[pmse]]", 134)], 24),
   ])
 );
 body.push(pageBreak());
