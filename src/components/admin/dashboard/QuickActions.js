@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 const ACTIONS = [
-  { href: "/admin/maintenance/new", label: "Log a maintenance request" },
+  { href: "/admin/maintenance/new", label: "Log maintenance" },
   { href: "/admin/rent/new", label: "Record a payment" },
   { href: "/admin/signatures/new", label: "Send for signature" },
   { href: "/admin/inspections/new", label: "Start an inspection" },
