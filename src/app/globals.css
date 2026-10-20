@@ -1155,3 +1155,10 @@ a[href^="tel:"] { white-space: nowrap; }
 @media (max-width: 480px) {
   .dash-quick ul { grid-template-columns: 1fr; }
 }
+
+/* Tenancy picker: clickable search results */
+.picker-results { margin-top: 6px !important; max-height: 280px; overflow-y: auto; border: 1px solid var(--line); border-radius: var(--radius); padding: 4px !important; background: var(--surface); }
+.picker-result { width: 100%; text-align: left; padding: 8px 10px; background: none; border: 0; border-radius: var(--radius); color: var(--fg); font: inherit; cursor: pointer; }
+.picker-result:hover, .picker-result:focus-visible { background: var(--surface-2); }
+.picker-result.is-selected { box-shadow: inset 2px 0 0 var(--red); font-weight: 700; }
+.picker-results .small { padding: 6px 10px; }

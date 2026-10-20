@@ -33,7 +33,7 @@ export const MANUAL_CHARGE_KINDS = ["opening_balance", "chargeback", "fee", "oth
 export const CURRENT_STATUSES = ["upcoming", "active", "notice"];
 
 export const RENT_TENANCY_SELECT =
-  "id, status, rent, start_date, move_out_date, payprop_reference, unit:units(id, label, property:properties(id, address, city)), tenancy_tenants(full_name, email, is_primary, created_at)";
+  "id, status, rent, start_date, move_out_date, payprop_reference, unit:units(id, label, property:properties(id, address, city)), tenancy_tenants(full_name, email, phone, is_primary, created_at)";
 
 export function todayISO() {
   return new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" });
