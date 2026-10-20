@@ -1135,3 +1135,9 @@ a[href^="tel:"] { white-space: nowrap; }
 .reporter-picks { display: flex; flex-wrap: wrap; gap: 6px; }
 .reporter-pick { display: grid; gap: 2px; text-align: left; justify-items: start; max-width: 100%; }
 .reporter-pick .small { overflow-wrap: anywhere; }
+
+/* Staff nav: spread the sections evenly across the full width. */
+.staff-nav-row { gap: 0; }
+.staff-nav-row > .staff-nav-group { flex: 1 1 0; min-width: 0; }
+.staff-nav-row .staff-nav-top { width: 100%; justify-content: center; padding-inline: 8px; }
+.staff-nav-row > .staff-nav-group:nth-last-child(-n+2) .staff-nav-panel { left: auto; right: 0; }
