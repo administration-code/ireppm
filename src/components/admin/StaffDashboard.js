@@ -4,6 +4,7 @@ import { useLiveRefresh } from "@/lib/useLiveRefresh";
 
 import { useCallback, useEffect, useState } from "react";
 import NeedsAttention from "@/components/admin/dashboard/NeedsAttention";
+import QuickActions from "@/components/admin/dashboard/QuickActions";
 import PayoutReminders from "@/components/admin/PayoutReminders";
 import KeyNumbers from "@/components/admin/dashboard/KeyNumbers";
 import RentTrendChart from "@/components/admin/dashboard/RentTrendChart";
@@ -50,6 +51,8 @@ export default function StaffDashboard() {
 
   return (
     <div className="stack dash" style={{ gap: 24 }}>
+      <div className="dash-top">
+      <div className="dash-top-main stack" style={{ gap: 24 }}>
       <div className="staff-top">
         <div style={{ display: "grid", gap: 6 }}>
           <span className="eyebrow">Staff</span>
@@ -68,6 +71,10 @@ export default function StaffDashboard() {
         </div>
 
       </div>
+      {d && !state.loading ? <NeedsAttention data={d} /> : null}
+      </div>
+      <QuickActions />
+      </div>
 
       {state.error ? <div className="warnbox">{state.error}</div> : null}
 
@@ -75,7 +82,6 @@ export default function StaffDashboard() {
         <p className="small">Loading the dashboard…</p>
       ) : d ? (
         <>
-          <NeedsAttention data={d} />
           <PayoutReminders compact />
           <KeyNumbers data={d} />
           <div className="dash-grid">
