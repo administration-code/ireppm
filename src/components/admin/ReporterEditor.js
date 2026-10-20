@@ -101,7 +101,7 @@ export default function ReporterEditor({ request, onSaved, onCancel }) {
     <div className="stack confirm-box" style={{ gap: 12 }}>
       <h3 className="sub-title">Change Reporter or Unit</h3>
       <ReporterPicker tenants={tenants} propertyId={f.property_id} onPick={pick} idPrefix="re-rp" />
-      <div className="row2">
+      <div className="stack" style={{ gap: 12 }}>
         <div className="field">
           <label htmlFor="re-prop">Property</label>
           <select id="re-prop" value={f.property_id} onChange={(e) => setF((s) => ({ ...s, property_id: e.target.value, unit_id: "" }))}>
@@ -136,11 +136,11 @@ export default function ReporterEditor({ request, onSaved, onCancel }) {
           </select>
         </div>
       </div>
-      <div className="row3">
-        <div className="field">
-          <label htmlFor="re-name">Reporter name</label>
-          <input id="re-name" value={f.reporter_name} onChange={set("reporter_name")} autoComplete="off" />
-        </div>
+      <div className="field">
+        <label htmlFor="re-name">Reporter name</label>
+        <input id="re-name" value={f.reporter_name} onChange={set("reporter_name")} autoComplete="off" />
+      </div>
+      <div className="stack" style={{ gap: 12 }}>
         <div className="field">
           <label htmlFor="re-phone">Phone</label>
           <input id="re-phone" type="tel" value={f.reporter_phone} onChange={set("reporter_phone")} autoComplete="off" />

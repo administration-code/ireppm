@@ -259,7 +259,7 @@ table.cmp thead th { font-family: var(--display); font-size: 1.2rem; }
 .list { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
 .list .it { padding: 16px 20px; display: flex; gap: 16px; justify-content: space-between; align-items: center; flex-wrap: wrap; }
 .list .it + .it { border-top: 1px solid var(--line); }
-.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.visually-hidden { position: absolute !important; width: 1px !important; height: 1px !important; min-width: 0 !important; padding: 0 !important; margin: -1px !important; border: 0 !important; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* staff: listings manager */
 .staff-link { color: var(--band-muted); font-size: .75rem; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; text-decoration: none; padding: 6px 10px; border: 1px solid var(--band-line); border-radius: 999px; }
