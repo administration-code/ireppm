@@ -1163,3 +1163,9 @@ a[href^="tel:"] { white-space: nowrap; }
 .picker-result.is-selected { box-shadow: inset 2px 0 0 var(--red); font-weight: 700; }
 .picker-results .small { padding: 6px 10px; }
 .picker { align-items: start; }
+
+/* Section tabs (Rent, Accounting): spread evenly across the full width, like the staff menu. */
+@media (min-width: 760px) {
+  .admin-tabs { gap: 0; }
+  .admin-tabs a { flex: 1 1 0; min-width: 0; justify-content: center; padding-inline: 8px; }
+}
