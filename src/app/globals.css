@@ -1162,3 +1162,4 @@ a[href^="tel:"] { white-space: nowrap; }
 .picker-result:hover, .picker-result:focus-visible { background: var(--surface-2); }
 .picker-result.is-selected { box-shadow: inset 2px 0 0 var(--red); font-weight: 700; }
 .picker-results .small { padding: 6px 10px; }
+.picker { align-items: start; }
