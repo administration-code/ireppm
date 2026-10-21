@@ -10,10 +10,13 @@ import {
   PROPERTY_TYPES,
   SAVED_MESSAGE,
   STATUS_LABEL,
+  VIDEO_BUCKET,
   photoPathFromUrl,
   slugify,
+  videoPathFromUrl,
 } from "@/lib/admin-listings";
 import PhotoManager from "./PhotoManager";
+import VideoManager from "./VideoManager";
 import FeaturesEditor from "./FeaturesEditor";
 import AddressInput from "@/components/AddressInput";
 import {
@@ -50,6 +53,7 @@ function toForm(l) {
     description: text(l?.description),
     features: l?.features || [],
     photos: l?.photos || [],
+    videos: Array.isArray(l?.videos) ? l.videos : [],
   };
 }
 
@@ -96,6 +100,7 @@ function toRow(f, status) {
     description: orNull(f.description),
     features: f.features,
     photos: f.photos,
+    videos: f.videos,
     status,
   };
 }
@@ -110,6 +115,8 @@ export default function ListingForm({ listing, saved, prefill, unitId }) {
   const [msg, setMsg] = useState(saved && SAVED_MESSAGE[saved] ? SAVED_MESSAGE[saved] : "");
   const [error, setError] = useState("");
   const savedPhotos = useRef(new Set(listing?.photos || []));
+  const savedVideos = useRef(new Set((listing?.videos || []).map((v) => v.url)));
+  const sessionVideos = useRef(new Set());
   const sessionUploads = useRef(new Set());
   const [folder] = useState(() => listing?.id || `new-${crypto.randomUUID()}`);
 
@@ -132,12 +139,21 @@ export default function ListingForm({ listing, saved, prefill, unitId }) {
     sessionUploads.current = new Set();
   }
 
+  async function removeUnusedVideos(finalVideos) {
+    const keep = new Set(finalVideos.map((v) => v.url));
+    const unused = [...savedVideos.current, ...sessionVideos.current].filter((url) => !keep.has(url));
+    const paths = unused.map(videoPathFromUrl).filter(Boolean);
+    if (paths.length) await getBrowserClient().storage.from(VIDEO_BUCKET).remove(paths);
+    savedVideos.current = keep;
+    sessionVideos.current = new Set();
+  }
+
   async function save(nextStatus) {
     setError("");
     setMsg("");
     const problem = validate(form);
     if (problem) return setError(problem);
-    if (uploading) return setError("Wait for the photos to finish uploading, then save.");
+    if (uploading) return setError("Wait for the photos or video to finish uploading, then save.");
 
     const sb = getBrowserClient();
     const row = toRow(form, nextStatus);
@@ -161,6 +177,7 @@ export default function ListingForm({ listing, saved, prefill, unitId }) {
     }
 
     await removeUnusedPhotos(row.photos);
+    await removeUnusedVideos(row.videos);
 
     if (isNew) {
       if (unitId) await sb.from("units").update({ listing_id: result.data.id }).eq("id", unitId);
@@ -377,6 +394,19 @@ export default function ListingForm({ listing, saved, prefill, unitId }) {
           photos={form.photos}
           onChange={(next) => setField("photos", next)}
           onUploaded={(url) => sessionUploads.current.add(url)}
+          onBusyChange={setUploading}
+        />
+      </section>
+
+      <section className="boxed stack" aria-labelledby="sec-videos">
+        <h2 id="sec-videos" className="sec-title">
+          Video Walkthroughs
+        </h2>
+        <VideoManager
+          folder={folder}
+          videos={form.videos}
+          onChange={(next) => setField("videos", next)}
+          onUploaded={(url) => sessionVideos.current.add(url)}
           onBusyChange={setUploading}
         />
       </section>

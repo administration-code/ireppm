@@ -2,7 +2,7 @@ import { getServerClient, supabaseConfigured } from "./supabase";
 import { SAMPLE_LISTINGS } from "./sample-listings";
 
 const FIELDS =
-  "id, slug, address, unit, neighbourhood, city, property_type, beds, baths, sqft, rent, available_on, utilities, parking, laundry, description, features, photos";
+  "id, slug, address, unit, neighbourhood, city, property_type, beds, baths, sqft, rent, available_on, utilities, parking, laundry, description, features, photos, videos";
 
 // Returns { listings, sample } — sample is true when the database isn't connected yet.
 export async function getListings() {

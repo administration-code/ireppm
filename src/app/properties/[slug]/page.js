@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import ListingActions from "@/components/ListingActions";
 import ListingGallery from "@/components/ListingGallery";
+import ListingVideos from "@/components/ListingVideos";
 import { getListing } from "@/lib/listings";
 import { availableText, listingTitle, money } from "@/lib/format";
 
@@ -64,6 +65,7 @@ export default async function ListingPage({ params }) {
               </div>
             </dl>
             {l.description ? <p className="lead" style={{ color: "var(--fg)" }}>{l.description}</p> : null}
+            <ListingVideos videos={l.videos} />
             {l.features && l.features.length ? (
               <div style={{ display: "grid", gap: 10 }}>
                 <h3>Highlights</h3>

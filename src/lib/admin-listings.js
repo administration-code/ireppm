@@ -3,6 +3,18 @@ export const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 export const PHOTO_ACCEPT = PHOTO_TYPES.join(",");
 export const MAX_PHOTO_MB = 10;
 
+export const VIDEO_BUCKET = "listing-videos";
+export const VIDEO_TYPES = ["video/mp4", "video/quicktime", "video/webm"];
+export const VIDEO_ACCEPT = VIDEO_TYPES.join(",");
+export const MAX_VIDEO_MB = 50;
+
+export function videoPathFromUrl(url) {
+  const marker = `/storage/v1/object/public/${VIDEO_BUCKET}/`;
+  const i = String(url || "").indexOf(marker);
+  if (i === -1) return null;
+  return decodeURIComponent(url.slice(i + marker.length).split("?")[0]);
+}
+
 export const PROPERTY_TYPES = ["Apartment", "House", "Townhouse", "Room"];
 
 export const STATUS_LABEL = {
@@ -21,7 +33,7 @@ export const SAVED_MESSAGE = {
 };
 
 export const LISTING_FIELDS =
-  "id, slug, address, unit, neighbourhood, city, property_type, beds, baths, sqft, rent, available_on, utilities, parking, laundry, description, features, photos, status, utilities_included, parking_option, parking_spots, parking_instructions, laundry_option";
+  "id, slug, address, unit, neighbourhood, city, property_type, beds, baths, sqft, rent, available_on, utilities, parking, laundry, description, features, photos, videos, status, utilities_included, parking_option, parking_spots, parking_instructions, laundry_option";
 
 export function slugify(text) {
   return String(text || "")
