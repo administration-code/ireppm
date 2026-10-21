@@ -123,7 +123,11 @@ export default function AgentPortal() {
                 {j.scheduled_for ? ` · scheduled ${longDay(String(j.scheduled_for).slice(0, 10))}` : ""}
                 {j.urgency === "emergency" ? <b className="err"> · emergency</b> : null}
                 <span className="sub-line small">
-                  {j.permission_to_enter ? "May enter if no one is home." : "Arrange a time with the tenant first."}
+                  {/Whole property/.test(j.place || "")
+                    ? "Outside or shared areas, no need to enter a unit."
+                    : j.permission_to_enter
+                      ? "May enter if no one is home."
+                      : "Arrange a time with the tenant first."}
                   {j.access_notes ? ` ${j.access_notes}` : ""}
                 </span>
               </li>

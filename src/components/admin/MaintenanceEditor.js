@@ -18,6 +18,7 @@ import {
   fromLocalInput,
   isVideo,
   needsEntryNotice,
+  entryNotRequired,
   prettyDateTime,
   toLocalInput,
 } from "@/lib/maintenance";
@@ -141,6 +142,8 @@ export default function MaintenanceEditor({ id }) {
   const router = useRouter();
   const [editingReporter, setEditingReporter] = useState(false);
   const [confirming, setConfirming] = useState("");
+  const [editingReport, setEditingReport] = useState(false);
+  const [report, setReport] = useState(null);
   const [reason, setReason] = useState("");
   const [newFiles, setNewFiles] = useState([]);
   const [photoMsg, setPhotoMsg] = useState("");
@@ -255,6 +258,39 @@ export default function MaintenanceEditor({ id }) {
     await reload();
   }
 
+  function startEditReport() {
+    setReport({
+      title: request.title || "",
+      description: request.description || "",
+      source: request.source,
+      permission_to_enter: Boolean(request.permission_to_enter),
+      access_notes: request.access_notes || "",
+    });
+    setEditingReport(true);
+  }
+
+  async function saveReport() {
+    if (!report.title.trim()) return setMsg({ kind: "err", text: "Add a short title." });
+    setSaving(true);
+    const { data, error: saveError } = await getBrowserClient()
+      .from("maintenance_requests")
+      .update({
+        title: report.title.trim(),
+        description: report.description.trim() || null,
+        source: report.source,
+        permission_to_enter: report.permission_to_enter,
+        access_notes: report.access_notes.trim() || null,
+      })
+      .eq("id", request.id)
+      .select("*")
+      .single();
+    setSaving(false);
+    if (saveError) return setMsg({ kind: "err", text: "We couldn't save those details. Try again." });
+    applySaved(data);
+    setEditingReport(false);
+    setMsg({ kind: "ok", text: "Details saved." });
+  }
+
   async function withdraw() {
     setSaving(true);
     const stamp = new Date().toLocaleDateString("en-CA");
@@ -338,32 +374,95 @@ export default function MaintenanceEditor({ id }) {
 
       <div className="maint-grid">
         <section className="boxed stack" aria-labelledby="sec-m-report">
-          <h2 id="sec-m-report" className="sec-title">
-            What Was Reported
-          </h2>
-          <dl className="maint-facts">
-            <div>
-              <dt>Reported</dt>
-              <dd>
-                {prettyDateTime(request.created_at)} · {SOURCES[request.source] || request.source}
-              </dd>
-            </div>
-            <div>
-              <dt>Category</dt>
-              <dd>{CATEGORIES[request.category] || request.category}</dd>
-            </div>
-            <div>
-              <dt>Permission to enter</dt>
-              <dd>{request.permission_to_enter ? "Yes, may enter if not home" : "No, arrange a time first"}</dd>
-            </div>
-            {request.access_notes ? (
-              <div>
-                <dt>Access notes</dt>
-                <dd className="pre">{request.access_notes}</dd>
-              </div>
+          <div className="admin-head">
+            <h2 id="sec-m-report" className="sec-title">
+              What Was Reported
+            </h2>
+            {!editingReport ? (
+              <button type="button" className="btn ghost sm" onClick={startEditReport}>
+                Edit details
+              </button>
             ) : null}
-          </dl>
-          {request.description ? <p className="pre">{request.description}</p> : <p className="small">No description.</p>}
+          </div>
+          {editingReport ? (
+            <div className="stack confirm-box" style={{ gap: 12 }}>
+              <div className="field">
+                <label htmlFor="mr-title">Short title</label>
+                <input id="mr-title" value={report.title} maxLength={120} onChange={(e) => setReport((r) => ({ ...r, title: e.target.value }))} />
+              </div>
+              <div className="field">
+                <label htmlFor="mr-desc">Description</label>
+                <textarea id="mr-desc" value={report.description} onChange={(e) => setReport((r) => ({ ...r, description: e.target.value }))} />
+              </div>
+              <div className="field">
+                <label htmlFor="mr-source">How it came in</label>
+                <select id="mr-source" value={report.source} onChange={(e) => setReport((r) => ({ ...r, source: e.target.value }))}>
+                  {Object.entries(SOURCES).map(([k, l]) => (
+                    <option key={k} value={k}>
+                      {l}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {entryNotRequired(request) ? (
+                <p className="small">Whole-property work: no entry into a unit, so no entry notice is needed.</p>
+              ) : (
+                <label className="check-line">
+                  <input
+                    type="checkbox"
+                    checked={report.permission_to_enter}
+                    onChange={(e) => setReport((r) => ({ ...r, permission_to_enter: e.target.checked }))}
+                  />
+                  The tenant says we may enter if they&apos;re not home
+                </label>
+              )}
+              <div className="field">
+                <label htmlFor="mr-access">Access notes</label>
+                <textarea id="mr-access" rows={2} value={report.access_notes} onChange={(e) => setReport((r) => ({ ...r, access_notes: e.target.value }))} />
+              </div>
+              <span className="small">Category and urgency are under Staff Handling below.</span>
+              <div className="req-actions">
+                <button type="button" className="btn primary sm" onClick={saveReport} disabled={saving}>
+                  {saving ? "Saving…" : "Save details"}
+                </button>
+                <button type="button" className="btn ghost sm" onClick={() => setEditingReport(false)} disabled={saving}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <dl className="maint-facts">
+                <div>
+                  <dt>Reported</dt>
+                  <dd>
+                    {prettyDateTime(request.created_at)} · {SOURCES[request.source] || request.source}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Category</dt>
+                  <dd>{CATEGORIES[request.category] || request.category}</dd>
+                </div>
+                <div>
+                  <dt>Permission to enter</dt>
+                  <dd>
+                    {entryNotRequired(request)
+                      ? "Not needed: outside or shared areas"
+                      : request.permission_to_enter
+                        ? "Yes, may enter if not home"
+                        : "No, arrange a time first"}
+                  </dd>
+                </div>
+                {request.access_notes ? (
+                  <div>
+                    <dt>Access notes</dt>
+                    <dd className="pre">{request.access_notes}</dd>
+                  </div>
+                ) : null}
+              </dl>
+              {request.description ? <p className="pre">{request.description}</p> : <p className="small">No description.</p>}
+            </>
+          )}
           <h3 className="sub-title">Photos and Videos</h3>
           <Photos photos={request.photos} />
           <PhotoPicker files={newFiles} setFiles={setNewFiles} onError={setPhotoMsg} id="m-new-files" label="Add more photos or videos" />

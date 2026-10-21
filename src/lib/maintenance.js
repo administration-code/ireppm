@@ -126,8 +126,11 @@ export function fromLocalInput(value) {
 
 export const isVideo = (name) => /\.(mp4|mov|m4v|webm|3gp|avi|mkv)$/i.test(name || "");
 
+// Whole-property work (outside, shared areas) doesn't enter a tenant's unit, so no notice is needed.
+export const entryNotRequired = (r) => r?.unit?.label === "Whole property";
+
 export function needsEntryNotice(r) {
-  return Boolean(r.scheduled_for) && r.urgency !== "emergency" && !r.permission_to_enter;
+  return Boolean(r.scheduled_for) && r.urgency !== "emergency" && !r.permission_to_enter && !entryNotRequired(r);
 }
 
 export function unitPlace(unit) {
