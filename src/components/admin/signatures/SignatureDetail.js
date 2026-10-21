@@ -9,6 +9,7 @@ import { getBrowserClient } from "@/lib/supabase";
 import { refreshStaffCounts } from "@/lib/admin-nav";
 import SigStatus from "@/components/admin/signatures/SigStatus";
 import ServePanel from "@/components/admin/signatures/ServePanel";
+import MoveLease from "@/components/admin/signatures/MoveLease";
 import { SIG_KIND, SIG_STATUS, docusignApi, openInTab, shortDate } from "@/lib/signatures";
 
 const TENANCY_SELECT =
@@ -38,6 +39,7 @@ export default function SignatureDetail({ id }) {
   const [message, setMessage] = useState({ text: "", tone: "" });
   const [voiding, setVoiding] = useState(false);
   const [reason, setReason] = useState("");
+  const [moving, setMoving] = useState(false);
 
   const reload = useCallback(() => load(id).then((d) => setState({ loading: false, ...d })), [id]);
   useEffect(() => {
@@ -123,6 +125,11 @@ export default function SignatureDetail({ id }) {
               Open in DocuSign
             </button>
           ) : null}
+          {row.kind === "lease" && row.status === "draft" && row.envelope_id && !moving ? (
+            <button type="button" className="btn ghost sm" disabled={Boolean(busy)} onClick={() => setMoving(true)}>
+              Change property or unit
+            </button>
+          ) : null}
           {row.kind === "pm_contract" && row.status === "draft" && row.envelope_id ? (
             <button type="button" className="btn ghost sm" disabled={Boolean(busy)} onClick={() => act("pm-fields", {}, "Added (or refreshed) initials, phone numbers, the corporation and multiple-owner boxes, and the Schedule A service boxes. Open it in DocuSign to check, then send.")}>
               {busy === "pm-fields" ? "Refreshing…" : "Refresh Contract Fields"}
@@ -193,6 +200,20 @@ export default function SignatureDetail({ id }) {
               </button>
             </div>
           </form>
+        ) : null}
+        {moving ? (
+          <MoveLease
+            row={row}
+            busy={busy}
+            onCancel={() => setMoving(false)}
+            onMove={async (f) => {
+              const res = await act("move", f);
+              if (res?.ok) {
+                setMoving(false);
+                setMessage({ text: `Moved to ${res.place}. The address, landlord and landlord signer are updated in DocuSign. Open it to check, then send.`, tone: "ok" });
+              }
+            }}
+          />
         ) : null}
         <ul className="row" style={{ listStyle: "none", padding: 0, margin: 0, flexWrap: "wrap", gap: 8 }} aria-label="Related records">
           {unitId ? (

@@ -1154,3 +1154,27 @@ export function buildN11(prep, request, ids, owner) {
     },
   };
 }
+
+// The lease fields that depend on the property and landlord, for moving a draft lease to another unit.
+export function leaseMoveValues({ unitLabel, address, city, postalCode, landlordName, landlord2Name = "", signerName }) {
+  const street = splitStreet(address);
+  const unit = unitNumber(unitLabel);
+  const unitAddress = [[unit, [street.number, street.name].filter(Boolean).join(" ")].filter(Boolean).join("-"), str(city), "ON", str(postalCode)]
+    .filter(Boolean)
+    .join(", ");
+  const cs = splitName(signerName);
+  return {
+    "Landlord Legal Name": str(landlordName),
+    "Landlord 2 Legal Name": str(landlord2Name),
+    Unit: unit,
+    "Street Number": street.number,
+    "Street Name": street.name,
+    City: str(city),
+    "Postal Code": str(postalCode),
+    "Landlord Signer Name": str(signerName),
+    "Consent Landlord Name": `${str(landlordName) || "The landlord"} c/o ${REP.company}`,
+    "Consent Rental Unit Address": unitAddress,
+    "Consent Landlord First Name": cs.first,
+    "Consent Landlord Last Name": cs.last,
+  };
+}

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { addTabsByRole, consoleViewUrl, ds, getRecipients, pageImage, resendEnvelope, senderViewUrl, voidEnvelope } from "@/lib/docusign";
-import { PM_TAB_LABELS, looksCorporate, pmContractTabs } from "@/lib/docusign-templates";
+import { PM_TAB_LABELS, leaseMoveValues, looksCorporate, pmContractTabs } from "@/lib/docusign-templates";
 import { SIGNED_BUCKET, staffUser, syncRequest } from "@/lib/signatures-server";
 import { fillLeaseSchedule, pmLeaseRows } from "@/lib/pm-lease-schedule";
 
@@ -85,6 +85,74 @@ export async function POST(request, { params }) {
         );
         if (row.terms?.contract?.fill_leases !== false) await fillLeaseSchedule(row.envelope_id, await pmLeaseRows(sb, row.property_id));
         return NextResponse.json({ ok: true, added });
+      }
+      case "move": {
+        // Point a draft lease at another unit/property: property and landlord fields, the landlord signer,
+        // and our record. Tenants, rent and dates stay as they are.
+        if (row.kind !== "lease" || row.status !== "draft" || !row.envelope_id)
+          return NextResponse.json({ error: "Only a draft lease can be moved to another unit." }, { status: 400 });
+        const str = (v) => (v === null || v === undefined ? "" : String(v).trim());
+        const { data: unit } = await sb
+          .from("units")
+          .select("id, label, property:properties(id, address, city, postal_code, owner_id, owner_name)")
+          .eq("id", body.unit_id || "")
+          .maybeSingle();
+        if (!unit?.property) return NextResponse.json({ error: "Choose the unit." }, { status: 400 });
+        const p = unit.property;
+        const { data: owner } = p.owner_id ? await sb.from("owners").select("id, name, email").eq("id", p.owner_id).maybeSingle() : { data: null };
+        const landlordName = str(body.landlord_name) || owner?.name || p.owner_name || "";
+        const signerName = str(body.signer_name) || owner?.name || "";
+        const signerEmail = (str(body.signer_email) || owner?.email || "").toLowerCase();
+        if (!landlordName) return NextResponse.json({ error: "Add the landlord's legal name." }, { status: 400 });
+        if (!signerName || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signerEmail))
+          return NextResponse.json({ error: "The landlord signs the lease, so add their name and email." }, { status: 400 });
+
+        const values = leaseMoveValues({
+          unitLabel: unit.label,
+          address: p.address,
+          city: p.city,
+          postalCode: p.postal_code,
+          landlordName,
+          landlord2Name: body.landlord2_name,
+          signerName,
+        });
+        const env = await getRecipients(row.envelope_id, true);
+        let updated = 0;
+        for (const r of env.signers || []) {
+          const put = {};
+          for (const [kind, list] of Object.entries(r.tabs || {})) {
+            if (!Array.isArray(list)) continue;
+            const hits = list.filter((t) => t?.tabId && Object.hasOwn(values, t.tabLabel)).map((t) => ({ tabId: t.tabId, value: values[t.tabLabel] }));
+            if (hits.length) put[kind] = hits;
+          }
+          if (Object.keys(put).length) {
+            await ds(`/envelopes/${row.envelope_id}/recipients/${r.recipientId}/tabs`, { method: "PUT", body: put });
+            updated += Object.values(put).flat().length;
+          }
+        }
+        const landlord = (env.signers || []).find((r) => r.roleName === "Landlord");
+        if (landlord) {
+          await ds(`/envelopes/${row.envelope_id}/recipients`, {
+            method: "PUT",
+            body: { signers: [{ recipientId: landlord.recipientId, name: signerName, email: signerEmail }] },
+          });
+        }
+        const place = [p.address, unit.label].filter(Boolean).join(", ");
+        const recipients = (Array.isArray(row.recipients) ? row.recipients : []).map((r) =>
+          r.role === "Landlord" ? { ...r, name: signerName, email: signerEmail } : r
+        );
+        await sb
+          .from("signature_requests")
+          .update({
+            unit_id: unit.id,
+            property_id: p.id,
+            owner_id: p.owner_id || null,
+            title: `Lease: ${place}`,
+            terms: { ...(row.terms || {}), unit_id: unit.id },
+            recipients,
+          })
+          .eq("id", id);
+        return NextResponse.json({ ok: true, updated, place });
       }
       case "page-image": {
         if (!row.envelope_id) return NextResponse.json({ error: "No envelope." }, { status: 400 });
