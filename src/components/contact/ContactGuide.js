@@ -54,7 +54,7 @@ export default function ContactGuide({ audience = "public", headingLevel = 2 }) 
 
       {tenants ? (
         <section className="cg-card stack" aria-labelledby={`cg-rent-${audience}`}>
-          <S id={`cg-rent-${audience}`} className="sub-title">
+          <S id={`cg-rent-${audience}`} className="sec-title">
             Paying Rent
           </S>
           <ul className="cg-list">
@@ -80,7 +80,7 @@ export default function ContactGuide({ audience = "public", headingLevel = 2 }) 
 
       {owners ? (
         <section className="cg-card stack" aria-labelledby={`cg-owner-${audience}`}>
-          <S id={`cg-owner-${audience}`} className="sub-title">
+          <S id={`cg-owner-${audience}`} className="sec-title">
             {audience === "owner" ? "Repair Approvals" : "For Landlords: Repair Approvals"}
           </S>
           <p>
@@ -92,7 +92,7 @@ export default function ContactGuide({ audience = "public", headingLevel = 2 }) 
       ) : null}
 
       <section className="cg-card stack" aria-labelledby={`cg-help-${audience}`}>
-        <S id={`cg-help-${audience}`} className="sub-title">
+        <S id={`cg-help-${audience}`} className="sec-title">
           Help Us Respond Faster
         </S>
         <p>
