@@ -7,6 +7,8 @@ import { MAX_PHOTO_MB, PHOTO_ACCEPT, PHOTO_BUCKET, PHOTO_TYPES } from "@/lib/adm
 export default function PhotoManager({ folder, photos, onChange, onUploaded, onBusyChange }) {
   const [progress, setProgress] = useState("");
   const [problems, setProblems] = useState([]);
+  const [dragFrom, setDragFrom] = useState(null);
+  const [dragOver, setDragOver] = useState(null);
 
   async function upload(fileList) {
     const files = Array.from(fileList || []);
@@ -45,6 +47,15 @@ export default function PhotoManager({ folder, photos, onChange, onUploaded, onB
 
   const makeCover = (i) => onChange((current) => [current[i], ...current.filter((_, j) => j !== i)]);
   const remove = (i) => onChange((current) => current.filter((_, j) => j !== i));
+  // Move the photo at `from` so it sits at position `to`.
+  const moveTo = (from, to) =>
+    onChange((current) => {
+      if (from === to || from < 0 || to < 0 || from >= current.length || to >= current.length) return current;
+      const next = [...current];
+      const [item] = next.splice(from, 1);
+      next.splice(to, 0, item);
+      return next;
+    });
 
   return (
     <div className="stack" style={{ gap: 14 }}>
@@ -65,7 +76,7 @@ export default function PhotoManager({ folder, photos, onChange, onUploaded, onB
           }}
         />
         <span className="small">
-          JPG, PNG or WebP, up to {MAX_PHOTO_MB} MB each. The first photo is the cover.
+          JPG, PNG or WebP, up to {MAX_PHOTO_MB} MB each. Drag photos to reorder them (or use the arrows). The first photo is the cover.
         </span>
       </div>
 
@@ -83,12 +94,50 @@ export default function PhotoManager({ folder, photos, onChange, onUploaded, onB
       {photos.length ? (
         <ul className="photo-grid" aria-label="Listing photos">
           {photos.map((url, i) => (
-            <li className="photo-tile" key={url}>
+            <li
+              className={`photo-tile${dragFrom === i ? " is-dragging" : ""}${dragOver === i && dragFrom !== i ? " is-over" : ""}`}
+              key={url}
+              draggable
+              onDragStart={(e) => {
+                setDragFrom(i);
+                e.dataTransfer.effectAllowed = "move";
+                e.dataTransfer.setData("text/plain", String(i));
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+                if (dragOver !== i) setDragOver(i);
+              }}
+              onDragLeave={() => setDragOver((o) => (o === i ? null : o))}
+              onDrop={(e) => {
+                e.preventDefault();
+                const from = dragFrom ?? Number(e.dataTransfer.getData("text/plain"));
+                moveTo(from, i);
+                setDragFrom(null);
+                setDragOver(null);
+              }}
+              onDragEnd={() => {
+                setDragFrom(null);
+                setDragOver(null);
+              }}
+            >
               <div className="img">
                 <img src={url} alt={`Photo ${i + 1}`} loading="lazy" />
                 {i === 0 ? <span className="tag">Cover</span> : null}
               </div>
               <div className="acts">
+                <button type="button" className="btn ghost sm" onClick={() => moveTo(i, i - 1)} disabled={i === 0} aria-label={`Move photo ${i + 1} earlier`}>
+                  ←
+                </button>
+                <button
+                  type="button"
+                  className="btn ghost sm"
+                  onClick={() => moveTo(i, i + 1)}
+                  disabled={i === photos.length - 1}
+                  aria-label={`Move photo ${i + 1} later`}
+                >
+                  →
+                </button>
                 {i > 0 ? (
                   <button type="button" className="btn ghost sm" onClick={() => makeCover(i)}>
                     Make cover

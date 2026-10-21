@@ -1211,3 +1211,7 @@ a[href^="tel:"] { white-space: nowrap; }
 @media (max-width: 759px) {
   .video-item { grid-template-columns: 1fr; }
 }
+.photo-tile[draggable="true"] { cursor: grab; }
+.photo-tile.is-dragging { opacity: .4; }
+.photo-tile.is-over { outline: 2px dashed var(--red); outline-offset: 2px; }
+.photo-tile img { pointer-events: none; }
