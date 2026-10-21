@@ -93,7 +93,7 @@ export default function VideoManager({ folder, videos, onChange, onUploaded, onB
           <label htmlFor="f-vtitle">Title (optional)</label>
           <div className="row" style={{ flexWrap: "nowrap" }}>
             <input id="f-vtitle" value={link.title} placeholder="Full walkthrough" onChange={(e) => setLink((l) => ({ ...l, title: e.target.value }))} />
-            <button type="button" className="btn ghost" onClick={addLink}>
+            <button type="button" className="btn ghost" style={{ whiteSpace: "nowrap" }} onClick={addLink}>
               Add link
             </button>
           </div>
