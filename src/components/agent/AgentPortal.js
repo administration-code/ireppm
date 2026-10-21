@@ -1,5 +1,6 @@
 "use client";
 
+import { ContactGuideCard } from "@/components/contact/ContactGuide";
 import { useLiveRefresh } from "@/lib/useLiveRefresh";
 
 import { useEffect, useState } from "react";
@@ -149,6 +150,7 @@ export default function AgentPortal() {
           <p className="small">IRep hasn&apos;t assigned you to any properties yet.</p>
         )}
       </section>
+      <ContactGuideCard audience="partner" />
     </div>
   );
 }

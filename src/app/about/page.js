@@ -1,3 +1,4 @@
+import Link from "next/link";
 import InquiryForm from "@/components/InquiryForm";
 import { SITE } from "@/lib/site";
 
@@ -53,6 +54,9 @@ export default function AboutPage() {
               </div>
             ))}
           </dl>
+          <p className="small">
+            <Link href="/contact">Response times, urgent maintenance and paying rent</Link>
+          </p>
           <InquiryForm />
         </div>
       </div>

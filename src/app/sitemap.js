@@ -5,7 +5,7 @@ import { GUIDES } from "@/lib/guides";
 export const revalidate = 3600;
 
 export default async function sitemap() {
-  const pages = ["", "/properties", "/landlords", "/pricing", "/guides", "/app", "/resources", "/about", "/privacy", ...GUIDES.map((g) => `/guides/${g.slug}`)].map((p) => ({
+  const pages = ["", "/properties", "/landlords", "/pricing", "/guides", "/app", "/resources", "/about", "/contact", "/privacy", ...GUIDES.map((g) => `/guides/${g.slug}`)].map((p) => ({
     url: `${SITE.url}${p}`,
     changeFrequency: p === "/properties" ? "daily" : "monthly",
   }));

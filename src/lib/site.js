@@ -9,7 +9,11 @@ export const SITE = {
   emergency: { name: "Chuck", phone: "519-999-9742" },
   address: "6-2557 Dougall Ave, Suite 223, Windsor, ON N8X 1T5",
   facebook: "https://www.facebook.com/IRepPM",
-  hours: null, // e.g. "Mon–Fri, 9 am – 5 pm"
+  hours: "Monday to Friday, 9 a.m. to 5 p.m. (closed statutory holidays)",
+  // Receives rent e-Transfers only (auto-deposit). Not monitored.
+  paymentEmail: "payment@ireppm.ca",
+  // Repairs over this amount need the landlord's OK; we ask for an answer within 48 hours.
+  approvalThreshold: 250,
   primaryCity: "Windsor",
   towns: [
     "Windsor",

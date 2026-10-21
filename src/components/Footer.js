@@ -11,6 +11,7 @@ export default function Footer() {
           Realty family.
           <div style={{ marginTop: 10 }}>{SITE.email}</div>
           {SITE.phone ? <div>{SITE.phone}</div> : null}
+          <Link href="/contact">Contact us and response times</Link>
           {SITE.facebook ? (
             <a href={SITE.facebook} target="_blank" rel="noopener noreferrer">
               Facebook

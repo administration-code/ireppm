@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { PROFILE_EVENT, useAuth } from "./AuthProvider";
+import { ContactGuideCard } from "@/components/contact/ContactGuide";
 import MyHome from "./MyHome";
 import { getBrowserClient } from "@/lib/supabase";
 import { ACCEPT, CONSENT_TEXT, DOC_BUCKET, DOC_TYPES, INCOME_TYPES, MAX_FILE_MB, consentCurrent } from "@/lib/documents";
@@ -378,6 +379,7 @@ export default function AccountView() {
         {tab === "docs" ? (
           <>
             <MyHome user={user} />
+            <ContactGuideCard audience="tenant" />
 
             {pending ? (
               <div className="boxed stack" style={{ gap: 10 }}>

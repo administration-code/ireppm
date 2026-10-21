@@ -1,5 +1,6 @@
 "use client";
 
+import { ContactGuideCard } from "@/components/contact/ContactGuide";
 import { useLiveRefresh } from "@/lib/useLiveRefresh";
 
 import { useEffect, useState } from "react";
@@ -193,6 +194,8 @@ export default function OwnerHome() {
           </Link>
         </div>
       </section>
+
+      <ContactGuideCard audience="owner" />
 
       <EmailPrefs />
     </div>
