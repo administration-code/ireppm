@@ -5,7 +5,9 @@ import Link from "next/link";
 import { getBrowserClient } from "@/lib/supabase";
 import { isSpecialUnit } from "@/lib/maintenance-units";
 import { money } from "@/lib/format";
-import { PACKAGE_LABEL, PROPERTY_SELECT, propertyTitle } from "@/lib/admin-properties";
+import { DEFAULT_HST_PERCENT, PACKAGE_LABEL, PROPERTY_SELECT, propertyTitle } from "@/lib/admin-properties";
+
+const withHst = (fee) => Math.round(Number(fee) * (1 + DEFAULT_HST_PERCENT / 100) * 100) / 100;
 import RenewalBadge from "./RenewalBadge";
 
 const shortDay = (iso) => (iso ? new Date(iso).toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric" }) : "");
@@ -237,7 +239,8 @@ export default function PropertiesTable() {
                     <th scope="col">Owner</th>
                     <th scope="col">Package</th>
                     <th scope="col" className="num">Units</th>
-                    <th scope="col">Fee</th>
+                    <th scope="col" className="num">Fee</th>
+                    <th scope="col" className="num">Fee incl. HST</th>
                     <th scope="col" aria-sort={sort === "renewal" ? "ascending" : undefined}>
                       <button type="button" className="th-sort" onClick={() => setSort(sort === "renewal" ? "address" : "renewal")}>
                         Agreement{sort === "renewal" ? " ↑" : ""}
@@ -294,6 +297,13 @@ export default function PropertiesTable() {
                             </>
                           ) : (
                             <span className="small">Not set</span>
+                          )}
+                        </td>
+                        <td className="num">
+                          {p.monthly_fee !== null && p.monthly_fee !== undefined ? (
+                            <b>{money(withHst(p.monthly_fee))}</b>
+                          ) : (
+                            <span className="small">—</span>
                           )}
                         </td>
                         <td>
