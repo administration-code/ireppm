@@ -1192,3 +1192,11 @@ a[href^="tel:"] { white-space: nowrap; }
   .cg-times li { flex-direction: column; gap: 2px; }
   .cg-times b { text-align: left; white-space: normal; }
 }
+
+/* Maintenance costs: estimate | + HST | actual | charge to */
+.cost-row { display: grid; grid-template-columns: 1fr auto 1fr 1fr; gap: 12px; align-items: start; }
+.cost-hst { margin-top: 34px; white-space: nowrap; font-weight: 600; }
+@media (max-width: 759px) {
+  .cost-row { grid-template-columns: 1fr; }
+  .cost-hst { margin-top: 0; }
+}

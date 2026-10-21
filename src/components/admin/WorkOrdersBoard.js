@@ -11,7 +11,7 @@ import { partnerName } from "./MaintenanceTable";
 // Landlords → Work Orders: the maintenance jobs at each landlord's property seen from the landlord's
 // side: what needs their OK, what's under way, and what was charged to them each month.
 const SELECT =
-  "id, title, urgency, status, owner_approval, estimated_cost, actual_cost, charge_to, completed_at, created_at, scheduled_for, " +
+  "id, title, urgency, status, owner_approval, estimated_cost, estimate_plus_hst, actual_cost, charge_to, completed_at, created_at, scheduled_for, " +
   "unit:units(id, label, property:properties(id, address, city, owner:owners(id, name))), partner:partners(id, name, company)";
 const VIEWS = [
   { key: "approval", label: "Needs Landlord OK", test: (r) => r.owner_approval === "pending" && !CLOSED_STATUSES.includes(r.status) },
@@ -164,7 +164,10 @@ export default function WorkOrdersBoard() {
                     ) : null}
                   </td>
                   <td className="small">{r.partner ? partnerName(r.partner) : "Not assigned"}</td>
-                  <td className="r">{money(r.estimated_cost)}</td>
+                  <td className="r">
+                    {money(r.estimated_cost)}
+                    {r.estimate_plus_hst && r.estimated_cost ? <span className="small"> + HST</span> : null}
+                  </td>
                   <td className="r">{money(r.actual_cost)}</td>
                   <td className="small">{CHARGE[r.charge_to] || "—"}</td>
                   <td className="r">

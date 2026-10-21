@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getBrowserClient } from "@/lib/supabase";
 import { refreshStaffCounts } from "@/lib/admin-nav";
-import { checkDollars, dollarsOrNull, orNull, propertyTitle, sortTenants, text } from "@/lib/admin-properties";
+import { DEFAULT_HST_PERCENT, checkDollars, dollarsOrNull, orNull, propertyTitle, sortTenants, text } from "@/lib/admin-properties";
+import { money } from "@/lib/format";
 import {
   CATEGORIES,
   CHARGE_TO,
@@ -42,6 +43,7 @@ function toForm(r) {
     partner_id: r.partner_id || "",
     scheduled_for: toLocalInput(r.scheduled_for),
     estimated_cost: text(r.estimated_cost),
+    estimate_plus_hst: Boolean(r.estimate_plus_hst),
     actual_cost: text(r.actual_cost),
     owner_approval: r.owner_approval || "not_needed",
     charge_to: r.charge_to || "owner",
@@ -59,6 +61,7 @@ function toRow(f) {
     partner_id: f.partner_id || null,
     scheduled_for: fromLocalInput(f.scheduled_for),
     estimated_cost: dollarsOrNull(f.estimated_cost),
+    estimate_plus_hst: Boolean(f.estimate_plus_hst),
     actual_cost: dollarsOrNull(f.actual_cost),
     owner_approval: f.owner_approval,
     charge_to: f.charge_to,
@@ -609,11 +612,27 @@ export default function MaintenanceEditor({ id }) {
             </div>
           </div>
 
-          <div className="row3">
+          <div className="cost-row">
             <div className="field">
               <label htmlFor="m-est">Estimated cost (CAD)</label>
               <input id="m-est" inputMode="decimal" value={form.estimated_cost} onChange={update("estimated_cost")} />
+              {form.estimate_plus_hst && Number(form.estimated_cost) > 0 ? (
+                <span className="small">
+                  {money(Math.round(Number(form.estimated_cost) * (1 + DEFAULT_HST_PERCENT / 100) * 100) / 100)} with HST
+                </span>
+              ) : null}
             </div>
+            <label className="check-line cost-hst">
+              <input
+                type="checkbox"
+                checked={form.estimate_plus_hst}
+                onChange={(e) => {
+                  setForm((f) => ({ ...f, estimate_plus_hst: e.target.checked }));
+                  setMsg({ kind: "", text: "" });
+                }}
+              />
+              + HST
+            </label>
             <div className="field">
               <label htmlFor="m-act">Actual cost (CAD)</label>
               <input id="m-act" inputMode="decimal" value={form.actual_cost} onChange={update("actual_cost")} />
