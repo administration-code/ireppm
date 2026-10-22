@@ -117,12 +117,20 @@ export async function POST(request, { params }) {
           signerName,
         });
         const env = await getRecipients(row.envelope_id, true);
+        const landlordBefore = (env.signers || []).find((r) => r.roleName === "Landlord");
         let updated = 0;
         for (const r of env.signers || []) {
           const put = {};
           for (const [kind, list] of Object.entries(r.tabs || {})) {
             if (!Array.isArray(list)) continue;
             const hits = list.filter((t) => t?.tabId && Object.hasOwn(values, t.tabLabel)).map((t) => ({ tabId: t.tabId, value: values[t.tabLabel] }));
+            // Staff sometimes add the landlord's own email to the consent page: swap the old landlord's for the new one.
+            const oldEmail = str(landlordBefore?.email).toLowerCase();
+            for (const t of list) {
+              if (t?.tabLabel !== "Consent Landlord Email" || !oldEmail) continue;
+              const v = String(t.value || "");
+              if (v.toLowerCase().includes(oldEmail)) hits.push({ tabId: t.tabId, value: v.replace(new RegExp(oldEmail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "ig"), signerEmail) });
+            }
             if (hits.length) put[kind] = hits;
           }
           if (Object.keys(put).length) {
