@@ -8,6 +8,8 @@ import { fillLeaseSchedule, pmLeaseRows } from "@/lib/pm-lease-schedule";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const CALIB_PDF = "JVBERi0xLjMKJZOMi54gUmVwb3J0TGFiIEdlbmVyYXRlZCBQREYgZG9jdW1lbnQgKG9wZW5zb3VyY2UpCjEgMCBvYmoKPDwKL0YxIDIgMCBSCj4+CmVuZG9iagoyIDAgb2JqCjw8Ci9CYXNlRm9udCAvSGVsdmV0aWNhIC9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nIC9OYW1lIC9GMSAvU3VidHlwZSAvVHlwZTEgL1R5cGUgL0ZvbnQKPj4KZW5kb2JqCjMgMCBvYmoKPDwKL0NvbnRlbnRzIDcgMCBSIC9NZWRpYUJveCBbIDAgMCA2MTIgNzkyIF0gL1BhcmVudCA2IDAgUiAvUmVzb3VyY2VzIDw8Ci9Gb250IDEgMCBSIC9Qcm9jU2V0IFsgL1BERiAvVGV4dCAvSW1hZ2VCIC9JbWFnZUMgL0ltYWdlSSBdCj4+IC9Sb3RhdGUgMCAvVHJhbnMgPDwKCj4+IAogIC9UeXBlIC9QYWdlCj4+CmVuZG9iago0IDAgb2JqCjw8Ci9QYWdlTW9kZSAvVXNlTm9uZSAvUGFnZXMgNiAwIFIgL1R5cGUgL0NhdGFsb2cKPj4KZW5kb2JqCjUgMCBvYmoKPDwKL0F1dGhvciAoYW5vbnltb3VzKSAvQ3JlYXRpb25EYXRlIChEOjIwMjYxMDIzMTUyNTUyLTA0JzAwJykgL0NyZWF0b3IgKGFub255bW91cykgL0tleXdvcmRzICgpIC9Nb2REYXRlIChEOjIwMjYxMDIzMTUyNTUyLTA0JzAwJykgL1Byb2R1Y2VyIChSZXBvcnRMYWIgUERGIExpYnJhcnkgLSBcKG9wZW5zb3VyY2VcKSkgCiAgL1N1YmplY3QgKHVuc3BlY2lmaWVkKSAvVGl0bGUgKHVudGl0bGVkKSAvVHJhcHBlZCAvRmFsc2UKPj4KZW5kb2JqCjYgMCBvYmoKPDwKL0NvdW50IDEgL0tpZHMgWyAzIDAgUiBdIC9UeXBlIC9QYWdlcwo+PgplbmRvYmoKNyAwIG9iago8PAovRmlsdGVyIFsgL0FTQ0lJODVEZWNvZGUgL0ZsYXRlRGVjb2RlIF0gL0xlbmd0aCAzMzQKPj4Kc3RyZWFtCkdhcld1NClWcWklIlI8bVZyNjNOOEIkP3AtIkRJS2w1JjNLODcuMC9BRWljJmA/SVNeS0U2XnVLaG01S0tYPHBmSiVtVzpgczBrbiNZPDwrIStkUCloVmI1KUBtQl4xW0koLTZtclNfLjpiJzlfXFNmayI6PjoqN14xT3FlSUNoTyJZMD0yIzpbOkZXNFBcQDBabGBzV3MmOmI9UzZHSltxW2ZccEw1TVtuTWxNMVwyPUg9U0xIcyssVyJjO1NlRHNWMVEiLSk2YitVO1pDN2UxYkgpUSxzPCUxMiI6aD9dSF42V0ZhTS8udCFiLT5daGZbalQ3YEdtS1w9c1suaUM2PlxnPilWQkRVcF0+ZVs5RFgsT2stODooMjlsaFdiQWZlZjBaVG5FQG9bREhgK0cycj9sRzA6Pl9bRnBjQDxYI0JwZlg1OSU7V1Yjfj5lbmRzdHJlYW0KZW5kb2JqCnhyZWYKMCA4CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDA2MSAwMDAwMCBuIAowMDAwMDAwMDkyIDAwMDAwIG4gCjAwMDAwMDAxOTkgMDAwMDAgbiAKMDAwMDAwMDM5MiAwMDAwMCBuIAowMDAwMDAwNDYwIDAwMDAwIG4gCjAwMDAwMDA3MjEgMDAwMDAgbiAKMDAwMDAwMDc4MCAwMDAwMCBuIAp0cmFpbGVyCjw8Ci9JRCAKWzxjZmYyYjhlY2ZmYmRjM2RiODA2YzY2MjVlZTE4MWRjMT48Y2ZmMmI4ZWNmZmJkYzNkYjgwNmM2NjI1ZWUxODFkYzE+XQolIFJlcG9ydExhYiBnZW5lcmF0ZWQgUERGIGRvY3VtZW50IC0tIGRpZ2VzdCAob3BlbnNvdXJjZSkKCi9JbmZvIDUgMCBSCi9Sb290IDQgMCBSCi9TaXplIDgKPj4Kc3RhcnR4cmVmCjEyMDQKJSVFT0YK";
+
 const TAB_GROUPS = ["textTabs", "checkboxTabs", "radioGroupTabs", "listTabs", "numberTabs", "dateTabs", "signHereTabs", "dateSignedTabs", "fullNameTabs", "initialHereTabs", "emailTabs"];
 
 export async function GET(request) {
@@ -53,6 +55,41 @@ export async function POST(request) {
   if (!isConfigured()) return NextResponse.json({ error: "DocuSign isn't set up yet." }, { status: 400 });
   const body = await request.json().catch(() => ({}));
   try {
+    // Calibration: a one-page test envelope with text fields at known spots, signed in the browser by
+    // an embedded (no email) test signer, to measure where DocuSign draws field text.
+    if (body.action === "calib-create") {
+      const cases = body.cases || [];
+      const text = [], prefill = [];
+      cases.forEach((c, r) => {
+        const y = 80 + r * 60;
+        [40, 200, 360].forEach((x, k) => {
+          const tab = { documentId: "1", pageNumber: "1", xPosition: String(x), yPosition: String(y + (c.dy?.[k] || 0)), width: "140", height: String(c.h ?? 15), font: c.font || "arial", fontSize: c.size || "size9", value: c.value || "Hxg Mattu 123", locked: "true", tabLabel: `r${r}c${k}` };
+          (c.prefill ? prefill : text).push(tab);
+        });
+      });
+      const env = await ds("/envelopes", {
+        method: "POST",
+        body: {
+          emailSubject: "TEST calibration (IRep staff)",
+          status: "sent",
+          documents: [{ documentId: "1", name: "calibration.pdf", fileExtension: "pdf", documentBase64: CALIB_PDF }],
+          recipients: { signers: [{ recipientId: "1", routingOrder: "1", name: "IRep Calibration", email: "administration@ireppm.ca", clientUserId: "calib", tabs: { textTabs: text, signHereTabs: [{ documentId: "1", pageNumber: "1", xPosition: "120", yPosition: "750" }] } }] },
+          ...(prefill.length ? { documents: [{ documentId: "1", name: "calibration.pdf", fileExtension: "pdf", documentBase64: CALIB_PDF, tabs: { prefillTabs: { textTabs: prefill } } }] } : {}),
+        },
+      });
+      const view = await ds(`/envelopes/${env.envelopeId}/views/recipient`, {
+        method: "POST",
+        body: { returnUrl: "https://ireppm.ca/admin", authenticationMethod: "none", email: "administration@ireppm.ca", userName: "IRep Calibration", clientUserId: "calib" },
+      });
+      return NextResponse.json({ envelopeId: env.envelopeId, url: view.url });
+    }
+    if (body.action === "calib-page") {
+      if (!/^[0-9a-f-]{36}$/i.test(String(body.envelopeId || ""))) return NextResponse.json({ error: "envelopeId required." }, { status: 400 });
+      const dpi = Math.min(150, Math.max(40, Number(body.dpi) || 72));
+      const png = await ds(`/envelopes/${body.envelopeId}/documents/1/pages/1/page_image?dpi=${dpi}&max_width=${Math.round(8.5 * dpi)}`, { binary: true, accept: "image/png" });
+      return NextResponse.json({ dpi, png: png.toString("base64") });
+    }
+
     // Generic template tools: any template by key (lease, N1, …) or by id.
     if (body.action === "tpl-list") {
       const data = await ds("/templates?count=100&include=recipients");
