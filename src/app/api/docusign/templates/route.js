@@ -53,6 +53,48 @@ export async function POST(request) {
   if (!isConfigured()) return NextResponse.json({ error: "DocuSign isn't set up yet." }, { status: 400 });
   const body = await request.json().catch(() => ({}));
   try {
+    // Generic template tools: any template by key (lease, N1, …) or by id.
+    if (body.action === "tpl-list") {
+      const data = await ds("/templates?count=100&include=recipients");
+      return NextResponse.json({
+        templates: (data.envelopeTemplates || []).map((t) => ({ id: t.templateId, name: t.name, modified: t.lastModified, used: t.lastUsed, folder: t.folderName })),
+      });
+    }
+    if (String(body.action || "").startsWith("tpl-")) {
+      const tid = /^[0-9a-f-]{36}$/i.test(String(body.templateId || "")) ? body.templateId : await resolveTemplateId(body.template);
+      if (!tid) return NextResponse.json({ error: "Template not found." }, { status: 404 });
+      if (body.action === "tpl-inspect") {
+        const [docs, recips] = await Promise.all([ds(`/templates/${tid}/documents`), ds(`/templates/${tid}/recipients?include_tabs=true`)]);
+        return NextResponse.json({
+          templateId: tid,
+          documents: (docs.templateDocuments || []).map((d) => ({ id: d.documentId, name: d.name, pages: Array.isArray(d.pages) ? d.pages.length : d.pages })),
+          signers: [...(recips.signers || []), ...(recips.carbonCopies || [])].map((s) => ({ role: s.roleName, recipientId: s.recipientId, tabs: s.tabs || {} })),
+        });
+      }
+      if (body.action === "tpl-page") {
+        const page = Math.max(1, Number(body.page) || 1);
+        const dpi = Math.min(150, Math.max(40, Number(body.dpi) || 72));
+        const png = await ds(`/templates/${tid}/documents/${body.documentId || "1"}/pages/${page}/page_image?dpi=${dpi}`, { binary: true, accept: "image/png" });
+        return NextResponse.json({ page, dpi, png: png.toString("base64") });
+      }
+      // { updates: [{ recipientId, group, tab: { tabId, ...props } }] } — PUT the given props on template tabs.
+      if (body.action === "tpl-update") {
+        const byRecipient = {};
+        for (const u of body.updates || []) {
+          if (!u.recipientId || !u.group || !u.tab?.tabId) continue;
+          ((byRecipient[u.recipientId] ||= {})[u.group] ||= []).push(u.tab);
+        }
+        const results = [];
+        for (const [rid, tabs] of Object.entries(byRecipient)) {
+          const out = await ds(`/templates/${tid}/recipients/${rid}/tabs`, { method: "PUT", body: tabs });
+          const errors = Object.values(out || {}).flat().filter((t) => t?.errorDetails).map((t) => `${t.tabLabel || t.tabId}: ${t.errorDetails.message}`);
+          results.push({ recipientId: rid, updated: Object.values(tabs).flat().length, errors });
+        }
+        return NextResponse.json({ ok: true, results });
+      }
+      return NextResponse.json({ error: "Unknown action." }, { status: 400 });
+    }
+
     const id = await resolveTemplateId("pm_contract");
     if (!id) return NextResponse.json({ error: "Management contract template not found." }, { status: 404 });
 
