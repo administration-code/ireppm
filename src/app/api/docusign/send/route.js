@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { addTabsByRole, createEnvelope, removeEmptyRecipients, resolveTemplates, sendDraftEnvelope, senderViewUrl } from "@/lib/docusign";
+import { addTabsByRole, createEnvelope, lockRoleTabs, removeEmptyRecipients, resolveTemplates, sendDraftEnvelope, senderViewUrl } from "@/lib/docusign";
 import { staffUser } from "@/lib/signatures-server";
 import { fillLeaseSchedule, pmLeaseRows } from "@/lib/pm-lease-schedule";
 import {
@@ -158,6 +158,10 @@ export async function POST(request) {
     // then send it or open it for review.
     const env = await createEnvelope({ ...built.definition, emailSubject, status: "created" });
     await removeEmptyRecipients(env.envelopeId);
+    // The landlord only signs these: every field on their side was filled by IRep, so lock it all.
+    if (["lease", "consent", "N1", "N4", "N5", "certificate_of_service"].includes(kind)) {
+      await lockRoleTabs(env.envelopeId, /^(Landlord|Delivery By)$/).catch(() => 0);
+    }
     // Management contracts: initials, boxes, phones and the contract's details (dates, addresses, fees)
     // are added straight away, anchored to the contract's own words and hidden markers.
     if (built.extraTabs) await addTabsByRole(env.envelopeId, built.extraTabs);

@@ -197,6 +197,29 @@ export async function addTabsByRole(id, byRole, { replace } = {}) {
   return added;
 }
 
+// Locks every data field (text, boxes, lists) on the matching roles of a draft envelope, so what IRep
+// prefilled can't be changed when signing. Signature, initial and date-signed fields are left alone.
+const DATA_GROUPS = ["textTabs", "checkboxTabs", "listTabs", "numberTabs", "dateTabs", "emailTabs", "emailAddressTabs", "noteTabs", "zipTabs", "formulaTabs", "companyTabs", "titleTabs", "fullNameTabs", "firstNameTabs", "lastNameTabs"];
+export async function lockRoleTabs(id, roleRe) {
+  const data = await getRecipients(id, true);
+  let locked = 0;
+  for (const r of data?.signers || []) {
+    if (!roleRe.test(String(r.roleName || ""))) continue;
+    const body = {};
+    for (const g of DATA_GROUPS) {
+      const list = (r.tabs?.[g] || []).filter((t) => t?.tabId && String(t.locked) !== "true").map((t) => ({ tabId: t.tabId, locked: "true" }));
+      if (list.length) body[g] = list;
+    }
+    const radios = (r.tabs?.radioGroupTabs || []).filter((g) => (g.radios || []).some((x) => String(x.locked) !== "true"));
+    if (radios.length) body.radioGroupTabs = radios.map((g) => ({ groupName: g.groupName, documentId: g.documentId, radios: (g.radios || []).map((x) => ({ ...x, locked: "true" })) }));
+    if (Object.keys(body).length) {
+      await ds(`/envelopes/${id}/recipients/${r.recipientId}/tabs`, { method: "PUT", body });
+      locked += Object.values(body).flat().length;
+    }
+  }
+  return locked;
+}
+
 // One page of an envelope's document as a PNG (for checking where fields sit).
 export const pageImage = (id, page, doc = "1", dpi = 72) =>
   ds(`/envelopes/${id}/documents/${doc}/pages/${page}/page_image?dpi=${dpi}&max_width=${Math.round(8.5 * dpi)}`, { binary: true, accept: "image/png" });
