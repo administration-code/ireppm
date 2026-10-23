@@ -106,11 +106,8 @@ export async function POST(request) {
         body: {
           emailSubject: "TEST lease calibration (IRep staff)",
           status: "created",
-          compositeTemplates: [{
-            compositeTemplateId: "1",
-            serverTemplates: [{ sequence: "1", templateId: leaseId }],
-            inlineTemplates: [{ sequence: "2", recipients: { signers: [{ recipientId: "1", roleName: "Landlord", routingOrder: "1", name: "IRep Calibration", email: "administration@ireppm.ca", clientUserId: "calib", tabs: landlord.tabs }] } }],
-          }],
+          templateId: leaseId,
+          templateRoles: [{ roleName: "Landlord", routingOrder: "1", name: "IRep Calibration", email: "administration@ireppm.ca", clientUserId: "calib", tabs: landlord.tabs }],
         },
       });
       await removeEmptyRecipients(env.envelopeId);
