@@ -146,6 +146,8 @@ export async function POST(request, { params }) {
           });
         }
         const place = [p.address, unit.label].filter(Boolean).join(", ");
+        const subject = `Please sign: Lease: ${place}`.slice(0, 100);
+        await ds(`/envelopes/${row.envelope_id}`, { method: "PUT", body: { emailSubject: subject } }).catch(() => {});
         const recipients = (Array.isArray(row.recipients) ? row.recipients : []).map((r) =>
           r.role === "Landlord" ? { ...r, name: signerName, email: signerEmail } : r
         );
@@ -156,6 +158,7 @@ export async function POST(request, { params }) {
             property_id: p.id,
             owner_id: p.owner_id || null,
             title: `Lease: ${place}`,
+            email_subject: subject,
             terms: { ...(row.terms || {}), unit_id: unit.id },
             recipients,
           })
