@@ -83,10 +83,48 @@ export async function POST(request) {
       });
       return NextResponse.json({ envelopeId: env.envelopeId, url: view.url });
     }
+    // Calibration lease: the real lease template filled with sample details, landlord role only, signed in
+    // the browser by an embedded test signer (no email), to check where every value prints.
+    if (body.action === "calib-lease") {
+      const { buildLease } = await import("@/lib/docusign-templates");
+      const leaseId = await resolveTemplateId("lease");
+      const f = {
+        unit_id: "test", landlord_name: "Sample Landlord Holdings Inc.", landlord2_name: "Second Owner Name",
+        unit_label: "Upper Room 1", street_number: "1753", street_name: "Benjamin Ave", city: "Windsor", postal_code: "N8X 4N7",
+        parking: "1 outdoor spot, driveway", start_date: "2026-11-01", end_date: "2027-10-31", term: "fixed", rent_due_day: 1,
+        base_rent: 1850, parking_rent: 50, rent_deposit: 1900, key_deposit: 50, key_deposit_details: "Refundable on return of 2 keys",
+        services: { laundry: true }, laundry_charge: "none", utilities: { electricity: "tenant", heat: "tenant", water: "landlord" },
+        utilities_details: "Tenant pays hydro and gas; water included.", services_details: "Shared laundry in basement.",
+        other_charges: [{ description: "Storage locker", amount: 25 }],
+        tenants: [{ full_name: "Jordan Sample", email: "tenant@example.com" }],
+        signer: { name: "IRep Calibration", email: "administration@ireppm.ca" },
+      };
+      const built = buildLease(f, { lease: leaseId }, null);
+      const landlord = built.definition.templateRoles.find((r) => r.roleName === "Landlord");
+      const env = await ds("/envelopes", {
+        method: "POST",
+        body: {
+          emailSubject: "TEST lease calibration (IRep staff)",
+          status: "created",
+          compositeTemplates: [{
+            compositeTemplateId: "1",
+            serverTemplates: [{ sequence: "1", templateId: leaseId }],
+            inlineTemplates: [{ sequence: "2", recipients: { signers: [{ recipientId: "1", roleName: "Landlord", routingOrder: "1", name: "IRep Calibration", email: "administration@ireppm.ca", clientUserId: "calib", tabs: landlord.tabs }] } }],
+          }],
+        },
+      });
+      await removeEmptyRecipients(env.envelopeId);
+      await ds(`/envelopes/${env.envelopeId}`, { method: "PUT", body: { status: "sent" } });
+      const view = await ds(`/envelopes/${env.envelopeId}/views/recipient`, {
+        method: "POST",
+        body: { returnUrl: "https://ireppm.ca/admin", authenticationMethod: "none", email: "administration@ireppm.ca", userName: "IRep Calibration", clientUserId: "calib" },
+      });
+      return NextResponse.json({ envelopeId: env.envelopeId, url: view.url });
+    }
     if (body.action === "calib-page") {
       if (!/^[0-9a-f-]{36}$/i.test(String(body.envelopeId || ""))) return NextResponse.json({ error: "envelopeId required." }, { status: 400 });
       const dpi = Math.min(150, Math.max(40, Number(body.dpi) || 72));
-      const png = await ds(`/envelopes/${body.envelopeId}/documents/1/pages/1/page_image?dpi=${dpi}&max_width=${Math.round(8.5 * dpi)}`, { binary: true, accept: "image/png" });
+      const png = await ds(`/envelopes/${body.envelopeId}/documents/${body.documentId || "1"}/pages/${Number(body.page) || 1}/page_image?dpi=${dpi}&max_width=${Math.round(8.5 * dpi)}`, { binary: true, accept: "image/png" });
       return NextResponse.json({ dpi, png: png.toString("base64") });
     }
 
