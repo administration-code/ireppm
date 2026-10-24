@@ -7,8 +7,12 @@ const SENDS = {
     ["N1", "N1 rent increase"],
     ["N4", "N4 non-payment"],
     ["N5", "N5 interference"],
+    ["upload", "Upload a document"],
   ],
-  property: [["pm_contract", "Send management contract"]],
+  property: [
+    ["pm_contract", "Send management contract"],
+    ["upload", "Upload a document"],
+  ],
 };
 
 // Documents sent for a tenancy or property, with links to send new ones.

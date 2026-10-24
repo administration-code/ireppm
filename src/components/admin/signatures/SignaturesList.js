@@ -6,7 +6,7 @@ import { getBrowserClient } from "@/lib/supabase";
 import SigStatus from "@/components/admin/signatures/SigStatus";
 import DeleteRecord from "@/components/admin/DeleteRecord";
 import { canDeleteSignature, deleteSignatureRequest } from "@/lib/delete-records";
-import { SIG_FILTERS, SIG_KIND, SIG_LIST_SELECT, docusignApi, outTo, shortDate } from "@/lib/signatures";
+import { SIG_FILTERS, SIG_KIND, kindLabel, SIG_LIST_SELECT, docusignApi, outTo, shortDate } from "@/lib/signatures";
 
 export default function SignaturesList() {
   const [filter, setFilter] = useState("awaiting");
@@ -81,6 +81,9 @@ export default function SignaturesList() {
             <button type="button" className="btn ghost sm" onClick={sync} disabled={syncing}>
               {syncing ? "Checking DocuSign…" : "Refresh from DocuSign"}
             </button>
+            <Link className="btn primary sm" href="/admin/signatures/new?kind=upload">
+              Upload a document
+            </Link>
             <Link className="btn ghost sm" href="/admin/signatures/templates">
               Check Templates
             </Link>
@@ -144,7 +147,7 @@ export default function SignaturesList() {
                     </Link>
                     {r.terms?.imported ? <span className="small muted"> · made in DocuSign</span> : null}
                   </td>
-                  <td>{SIG_KIND[r.kind] || r.kind}</td>
+                  <td>{kindLabel(r)}</td>
                   <td className="small">{outTo(r) || "—"}</td>
                   <td>
                     <SigStatus status={r.status} />

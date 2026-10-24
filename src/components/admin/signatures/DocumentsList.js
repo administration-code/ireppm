@@ -6,7 +6,7 @@ import { getBrowserClient } from "@/lib/supabase";
 import SigStatus from "@/components/admin/signatures/SigStatus";
 import DeleteRecord from "@/components/admin/DeleteRecord";
 import { canDeleteSignature, deleteSignatureRequest } from "@/lib/delete-records";
-import { SIG_KIND, shortDate } from "@/lib/signatures";
+import { SIG_KIND, kindLabel, shortDate } from "@/lib/signatures";
 
 // Signature requests linked to one record. `column` is tenancy_id, property_id, application_id or unit_id.
 export default function DocumentsList({ column, value, title = "Documents", bare = false }) {
@@ -17,7 +17,7 @@ export default function DocumentsList({ column, value, title = "Documents", bare
     let live = true;
     getBrowserClient()
       .from("signature_requests")
-      .select("id, kind, title, status, envelope_id, sent_at, completed_at, created_at")
+      .select("id, kind, title, status, envelope_id, sent_at, completed_at, created_at, terms")
       .eq(column, value)
       .order("created_at", { ascending: false })
       .limit(50)
@@ -39,7 +39,7 @@ export default function DocumentsList({ column, value, title = "Documents", bare
             <div style={{ minWidth: 0 }}>
               <Link href={`/admin/signatures/${r.id}`}>{r.title}</Link>
               <div className="small">
-                {SIG_KIND[r.kind] || r.kind} ·{" "}
+                {kindLabel(r)} ·{" "}
                 {r.completed_at ? `Signed ${shortDate(r.completed_at)}` : r.sent_at ? `Sent ${shortDate(r.sent_at)}` : `Created ${shortDate(r.created_at)}`}
               </div>
             </div>

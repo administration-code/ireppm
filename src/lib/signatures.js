@@ -19,8 +19,12 @@ export const SIG_KIND = {
   N9: "N9",
   N11: "N11",
   certificate_of_service: "Certificate of Service",
-  other: "Consent form",
+  other: "Consent forms and uploads",
 };
+
+// Label for a request: uploaded documents are stored as kind "other".
+export const kindLabel = (r) =>
+  r?.kind === "other" ? (r?.terms?.type === "upload" ? "Uploaded document" : "Consent form") : SIG_KIND[r?.kind] || r?.kind || "";
 
 export const AWAITING = ["draft", "sent", "delivered"];
 

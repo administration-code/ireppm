@@ -1215,3 +1215,7 @@ a[href^="tel:"] { white-space: nowrap; }
 .photo-tile.is-dragging { opacity: .4; }
 .photo-tile.is-over { outline: 2px dashed var(--red); outline-offset: 2px; }
 .photo-tile img { pointer-events: none; }
+
+/* Upload a document: signer rows */
+.signer-row { display: grid; grid-template-columns: 1.2fr 1.4fr .8fr auto; gap: 10px; align-items: end; }
+@media (max-width: 759px) { .signer-row { grid-template-columns: 1fr; } }

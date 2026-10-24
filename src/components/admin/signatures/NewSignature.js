@@ -5,6 +5,7 @@ import Link from "next/link";
 import LeaseForm from "@/components/admin/signatures/LeaseForm";
 import NFormForm from "@/components/admin/signatures/NFormForm";
 import PmContractForm from "@/components/admin/signatures/PmContractForm";
+import UploadForm from "@/components/admin/signatures/UploadForm";
 import { loadSignatureContext, placeOf } from "@/lib/signature-context";
 
 const TITLES = {
@@ -13,6 +14,7 @@ const TITLES = {
   N1: "N1: Notice of rent increase",
   N4: "N4: Non-payment of rent",
   N5: "N5: Interfering, damage or overcrowding",
+  upload: "Upload a document",
 };
 
 export default function NewSignature({ kind, params }) {
@@ -60,6 +62,8 @@ export default function NewSignature({ kind, params }) {
         <p className="small">Loading…</p>
       ) : kind === "lease" ? (
         <LeaseForm ctx={ctx} />
+      ) : kind === "upload" ? (
+        <UploadForm ctx={ctx} />
       ) : kind === "pm_contract" ? (
         <PmContractForm ctx={ctx} />
       ) : (

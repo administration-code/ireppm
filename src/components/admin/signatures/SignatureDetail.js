@@ -10,7 +10,7 @@ import { refreshStaffCounts } from "@/lib/admin-nav";
 import SigStatus from "@/components/admin/signatures/SigStatus";
 import ServePanel from "@/components/admin/signatures/ServePanel";
 import MoveLease from "@/components/admin/signatures/MoveLease";
-import { SIG_KIND, SIG_STATUS, docusignApi, openInTab, shortDate } from "@/lib/signatures";
+import { SIG_KIND, kindLabel, SIG_STATUS, docusignApi, openInTab, shortDate } from "@/lib/signatures";
 
 const TENANCY_SELECT =
   "id, unit_id, start_date, rent, email_service_ok, email_service_consent, unit:units(id, label, property:properties(id, address, city, postal_code)), tenancy_tenants(full_name, email)";
@@ -98,7 +98,7 @@ export default function SignatureDetail({ id }) {
         </Link>
         <div className="admin-head">
           <div style={{ display: "grid", gap: 8, minWidth: 0 }}>
-            <span className="eyebrow">Staff · {SIG_KIND[row.kind] || row.kind}</span>
+            <span className="eyebrow">Staff · {kindLabel(row)}</span>
             <h1 className="admin-title">{row.title}</h1>
             <p className="small">
               {[row.sent_at ? `Sent ${shortDate(row.sent_at)}` : `Created ${shortDate(row.created_at)}`, row.completed_at ? `Completed ${shortDate(row.completed_at)}` : ""]
