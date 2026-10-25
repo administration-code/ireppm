@@ -145,7 +145,7 @@ export default function PropertyEditor({ id, initialOwnerId }) {
         {listed.length ? (
           <ul className="unit-grid">
             {listed.map((u) => (
-              <UnitCard key={u.id} unit={u} propertyId={property.id} onSaved={saveUnit} />
+              <UnitCard key={u.id} unit={u} propertyId={property.id} onSaved={saveUnit} onRemoved={(id) => setState((s) => ({ ...s, units: s.units.filter((x) => x.id !== id) }))} />
             ))}
           </ul>
         ) : !adding ? (

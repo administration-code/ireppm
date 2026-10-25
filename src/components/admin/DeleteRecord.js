@@ -59,7 +59,7 @@ function DeleteDialog({ summary, onConfirm, onCancel }) {
 }
 
 // `run(reason)` performs the delete and throws with a message on failure.
-export default function DeleteRecord({ summary, run, onDeleted, className = "" }) {
+export default function DeleteRecord({ summary, run, onDeleted, className = "", label = "Delete" }) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
 
@@ -84,7 +84,7 @@ export default function DeleteRecord({ summary, run, onDeleted, className = "" }
           setOpen(true);
         }}
       >
-        Delete<span className="visually-hidden"> {summary}</span>
+        {label}<span className="visually-hidden"> {summary}</span>
       </button>
       {error ? (
         <span className="small err del-err" role="alert">

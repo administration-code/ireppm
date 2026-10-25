@@ -5,8 +5,27 @@ import Link from "next/link";
 import { money } from "@/lib/format";
 import { UNIT_STATUS, bedsBaths, currentTenancy, sortTenants } from "@/lib/admin-properties";
 import UnitForm from "./UnitForm";
+import DeleteRecord from "./DeleteRecord";
+import { getBrowserClient } from "@/lib/supabase";
 
-export default function UnitCard({ unit, propertyId, onSaved }) {
+// A unit can only be removed when nothing has happened in it yet; otherwise it's set to Offline.
+async function removeUnit(unit) {
+  const sb = getBrowserClient();
+  const count = (table) => sb.from(table).select("id", { count: "exact", head: true }).eq("unit_id", unit.id);
+  const [t, m, i, tu] = await Promise.all([count("tenancies"), count("maintenance_requests"), count("inspections"), count("turnovers")]);
+  const history = [
+    [t.count, "tenancy", "tenancies"],
+    [m.count, "maintenance request", "maintenance requests"],
+    [i.count, "inspection", "inspections"],
+    [tu.count, "turnover", "turnovers"],
+  ].filter(([n]) => n > 0).map(([n, one, many]) => `${n} ${n === 1 ? one : many}`);
+  if (history.length)
+    throw new Error(`${unit.label} has history (${history.join(", ")}), so it can't be removed. Edit the unit and set it to Offline instead.`);
+  const { error } = await sb.from("units").delete().eq("id", unit.id);
+  if (error) throw new Error("We couldn't remove this unit. Try again.");
+}
+
+export default function UnitCard({ unit, propertyId, onSaved, onRemoved }) {
   const [editing, setEditing] = useState(false);
   const tenancy = currentTenancy(unit.tenancies || []);
   const tenants = sortTenants(tenancy?.tenancy_tenants || []);
@@ -83,6 +102,9 @@ export default function UnitCard({ unit, propertyId, onSaved }) {
           <Link className="btn ghost sm" href={`/admin/listings/new?unit=${unit.id}`}>
             Create listing<span className="visually-hidden"> for {unit.label}</span>
           </Link>
+        ) : null}
+        {!tenancy ? (
+          <DeleteRecord label="Remove unit" summary={`unit ${unit.label}`} run={() => removeUnit(unit)} onDeleted={() => onRemoved?.(unit.id)} className="unit-remove" />
         ) : null}
       </div>
     </li>
