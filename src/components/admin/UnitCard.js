@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { money } from "@/lib/format";
-import { UNIT_STATUS, bedsBaths, currentTenancy, sortTenants } from "@/lib/admin-properties";
+import { bedsBaths, currentTenancy, sortTenants, unitPill } from "@/lib/admin-properties";
 import UnitForm from "./UnitForm";
 import DeleteRecord from "./DeleteRecord";
 import { getBrowserClient } from "@/lib/supabase";
@@ -49,7 +49,7 @@ export default function UnitCard({ unit, propertyId, onSaved, onRemoved }) {
   }
 
   return (
-    <li className={`unit-card${unit.status === "offline" ? " is-offline" : ""}`}>
+    <li className={`unit-card${unit.status === "offline" && tenancy?.status !== "upcoming" ? " is-offline" : ""}`}>
       <div className="req-top">
         <div className="req-who">
           <h3 className="unit-label">{unit.label}</h3>
@@ -57,7 +57,7 @@ export default function UnitCard({ unit, propertyId, onSaved, onRemoved }) {
         </div>
         <div className="pill-row">
           {unit.management_type === "leasing_only" ? <span className="pill leasing-only">Leasing only</span> : null}
-          <span className={`pill us-${unit.status}`}>{UNIT_STATUS[unit.status] || unit.status}</span>
+          {(() => { const p = unitPill(unit, tenancy); return <span className={`pill ${p.cls}`}>{p.text}</span>; })()}
         </div>
       </div>
 

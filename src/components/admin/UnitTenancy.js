@@ -4,16 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { getBrowserClient } from "@/lib/supabase";
 import { money } from "@/lib/format";
-import {
-  TENANCY_FIELDS,
-  TENANT_FIELDS,
-  UNIT_FIELDS,
-  UNIT_STATUS,
-  bedsBaths,
-  currentTenancy,
-  prettyDate,
-  sortTenants,
-} from "@/lib/admin-properties";
+import { TENANCY_FIELDS, TENANT_FIELDS, UNIT_FIELDS, UNIT_STATUS, bedsBaths, currentTenancy, prettyDate, sortTenants, unitPill } from "@/lib/admin-properties";
 import CurrentTenancy from "./CurrentTenancy";
 import RentLedger from "./RentLedger";
 import RecordSignatures from "./signatures/RecordSignatures";
@@ -108,7 +99,7 @@ export default function UnitTenancy({ id }) {
                 .join(" · ")}
             </p>
           </div>
-          <span className={`pill us-${unit.status}`}>{UNIT_STATUS[unit.status] || unit.status}</span>
+          {(() => { const p = unitPill(unit, current); return <span className={`pill ${p.cls}`}>{p.text}</span>; })()}
         </div>
       </div>
 

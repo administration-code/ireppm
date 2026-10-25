@@ -267,3 +267,13 @@ export function validateTenant(p) {
   if (p.email.trim() && !/^\S+@\S+\.\S+$/.test(p.email.trim())) return "Check the tenant's email address.";
   return "";
 }
+
+// The status pill for a unit: a unit with a signed-up (upcoming) tenancy shows as Leased until move-in,
+// whatever its manual status (vacant, turnover or offline) was.
+export function unitPill(unit, tenancy) {
+  if (tenancy?.status === "upcoming" && unit?.status !== "occupied") {
+    const d = tenancy.start_date ? new Date(`${tenancy.start_date}T12:00:00`).toLocaleDateString("en-CA", { month: "short", day: "numeric" }) : "";
+    return { cls: "us-leased", text: d ? `Leased · moves in ${d}` : "Leased" };
+  }
+  return { cls: `us-${unit?.status}`, text: UNIT_STATUS[unit?.status] || unit?.status || "" };
+}
