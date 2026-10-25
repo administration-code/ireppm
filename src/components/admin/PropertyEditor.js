@@ -15,7 +15,7 @@ import PropertySummary from "./PropertySummary";
 import UnitCard from "./UnitCard";
 import UnitForm from "./UnitForm";
 
-const UNIT_SELECT = `${UNIT_FIELDS}, tenancies(id, status, rent, tenancy_tenants(full_name, is_primary, created_at))`;
+const UNIT_SELECT = `${UNIT_FIELDS}, tenancies(id, status, rent, start_date, tenancy_tenants(full_name, is_primary, created_at))`;
 
 export default function PropertyEditor({ id, initialOwnerId }) {
   const [state, setState] = useState({ loading: true, property: null, units: [], error: "" });
