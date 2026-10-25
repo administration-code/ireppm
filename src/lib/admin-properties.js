@@ -189,8 +189,23 @@ export async function createTenancy({ unitId, tenancy, tenants }) {
   if (created.error) throw new Error("We couldn't create the tenancy. Check the fields and try again.");
   const tenancyId = created.data.id;
 
-  const people = await sb.from("tenancy_tenants").insert(tenants.map((t) => ({ ...t, tenancy_id: tenancyId })));
+  // Tenants already on file (unassigned) keep their record and are moved into the new tenancy.
+  const onFile = tenants.filter((t) => t.id);
+  const fresh = tenants.filter((t) => !t.id);
+  const undoOnFile = () =>
+    onFile.length ? sb.from("tenancy_tenants").update({ tenancy_id: null, is_primary: false }).in("id", onFile.map((t) => t.id)) : null;
+  for (const t of onFile) {
+    const { id, ...rest } = t;
+    const moved = await sb.from("tenancy_tenants").update({ ...rest, tenancy_id: tenancyId }).eq("id", id).is("tenancy_id", null).select("id");
+    if (moved.error || !moved.data?.length) {
+      await undoOnFile();
+      await sb.from("tenancies").delete().eq("id", tenancyId);
+      throw new Error(`${t.full_name || "A tenant"} is already in another tenancy. Refresh and try again.`);
+    }
+  }
+  const people = fresh.length ? await sb.from("tenancy_tenants").insert(fresh.map((t) => ({ ...t, tenancy_id: tenancyId }))) : { error: null };
   if (people.error) {
+    await undoOnFile();
     await sb.from("tenancies").delete().eq("id", tenancyId);
     throw new Error("We couldn't save the tenants, so the tenancy wasn't created. Try again.");
   }
@@ -198,6 +213,8 @@ export async function createTenancy({ unitId, tenancy, tenants }) {
   if (wantedStatus === "active") {
     const activated = await sb.from("tenancies").update({ status: "active" }).eq("id", tenancyId).select("id");
     if (activated.error || !activated.data?.length) {
+      await undoOnFile();
+      await sb.from("tenancy_tenants").delete().eq("tenancy_id", tenancyId);
       await sb.from("tenancies").delete().eq("id", tenancyId);
       throw new Error(activated.error?.code === "23505" ? ONE_CURRENT_MESSAGE : "We couldn't start the tenancy. Try again.");
     }
