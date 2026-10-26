@@ -3,15 +3,7 @@
 import { useState } from "react";
 import { getBrowserClient } from "@/lib/supabase";
 import { money } from "@/lib/format";
-import {
-  ONE_CURRENT_MESSAGE,
-  TENANCY_STATUS,
-  prettyDate,
-  tenancyForm,
-  tenancyRow,
-  todayISO,
-  validateTenancy,
-} from "@/lib/admin-properties";
+import { ONE_CURRENT_MESSAGE, TENANCY_STATUS, prettyDate, tenancyForm, tenancyRow, todayISO, validateTenancy } from "@/lib/admin-properties";
 import TenancyFields from "./TenancyFields";
 import TenantsEditor from "./TenantsEditor";
 import PaypropLetter from "./PaypropLetter";
@@ -53,7 +45,10 @@ export default function CurrentTenancy({ tenancy, onChanged }) {
     e.preventDefault();
     const problem = validateTenancy(form);
     if (problem) return setError(problem);
-    return run(() => updateTenancy(tenancy.id, tenancyRow(form)));
+    // An upcoming tenancy whose start date is now today or earlier starts right away.
+    const row = tenancyRow(form);
+    const startsNow = tenancy.status === "upcoming" && row.start_date && row.start_date <= todayISO();
+    return run(() => updateTenancy(tenancy.id, startsNow ? { ...row, status: "active" } : row));
   }
 
   function recordNotice(e) {
@@ -202,11 +197,14 @@ export default function CurrentTenancy({ tenancy, onChanged }) {
           {tenancy.status === "upcoming" ? (
             <>
               <button type="button" className="btn primary sm" onClick={markMovedIn} disabled={busy}>
-                {busy ? "Saving…" : "Mark as moved in"}
+                {busy ? "Saving…" : "Mark as moved in now"}
               </button>
               <button type="button" className="btn ghost sm" onClick={() => open("cancel")}>
                 Cancel tenancy
               </button>
+              {tenancy.start_date ? (
+                <span className="small">Becomes active automatically on {prettyDate(tenancy.start_date)}.</span>
+              ) : null}
             </>
           ) : (
             <>

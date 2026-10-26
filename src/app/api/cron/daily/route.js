@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { insuranceReminders, leaseEndPrompts } from "@/lib/tenant-notices";
 import { showingReminders } from "@/lib/showings";
 import { syncOutstanding } from "@/lib/signatures-sync";
+import { activateMoveIns } from "@/lib/move-ins";
 import { drawDigest } from "@/lib/payprop-draw";
 import { mailer, mailConfigured } from "@/lib/mailer";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
@@ -178,6 +179,7 @@ export async function GET(request) {
   result.screeningCleanup = await deleteExpiredScreeningReports(sb);
   result.creditReminders = await remindOverdueCreditChecks(sb);
   for (const [key, job] of [
+    ["moveIns", activateMoveIns],
     ["insurance", insuranceReminders],
     ["leaseEnd", leaseEndPrompts],
     ["showings", showingReminders],
