@@ -185,7 +185,9 @@ export async function POST(request, { params }) {
               if (!m) continue;
               const ch = {};
               for (const k of ["xPosition", "yPosition", "height"]) if (m[k] !== undefined && m[k] !== t[k]) ch[k] = m[k];
-              if (Object.keys(ch).length) (body[g] ||= []).push({ tabId: t.tabId, ...ch });
+              // DocuSign resets a box's tick (and a field's lock) on update unless they're sent again.
+              if (Object.keys(ch).length)
+                (body[g] ||= []).push({ tabId: t.tabId, ...ch, ...(g === "checkboxTabs" ? { selected: t.selected } : {}), ...(t.locked !== undefined ? { locked: t.locked } : {}) });
             }
           }
           if (Object.keys(body).length) {
