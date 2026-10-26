@@ -66,7 +66,7 @@ export default function RecordPayment({ tenancyId = "" }) {
 
   // First and last: fill the split from the tenancy (rent, last month's deposit, key deposit, start month).
   function fillSplit(tenancyId, kind) {
-    const t = tenancies.find((x) => x.id === tenancyId);
+    const t = tenancies.find((x) => x.id === (tenancyId ?? form.tenancyId));
     setForm((f) => ({
       ...f,
       ...(tenancyId !== undefined ? { tenancyId } : {}),
