@@ -3,11 +3,13 @@
 import { useEffect, useState } from "react";
 import { getBrowserClient } from "@/lib/supabase";
 import { createTenancy, tenancyForm, tenancyRow, todayISO, validateTenancy, validateTenant } from "@/lib/admin-properties";
+import { METHOD_LABEL, checkAmount, recordFirstAndLast } from "@/lib/rent";
 import TenancyFields from "./TenancyFields";
 import { TenantInputs, tenantRow } from "./TenantsEditor";
 
 const BLANK = { full_name: "", email: "", phone: "" };
-const dollars = (cents) => (cents === "" || cents === null || cents === undefined ? "" : String(Math.round(Number(cents)) / 100));
+// Lease terms store amounts in dollars.
+const dollars = (v) => (v === "" || v === null || v === undefined ? "" : String(Number(v)));
 const sameEmail = (a, b) => a && b && String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
 const isBlank = (p) => !p.full_name.trim() && !p.email.trim() && !p.phone.trim();
 
@@ -24,6 +26,18 @@ export default function StartTenancyForm({ unit, onCreated, onCancel }) {
   const [leases, setLeases] = useState([]);
   const [filledFrom, setFilledFrom] = useState("");
   const [leaseId, setLeaseId] = useState("");
+  const [fl, setFl] = useState({ on: false, date: todayISO(), method: "etransfer", first: "", firstMonth: "", last: "", key: "", touched: false });
+  const setF = (k) => (e) => setFl((x) => ({ ...x, [k]: e.target.value, touched: true }));
+  // Until staff type their own amounts, first and last follow the tenancy's rent, deposits and start month.
+  const flShown = fl.touched
+    ? fl
+    : {
+        ...fl,
+        first: form.rent || "",
+        firstMonth: String(form.start_date || "").slice(0, 7),
+        last: form.last_month_deposit || form.rent || "",
+        key: form.key_deposit || "",
+      };
 
   // Tenants on file but not in a tenancy, and leases sent for this unit that haven't made a tenancy yet.
   useEffect(() => {
@@ -94,6 +108,12 @@ export default function StartTenancyForm({ unit, onCreated, onCancel }) {
       validateTenancy(form) ||
       (filled.length ? filled.map(validateTenant).find(Boolean) : "Add at least one tenant.");
     if (problem) return setError(problem);
+    if (fl.on) {
+      if (!flShown.date) return setError("Add the date first and last was received.");
+      const bad = ["first", "last", "key"].map((k) => (flShown[k] ? checkAmount(flShown[k]) : "")).find(Boolean);
+      if (bad) return setError(bad);
+      if (!(Number(flShown.first) > 0) && !(Number(flShown.last) > 0)) return setError("Add the first and last amounts received, or untick Record first and last.");
+    }
 
     setSaving(true);
     try {
@@ -103,6 +123,16 @@ export default function StartTenancyForm({ unit, onCreated, onCancel }) {
         tenants: filled.map((p, i) => ({ ...tenantRow(p), ...(p.id ? { id: p.id } : {}), is_primary: i === 0 })),
       });
       // Link the lease, so when it's signed DocuSign doesn't make a second tenancy.
+      if (fl.on && created?.id) {
+        try {
+          await recordFirstAndLast({
+            tenancyId: created.id, date: flShown.date, method: flShown.method, firstAmount: flShown.first, firstPeriod: flShown.firstMonth,
+            lastAmount: flShown.last, keyAmount: flShown.key,
+          });
+        } catch {
+          setError("The tenancy was started, but first and last didn't save. Record it under Rent, Record a Payment.");
+        }
+      }
       if (leaseId && created?.id) await getBrowserClient().from("signature_requests").update({ tenancy_id: created.id }).eq("id", leaseId).is("tenancy_id", null);
       await onCreated();
     } catch (err) {
@@ -180,6 +210,58 @@ export default function StartTenancyForm({ unit, onCreated, onCancel }) {
             Add another tenant
           </button>
         </div>
+      </div>
+
+      <div className="stack" style={{ gap: 10 }}>
+        <label className="check-line">
+          <input type="checkbox" checked={fl.on} onChange={(e) => setFl((x) => ({ ...x, on: e.target.checked }))} />
+          Record first and last received
+        </label>
+        {fl.on ? (
+          <div className="boxed stack first-last" style={{ gap: 10 }}>
+            <div className="row3">
+              <div className="field">
+                <label htmlFor="fl-date">Date received</label>
+                <input id="fl-date" type="date" value={flShown.date} onChange={setF("date")} />
+              </div>
+              <div className="field">
+                <label htmlFor="fl-method">Method</label>
+                <select id="fl-method" value={flShown.method} onChange={setF("method")}>
+                  {Object.entries(METHOD_LABEL).map(([k, v]) => (
+                    <option key={k} value={k}>
+                      {v}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="field">
+                <span className="label-text">Total</span>
+                <b className="num" style={{ paddingTop: 10 }}>
+                  ${["first", "last", "key"].reduce((sum, k) => sum + (Number(flShown[k]) || 0), 0).toFixed(2)}
+                </b>
+              </div>
+            </div>
+            <div className="row4">
+              <div className="field">
+                <label htmlFor="fl-first">First month&apos;s rent</label>
+                <input id="fl-first" inputMode="decimal" value={flShown.first} onChange={setF("first")} />
+              </div>
+              <div className="field">
+                <label htmlFor="fl-month">For month</label>
+                <input id="fl-month" type="month" value={flShown.firstMonth} onChange={setF("firstMonth")} />
+              </div>
+              <div className="field">
+                <label htmlFor="fl-last">Last month&apos;s rent deposit</label>
+                <input id="fl-last" inputMode="decimal" value={flShown.last} onChange={setF("last")} />
+              </div>
+              <div className="field">
+                <label htmlFor="fl-key">Key deposit</label>
+                <input id="fl-key" inputMode="decimal" value={flShown.key} onChange={setF("key")} />
+              </div>
+            </div>
+            <span className="small">Saved as payments on the new tenancy: rent for that month, and the deposits held.</span>
+          </div>
+        ) : null}
       </div>
 
       {error ? (

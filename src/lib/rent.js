@@ -33,7 +33,7 @@ export const MANUAL_CHARGE_KINDS = ["opening_balance", "chargeback", "fee", "oth
 export const CURRENT_STATUSES = ["upcoming", "active", "notice"];
 
 export const RENT_TENANCY_SELECT =
-  "id, status, rent, start_date, move_out_date, payprop_reference, unit:units(id, label, property:properties(id, address, city)), tenancy_tenants(full_name, email, phone, is_primary, created_at)";
+  "id, status, rent, start_date, move_out_date, payprop_reference, last_month_deposit, key_deposit, unit:units(id, label, property:properties(id, address, city)), tenancy_tenants(full_name, email, phone, is_primary, created_at)";
 
 export function todayISO() {
   return new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" });
@@ -121,4 +121,26 @@ export async function savePayment(id, changes) {
   if (error || !data?.length)
     throw new Error(/locked/i.test(error?.message || "") ? error.message : "That didn't save. Try again.");
   refreshStaffCounts();
+}
+
+// First and last at move-in: one payment received, saved as separate records so the first month's rent
+// goes to that month and the last month's deposit (and any key deposit) is held, not counted as rent.
+export async function recordFirstAndLast({ tenancyId, date, method, payer, receivedBy, notes, firstAmount, firstPeriod, lastAmount, keyAmount }) {
+  const common = {
+    tenancy_id: tenancyId,
+    received_on: date,
+    method,
+    payer_name: String(payer || "").trim() || null,
+    received_by: method === "cash" ? String(receivedBy || "").trim() || null : null,
+    source: "manual",
+  };
+  const note = ["First and last at move-in", String(notes || "").trim()].filter(Boolean).join(". ");
+  const rows = [];
+  if (Number(firstAmount) > 0) rows.push({ ...common, amount: Math.round(Number(firstAmount) * 100) / 100, kind: "rent", period: periodOf(firstPeriod), notes: note });
+  if (Number(lastAmount) > 0) rows.push({ ...common, amount: Math.round(Number(lastAmount) * 100) / 100, kind: "last_month_rent", period: null, notes: note });
+  if (Number(keyAmount) > 0) rows.push({ ...common, amount: Math.round(Number(keyAmount) * 100) / 100, kind: "key_deposit", period: null, notes: note });
+  if (!rows.length) throw new Error("Add the amounts received.");
+  const { data, error } = await getBrowserClient().from("payments").insert(rows).select("id, amount, kind");
+  if (error) throw new Error("Those payments didn't save. Try again.");
+  return data || [];
 }
