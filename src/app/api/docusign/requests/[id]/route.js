@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { addTabsByRole, consoleViewUrl, ds, getRecipients, pageImage, resendEnvelope, senderViewUrl, voidEnvelope } from "@/lib/docusign";
-import { PM_TAB_LABELS, leaseMoveValues, looksCorporate, pmContractTabs } from "@/lib/docusign-templates";
+import { addTabsByRole, consoleViewUrl, ds, resolveTemplateId, getRecipients, pageImage, resendEnvelope, senderViewUrl, voidEnvelope } from "@/lib/docusign";
+import { KIND_TEMPLATES, PM_TAB_LABELS, leaseMoveValues, looksCorporate, pmContractTabs } from "@/lib/docusign-templates";
 import { SIGNED_BUCKET, staffUser, syncRequest } from "@/lib/signatures-server";
 import { fillLeaseSchedule, pmLeaseRows } from "@/lib/pm-lease-schedule";
 
@@ -164,6 +164,36 @@ export async function POST(request, { params }) {
           })
           .eq("id", id);
         return NextResponse.json({ ok: true, updated, place });
+      }
+      case "relayout": {
+        // Copy the template's current field positions onto a draft made before the template was adjusted.
+        if (row.status !== "draft" || !row.envelope_id) return NextResponse.json({ error: "Only drafts can be updated." }, { status: 400 });
+        const key = (KIND_TEMPLATES[row.kind] || [])[0];
+        const tid = key ? await resolveTemplateId(key) : null;
+        if (!tid) return NextResponse.json({ error: "This document wasn't made from a template." }, { status: 400 });
+        const [tpl, env] = await Promise.all([ds(`/templates/${tid}/recipients?include_tabs=true`), getRecipients(row.envelope_id, true)]);
+        let changed = 0;
+        for (const s of env.signers || []) {
+          const ts = (tpl.signers || []).find((z) => z.roleName === s.roleName);
+          if (!ts) continue;
+          const body = {};
+          for (const [g, list] of Object.entries(s.tabs || {})) {
+            if (!Array.isArray(list) || /signHere|initialHere|radioGroup/.test(g)) continue;
+            for (const t of list) {
+              if (t.anchorString) continue;
+              const m = (ts.tabs?.[g] || []).find((z) => z.tabLabel === t.tabLabel && z.pageNumber === t.pageNumber && z.documentId === t.documentId);
+              if (!m) continue;
+              const ch = {};
+              for (const k of ["xPosition", "yPosition", "height"]) if (m[k] !== undefined && m[k] !== t[k]) ch[k] = m[k];
+              if (Object.keys(ch).length) (body[g] ||= []).push({ tabId: t.tabId, ...ch });
+            }
+          }
+          if (Object.keys(body).length) {
+            await ds(`/envelopes/${row.envelope_id}/recipients/${s.recipientId}/tabs`, { method: "PUT", body });
+            changed += Object.values(body).flat().length;
+          }
+        }
+        return NextResponse.json({ ok: true, changed });
       }
       case "page-image": {
         if (!row.envelope_id) return NextResponse.json({ error: "No envelope." }, { status: 400 });

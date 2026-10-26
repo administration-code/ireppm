@@ -125,6 +125,11 @@ export default function SignatureDetail({ id }) {
               Open in DocuSign
             </button>
           ) : null}
+          {row.status === "draft" && row.envelope_id && ["lease", "N1", "N4", "N5", "certificate_of_service"].includes(row.kind) ? (
+            <button type="button" className="btn ghost sm" disabled={Boolean(busy)} onClick={() => act("relayout", {}, "Field positions updated to match the latest template. Open it in DocuSign to check, then send.")}>
+              {busy === "relayout" ? "Updating…" : "Update field positions"}
+            </button>
+          ) : null}
           {row.kind === "lease" && row.status === "draft" && row.envelope_id && !moving ? (
             <button type="button" className="btn ghost sm" disabled={Boolean(busy)} onClick={() => setMoving(true)}>
               Change property or unit
