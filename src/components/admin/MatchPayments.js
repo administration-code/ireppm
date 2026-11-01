@@ -105,7 +105,7 @@ function MatchCard({ payment, tenancies, onDone }) {
   const [month, setMonth] = useState(defaultMonth);
   const [kind, setKind] = useState(payment.kind || "rent");
   const [note, setNote] = useState("");
-  const [rows, setRows] = useState(() => [newSplitRow(defaultMonth), newSplitRow(defaultMonth)]);
+  const [rows, setRows] = useState(() => [newSplitRow(defaultMonth)]);
   const [receivedBy, setReceivedBy] = useState("Chuck");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -176,7 +176,7 @@ function MatchCard({ payment, tenancies, onDone }) {
         await sb.from("payments").delete().in("id", data.map((d) => d.id));
         throw err;
       }
-    }, `Split ${describe} across ${rows.length} tenancies.`);
+    }, rows.length === 1 ? `Recorded ${describe} as cash for one tenancy.` : `Split ${describe} across ${rows.length} tenancies.`);
   };
 
   const setRow = (key, changes) => setRows((list) => list.map((r) => (r.key === key ? { ...r, ...changes } : r)));
@@ -241,7 +241,7 @@ function MatchCard({ payment, tenancies, onDone }) {
               {busy ? "Saving…" : "Match"}
             </button>
             <button type="button" className="btn ghost sm" onClick={() => (setError(""), setMode("split"))} disabled={busy}>
-              Split
+              Cash collected / split
             </button>
             <button type="button" className="btn ghost sm" onClick={() => (setError(""), setMode("ignore"))} disabled={busy}>
               Ignore (not rent)
@@ -271,8 +271,9 @@ function MatchCard({ payment, tenancies, onDone }) {
       ) : (
         <form className="confirm-box stack" onSubmit={saveSplit} noValidate aria-label="Split this payment">
           <p className="small">
-            Use this for a lump sum, like cash collected from several tenants and sent as one e-Transfer. Each row
-            becomes its own cash payment.
+            Use this when someone (like Chuck) collected cash and sent it as one e-Transfer, for one tenant or
+            several. Each row becomes a cash payment for that tenant. Unlike Match, this doesn&apos;t teach the site to
+            send the sender&apos;s future e-Transfers to that tenancy.
           </p>
           {rows.map((r, i) => (
             <fieldset key={r.key} className="split-row">
@@ -298,7 +299,7 @@ function MatchCard({ payment, tenancies, onDone }) {
                   <input id={`sm-${r.key}`} type="month" value={r.month} onChange={(e) => setRow(r.key, { month: e.target.value })} />
                 </div>
                 <div className="field split-remove">
-                  {rows.length > 2 ? (
+                  {rows.length > 1 ? (
                     <button
                       type="button"
                       className="btn ghost sm"
