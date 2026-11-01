@@ -15,16 +15,29 @@ const feeLabel = (d) => String(d || "").replace(/^Leasing fee:\s*/i, "");
 async function load(id) {
   const sb = getBrowserClient();
   const [partner, jobs, ledger] = await Promise.all([
-    sb.from("partners").select("id, name, company, loan_share_pct, loan_name").eq("id", id).maybeSingle(),
+    sb.from("partners").select("id, name, company, loan_share_pct, loan_name, leasing_fee_share, leasing_fees_from").eq("id", id).maybeSingle(),
     sb.from("maintenance_requests").select(JOB_SELECT).eq("partner_id", id).eq("status", "completed").order("completed_at", { ascending: false }),
     sb.from("partner_ledger").select("*").eq("partner_id", id).order("entry_date", { ascending: false }).order("created_at", { ascending: false }),
   ]);
   if (partner.error || jobs.error || ledger.error) throw new Error("load");
-  return { partner: partner.data, jobs: jobs.data || [], ledger: ledger.data || [] };
+  let fees = [];
+  const p = partner.data;
+  if (p && Number(p.leasing_fee_share) > 0) {
+    let q = sb
+      .from("statement_items")
+      .select("id, period, description, amount, property_id, property:properties(address)")
+      .eq("kind", "leasing_fee")
+      .order("period");
+    if (p.leasing_fees_from) q = q.gte("period", p.leasing_fees_from);
+    const res = await q;
+    if (res.error) throw new Error("load");
+    fees = res.data || [];
+  }
+  return { partner: p, jobs: jobs.data || [], ledger: ledger.data || [], fees };
 }
 
 export default function ContractorPay({ id }) {
-  const [state, setState] = useState({ loading: true, error: "", partner: null, jobs: [], ledger: [] });
+  const [state, setState] = useState({ loading: true, error: "", partner: null, jobs: [], ledger: [], fees: [] });
   const [open, setOpen] = useState("");
 
   const refresh = useCallback(
@@ -39,14 +52,26 @@ export default function ContractorPay({ id }) {
     refresh();
   }, [refresh]);
 
-  const { loading, error, partner, jobs, ledger } = state;
+  const { loading, error, partner, jobs, ledger, fees } = state;
   if (loading) return <p className="small">Loading…</p>;
   if (!partner) return <div className="warnbox">{error || "Partner not found."}</div>;
 
   const pct = Number(partner.loan_share_pct || 0);
   const loanName = partner.loan_name || "Loan";
   const loanLower = loanName.toLowerCase();
-  const pay = contractorPay(jobs, ledger, pct);
+  const feeShare = Number(partner.leasing_fee_share || 0);
+  // Leasing fees on landlord statements: his share of the fee before HST (HST is always held back).
+  const statementFees = fees.map((f) => {
+    const beforeHst = Math.round((Math.abs(Number(f.amount)) / (1 + DEFAULT_HST_PERCENT / 100)) * 100) / 100;
+    return {
+      id: `si-${f.id}`,
+      kind: "leasing_fee",
+      entry_date: f.period,
+      amount: Math.round(beforeHst * feeShare) / 100,
+      notes: `${f.property?.address || ""}: ${feeLabel(f.description).replace(/\s*\(\$[\d,.]+ \+ HST\)$/, "")} (fee ${money(beforeHst)} before HST, his ${feeShare}%)`,
+    };
+  });
+  const pay = contractorPay(jobs, [...ledger, ...statementFees], pct);
   const noPrice = jobs.filter((j) => j.partner_pay == null && Number(j.actual_cost) > 0);
   const firstName = partner.name.match(/\(([^)]+)\)/)?.[1] || partner.name.split(" ")[0];
   const done = () => {
@@ -64,9 +89,13 @@ export default function ContractorPay({ id }) {
         <span className="eyebrow">Staff · Contractor pay</span>
         <h1 className="admin-title">{firstName}&apos;s Pay</h1>
         <p className="small">
-          Work orders count at {firstName}&apos;s price before HST and are paid in full: owners are billed that plus HST, and IRep holds
-          the HST back. Leasing fees owed to him are added here
-          {pct > 0 ? `, and ${pct}% of each goes to the ${loanLower} until it's paid off` : ""}. Paid to him so far:{" "}
+          HST is always held back. Work orders count at {firstName}&apos;s price before HST and are paid in full.
+          {feeShare > 0
+            ? ` He gets ${feeShare}% of each leasing fee on the landlord statements (half a month's rent, before HST)${
+                partner.leasing_fees_from ? ` from ${monthLabel(partner.leasing_fees_from.slice(0, 7))} on` : ""
+              }`
+            : " Leasing fees owed to him are added here"}
+          {pct > 0 ? `, and ${pct}% of that goes to the ${loanLower} until it's paid off` : ""}. Paid to him so far:{" "}
           {money(pay.totals.paid)}.
         </p>
       </div>
@@ -131,7 +160,7 @@ export default function ContractorPay({ id }) {
           Record a payment to {firstName}
         </button>
         <button type="button" className="btn ghost" onClick={() => toggle("fee")}>
-          Add a leasing fee
+          {feeShare > 0 ? "Add a fee not on a statement" : "Add a leasing fee"}
         </button>
         {pct > 0 ? (
           <button type="button" className="btn ghost" onClick={() => toggle("loan")}>
@@ -142,14 +171,14 @@ export default function ContractorPay({ id }) {
           Adjustment
         </button>
         <button type="button" className="btn ghost" onClick={() => toggle("settings")}>
-          Loan settings
+          Settings
         </button>
       </div>
 
       {open === "payment" ? (
         <EntryForm partnerId={id} kind="payment" suggested={pay.owed} onDone={done} />
       ) : open === "fee" ? (
-        <LeasingFeeForm partnerId={id} ledger={ledger} pct={pct} loanName={loanName} onDone={done} />
+        <LeasingFeeForm partnerId={id} pct={pct} loanName={loanName} onDone={done} />
       ) : open === "loan" ? (
         <LoanForm partnerId={id} loanName={loanName} onDone={done} />
       ) : open === "adjustment" ? (
@@ -259,37 +288,11 @@ function MonthRows({ m, pct }) {
   );
 }
 
-function LeasingFeeForm({ partnerId, ledger, pct, loanName, onDone }) {
-  const [items, setItems] = useState(null);
-  const [pick, setPick] = useState("");
-  const [form, setForm] = useState({ entry_date: today(), amount: "", notes: "", property_id: null });
+function LeasingFeeForm({ partnerId, pct, loanName, onDone }) {
+  const [form, setForm] = useState({ entry_date: today(), amount: "", notes: "" });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
-  const used = new Set(ledger.map((e) => e.statement_item_id).filter(Boolean));
-
-  useEffect(() => {
-    getBrowserClient()
-      .from("statement_items")
-      .select("id, period, description, amount, property_id, property:properties(address)")
-      .eq("kind", "leasing_fee")
-      .order("period", { ascending: false })
-      .limit(60)
-      .then(({ data }) => setItems(data || []));
-  }, []);
-
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
-  const choose = (id) => {
-    setPick(id);
-    const it = (items || []).find((x) => x.id === id);
-    if (!it) return setForm((f) => ({ ...f, property_id: null }));
-    const beforeHst = Math.round((Math.abs(Number(it.amount)) / (1 + DEFAULT_HST_PERCENT / 100)) * 100) / 100;
-    setForm({
-      entry_date: it.period,
-      amount: beforeHst.toFixed(2),
-      notes: `${it.property?.address || ""}: ${feeLabel(it.description)}`,
-      property_id: it.property_id,
-    });
-  };
 
   async function save(e) {
     e.preventDefault();
@@ -299,43 +302,26 @@ function LeasingFeeForm({ partnerId, ledger, pct, loanName, onDone }) {
     setBusy(true);
     const { error } = await getBrowserClient()
       .from("partner_ledger")
-      .insert({
-        partner_id: partnerId,
-        kind: "leasing_fee",
-        entry_date: form.entry_date,
-        amount: cents(form.amount) / 100,
-        notes: form.notes.trim(),
-        property_id: form.property_id,
-        statement_item_id: pick || null,
-      });
+      .insert({ partner_id: partnerId, kind: "leasing_fee", entry_date: form.entry_date, amount: cents(form.amount) / 100, notes: form.notes.trim() });
     setBusy(false);
     if (error) return setErr("That didn't save. Try again.");
     onDone();
   }
 
-  const choices = (items || []).filter((x) => !used.has(x.id));
   return (
     <form className="boxed stack" onSubmit={save} noValidate>
       <h2 className="sec-title">Leasing Fee Owed to Him</h2>
-      <div className="field">
-        <label htmlFor="lf-pick">From a landlord statement</label>
-        <select id="lf-pick" value={pick} onChange={(e) => choose(e.target.value)} disabled={!items}>
-          <option value="">{items ? "Not from a statement (type it in)" : "Loading…"}</option>
-          {choices.map((x) => (
-            <option key={x.id} value={x.id}>
-              {x.period.slice(0, 7)} · {x.property?.address}: {feeLabel(x.description)}
-            </option>
-          ))}
-        </select>
-        <span className="small">Picking one fills in the fee before HST. Change the amount if he gets only part of it.</span>
-      </div>
+      <p className="small">
+        Only for a fee that isn&apos;t on a landlord statement. Fees on statements are counted automatically. Enter his share before
+        HST.
+      </p>
       <div className="row2">
         <div className="field">
           <label htmlFor="lf-d">Date</label>
           <input id="lf-d" type="date" value={form.entry_date} onChange={set("entry_date")} />
         </div>
         <div className="field">
-          <label htmlFor="lf-a">Owed to him, before HST (CAD)</label>
+          <label htmlFor="lf-a">His share, before HST (CAD)</label>
           <input id="lf-a" inputMode="decimal" value={form.amount} onChange={set("amount")} />
           {pct > 0 && Number(form.amount) > 0 ? (
             <span className="small">
@@ -523,17 +509,26 @@ function LoanForm({ partnerId, loanName, onDone }) {
 function LoanSettings({ partner, onDone }) {
   const [pct, setPct] = useState(String(partner.loan_share_pct ?? 0));
   const [name, setName] = useState(partner.loan_name || "");
+  const [share, setShare] = useState(String(partner.leasing_fee_share ?? 0));
+  const [from, setFrom] = useState(String(partner.leasing_fees_from || "").slice(0, 7));
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
   async function save(e) {
     e.preventDefault();
     const n = Number(pct);
-    if (!Number.isFinite(n) || n < 0 || n > 100) return setErr("Enter a percentage from 0 to 100.");
+    const sh = Number(share);
+    if (!Number.isFinite(n) || n < 0 || n > 100 || !Number.isFinite(sh) || sh < 0 || sh > 100)
+      return setErr("Enter percentages from 0 to 100.");
     setBusy(true);
     const { error } = await getBrowserClient()
       .from("partners")
-      .update({ loan_share_pct: n, loan_name: name.trim() || null })
+      .update({
+        loan_share_pct: n,
+        loan_name: name.trim() || null,
+        leasing_fee_share: sh,
+        leasing_fees_from: from ? `${from}-01` : null,
+      })
       .eq("id", partner.id);
     setBusy(false);
     if (error) return setErr("That didn't save. Try again.");
@@ -542,7 +537,18 @@ function LoanSettings({ partner, onDone }) {
 
   return (
     <form className="boxed stack" onSubmit={save} noValidate>
-      <h2 className="sec-title">Loan Settings</h2>
+      <h2 className="sec-title">Leasing Fees and Loan</h2>
+      <div className="row2">
+        <div className="field">
+          <label htmlFor="ls-s">His share of each leasing fee (%)</label>
+          <input id="ls-s" inputMode="decimal" value={share} onChange={(e) => setShare(e.target.value)} />
+          <span className="small">Of the fee before HST. Chuck and Rishi each get 50%.</span>
+        </div>
+        <div className="field">
+          <label htmlFor="ls-f">Count statement fees from</label>
+          <input id="ls-f" type="month" value={from} onChange={(e) => setFrom(e.target.value)} />
+        </div>
+      </div>
       <div className="row2">
         <div className="field">
           <label htmlFor="ls-n">Loan name</label>
