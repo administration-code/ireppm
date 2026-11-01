@@ -26,9 +26,13 @@ async function loadPayouts(month) {
   return { rows, error: failed ? "Some figures couldn't load. Refresh the page to try again." : "" };
 }
 
+// All of the month's rent is in (on time or late).
+const fullRent = (row) => cents(row.rent_expected) > 0 && cents(row.rent_outstanding) <= 0;
+
 function rentBadge(row) {
   if (row.full_by_7th) return <span className="pill cs-full">Full by the 7th</span>;
   if (cents(row.rent_expected) <= 0) return <span className="pill opt">No rent due</span>;
+  if (fullRent(row)) return <span className="pill cs-full">Paid in full</span>;
   return <span className="pill cs-partial">Waiting on rent</span>;
 }
 
@@ -45,6 +49,7 @@ function ToPay({ value }) {
 export default function PayoutsBoard({ initialMonth }) {
   const [month, setMonth] = useState(() => initialMonth || thisMonth());
   const [onlyToSend, setOnlyToSend] = useState(false);
+  const [onlyFull, setOnlyFull] = useState(false);
   const [state, setState] = useState({ loading: true, rows: [], error: "" });
 
   useEffect(() => {
@@ -61,7 +66,10 @@ export default function PayoutsBoard({ initialMonth }) {
   }, [month]);
 
   const { loading, rows, error } = state;
-  const shown = useMemo(() => (onlyToSend ? rows.filter((r) => cents(r.to_pay) > 0) : rows), [rows, onlyToSend]);
+  const shown = useMemo(
+    () => rows.filter((r) => (!onlyToSend || cents(r.to_pay) > 0) && (!onlyFull || fullRent(r))),
+    [rows, onlyToSend, onlyFull]
+  );
 
   const totals = useMemo(
     () => ({
@@ -101,6 +109,10 @@ export default function PayoutsBoard({ initialMonth }) {
         <label className="check" style={{ flex: "1 1 240px", alignSelf: "center" }}>
           <input type="checkbox" checked={onlyToSend} onChange={(e) => setOnlyToSend(e.target.checked)} />
           Only properties with money to send
+        </label>
+        <label className="check" style={{ flex: "1 1 240px", alignSelf: "center" }}>
+          <input type="checkbox" checked={onlyFull} onChange={(e) => setOnlyFull(e.target.checked)} />
+          Only properties with full rent received
         </label>
       </div>
 
