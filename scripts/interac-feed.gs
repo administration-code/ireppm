@@ -1,16 +1,48 @@
 /**
  * IRep PM — Interac e-Transfer feed.
  * Runs inside the Gmail account that receives the Interac deposit emails
- * (payment@ireppm.ca). Every 5 minutes it sends new "deposited" e-Transfers to
+ * (ireppm@ireprealty.com: Interac sends the "Funds Deposited" notices for
+ * payment@ireppm.ca there). Every 5 minutes it sends new deposits to
  * https://ireppm.ca/api/payments/interac, where they're matched to tenants.
  *
- * Setup (once): script.google.com → New project → paste this file → set SECRET
- * (same value as PAYMENTS_WEBHOOK_SECRET in Vercel) → Run "setup" → allow access.
- * Safe to re-run: the website ignores an e-Transfer it has already recorded.
+ * Setup (once, signed in to Google as ireppm@ireprealty.com):
+ *  1. script.google.com → New project → paste this whole file → Save.
+ *  2. Project Settings (gear) → Script Properties → Add property:
+ *       Property: SECRET    Value: the same value as PAYMENTS_WEBHOOK_SECRET in Vercel
+ *  3. Back in the editor, pick "testConnection" → Run → allow access.
+ *     The log should say "Connected". If it says 401, the SECRET doesn't match Vercel.
+ *  4. Pick "setup" → Run. This starts the 5-minute check and sends the backlog.
+ * Safe to re-run: the website ignores an e-Transfer it has already recorded, and
+ * links one staff already entered by hand (same amount, within two days).
  */
 const ENDPOINT = 'https://ireppm.ca/api/payments/interac';
-const SECRET = 'PASTE_SECRET_HERE';
-const START_DATE = '2026/10/15'; // e-Transfers before this were imported from the tracker
+const START_DATE = '2026/10/19'; // e-Transfers before this are already in the website
+
+function secret_() {
+  const s = PropertiesService.getScriptProperties().getProperty('SECRET');
+  if (!s) throw new Error('Add the SECRET script property first (Project Settings → Script Properties).');
+  return s;
+}
+
+function post_(payload) {
+  return UrlFetchApp.fetch(ENDPOINT, {
+    method: 'post',
+    contentType: 'application/json',
+    headers: { 'x-payments-secret': secret_() },
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true,
+  });
+}
+
+function testConnection() {
+  const res = post_({ ping: true });
+  const code = res.getResponseCode();
+  if (code === 200) console.log('Connected: the website accepted the secret.');
+  else if (code === 401) console.error('401: the SECRET script property does not match PAYMENTS_WEBHOOK_SECRET in Vercel.');
+  else console.error('Unexpected ' + code + ': ' + res.getContentText().slice(0, 200));
+  const n = GmailApp.search('from:notify@payments.interac.ca deposited after:' + START_DATE, 0, 100).length;
+  console.log('Interac deposit emails found in this mailbox since ' + START_DATE + ': ' + n);
+}
 
 function setup() {
   ScriptApp.getProjectTriggers().forEach((t) => ScriptApp.deleteTrigger(t));
@@ -21,9 +53,10 @@ function setup() {
 function checkInterac() {
   const props = PropertiesService.getScriptProperties();
   const done = new Set(JSON.parse(props.getProperty('done') || '[]'));
-  const query = 'from:notify@payments.interac.ca deposited after:' + START_DATE + ' newer_than:14d';
-  const threads = GmailApp.search(query, 0, 100);
+  const query = 'from:notify@payments.interac.ca deposited after:' + START_DATE + ' newer_than:60d';
+  const threads = GmailApp.search(query, 0, 200);
   const sent = [];
+  let failed = 0;
 
   threads.forEach((thread) => {
     thread.getMessages().forEach((msg) => {
@@ -31,20 +64,15 @@ function checkInterac() {
       if (done.has(id)) return;
       const p = parseInterac(msg);
       if (!p) { done.add(id); return; } // not a deposit notice
-      const res = UrlFetchApp.fetch(ENDPOINT, {
-        method: 'post',
-        contentType: 'application/json',
-        headers: { 'x-payments-secret': SECRET },
-        payload: JSON.stringify(p),
-        muteHttpExceptions: true,
-      });
+      const res = post_(p);
       if (res.getResponseCode() === 200) { done.add(id); sent.push(p.reference); }
-      else console.warn('Failed ' + id + ': ' + res.getResponseCode() + ' ' + res.getContentText().slice(0, 200));
+      else { failed++; console.warn('Failed ' + id + ': ' + res.getResponseCode() + ' ' + res.getContentText().slice(0, 200)); }
     });
   });
 
   props.setProperty('done', JSON.stringify(Array.from(done).slice(-2000)));
   if (sent.length) console.log('Sent ' + sent.length + ': ' + sent.join(', '));
+  if (failed) throw new Error(failed + ' e-Transfer(s) could not be sent; see the log above.'); // Google emails you on failures
 }
 
 function parseInterac(msg) {

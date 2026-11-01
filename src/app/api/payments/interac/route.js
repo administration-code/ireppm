@@ -85,6 +85,9 @@ export async function POST(request) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
+  // Connection test from the Apps Script ("testConnection"): the secret matched.
+  if (body?.ping) return NextResponse.json({ ok: true, ping: true });
+
   const amount = Math.round(Number(body?.amount) * 100) / 100;
   const reference = clip(body?.reference, 100);
   if (!Number.isFinite(amount) || amount <= 0 || amount > 100000) {
@@ -96,6 +99,28 @@ export async function POST(request) {
 
   const receivedOn = torontoDate(body.received_at);
   const sb = getSupabaseAdmin();
+
+  // Staff may already have recorded this e-Transfer by hand (no reference number).
+  // If a hand-entered e-Transfer has the same amount within two days, attach the
+  // reference to it instead of adding a second payment.
+  const day = 24 * 60 * 60 * 1000;
+  const from = new Date(Date.parse(receivedOn) - 2 * day).toISOString().slice(0, 10);
+  const to = new Date(Date.parse(receivedOn) + 2 * day).toISOString().slice(0, 10);
+  const { data: manual } = await sb
+    .from("payments")
+    .select("id, memo")
+    .eq("method", "etransfer")
+    .eq("amount", amount)
+    .is("reference", null)
+    .gte("received_on", from)
+    .lte("received_on", to)
+    .order("received_on")
+    .limit(1);
+  if (manual?.length) {
+    const { error: linkErr } = await sb.from("payments").update({ reference }).eq("id", manual[0].id);
+    if (!linkErr || linkErr.code === "23505") return NextResponse.json({ ok: true, duplicate: true, linked: manual[0].id });
+    console.error("[interac] linking to hand-entered payment failed:", linkErr.message);
+  }
   const { data: payment, error } = await sb
     .from("payments")
     .insert({
