@@ -47,6 +47,9 @@ export default function PartnerEditor({ id }) {
         </Link>
         <span className="eyebrow">Staff · Partner</span>
         <h1 className="admin-title">{partner.name}</h1>
+        <Link className="btn ghost sm" href={`/admin/partners/${partner.id}/pay`}>
+          Pay and leasing fees
+        </Link>
       </div>
       <PartnerForm partner={partner} onSaved={(p) => setState((s) => ({ ...s, partner: p }))} />
       <PartnerProperties partnerId={partner.id} />

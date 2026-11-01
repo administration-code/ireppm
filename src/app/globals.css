@@ -1221,3 +1221,5 @@ a[href^="tel:"] { white-space: nowrap; }
 @media (max-width: 759px) { .signer-row { grid-template-columns: 1fr; } }
 .unit-card .unit-remove { margin-left: auto; align-self: center; }
 .pill.us-leased { background: var(--ok-bg); color: var(--ok); }
+.linkish { background: none; border: 0; padding: 0; font: inherit; font-weight: 600; color: inherit; cursor: pointer; text-align: left; }
+.linkish:hover { text-decoration: underline; }

@@ -45,6 +45,7 @@ function toForm(r) {
     estimated_cost: text(r.estimated_cost),
     estimate_plus_hst: Boolean(r.estimate_plus_hst),
     actual_cost: text(r.actual_cost),
+    partner_pay: text(r.partner_pay),
     owner_approval: r.owner_approval || "not_needed",
     charge_to: r.charge_to || "owner",
     entry_notice_served_at: toLocalInput(r.entry_notice_served_at),
@@ -63,6 +64,7 @@ function toRow(f) {
     estimated_cost: dollarsOrNull(f.estimated_cost),
     estimate_plus_hst: Boolean(f.estimate_plus_hst),
     actual_cost: dollarsOrNull(f.actual_cost),
+    partner_pay: f.partner_id ? dollarsOrNull(f.partner_pay) : null,
     owner_approval: f.owner_approval,
     charge_to: f.charge_to,
     entry_notice_served_at: fromLocalInput(f.entry_notice_served_at),
@@ -205,7 +207,9 @@ export default function MaintenanceEditor({ id }) {
   async function save(e) {
     e.preventDefault();
     const problem =
-      checkDollars(form.estimated_cost, "The estimated cost") || checkDollars(form.actual_cost, "The actual cost");
+      checkDollars(form.estimated_cost, "The estimated cost") ||
+      checkDollars(form.actual_cost, "The actual cost") ||
+      checkDollars(form.partner_pay, "The partner's price");
     if (problem) return setMsg({ kind: "err", text: problem });
     setSaving(true);
     const { data, error: saveError } = await getBrowserClient()
@@ -633,6 +637,32 @@ export default function MaintenanceEditor({ id }) {
               />
               + HST
             </label>
+            {form.partner_id ? (
+              <div className="field">
+                <label htmlFor="m-ppay">Partner&apos;s price, before HST (CAD)</label>
+                <input
+                  id="m-ppay"
+                  inputMode="decimal"
+                  value={form.partner_pay}
+                  aria-describedby="m-ppay-hint"
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setForm((f) => {
+                      const billed = (p) =>
+                        Number(p) > 0
+                          ? (f.charge_to === "irep" ? Number(p) : Math.round(Number(p) * (100 + DEFAULT_HST_PERCENT)) / 100).toFixed(2)
+                          : "";
+                      const auto = !f.actual_cost || f.actual_cost === billed(f.partner_pay);
+                      return { ...f, partner_pay: v, actual_cost: auto ? billed(v) : f.actual_cost };
+                    });
+                    setMsg({ kind: "", text: "" });
+                  }}
+                />
+                <span className="small" id="m-ppay-hint">
+                  What we pay them (HST held back). Fills in the actual cost with HST added.
+                </span>
+              </div>
+            ) : null}
             <div className="field">
               <label htmlFor="m-act">Actual cost (CAD)</label>
               <input id="m-act" inputMode="decimal" value={form.actual_cost} onChange={update("actual_cost")} />
