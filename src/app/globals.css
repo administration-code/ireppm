@@ -629,7 +629,7 @@ label.btn[aria-disabled="true"] { opacity: .6; cursor: progress; }
 .letter-summary > .letter-strong { border-bottom: 0; border-top: 2px solid #161616; }
 .letter-totals { margin-top: 32px; max-width: none; padding-top: 16px; border-top: 2px solid #B41710; }
 .letter-glance { margin-top: 8px; }
-.letter-glance tfoot th, .letter-glance tfoot td { font-weight: 700; border-top: 2px solid #161616; border-bottom: 0; }
+.letter-glance tfoot th, .letter-glance tfoot td { font-weight: 700; font-size: inherit; color: inherit; border-top: 2px solid #161616; border-bottom: 0; }
 @media print {
   @page { size: letter; margin: 14mm 14mm 16mm; }
   .letter.receipt { font-size: 10.5pt; }
