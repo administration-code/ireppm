@@ -95,6 +95,25 @@ export default function MatchPayments() {
   );
 }
 
+// The first month from `month` on that this tenancy hasn't fully paid (up to 3 months ahead),
+// so early rent from a tenant who already paid this month goes to next month.
+async function firstUnpaidMonth(tenancyId, month) {
+  const { data } = await getBrowserClient()
+    .from("rent_collection")
+    .select("period, outstanding")
+    .eq("tenancy_id", tenancyId)
+    .gte("period", `${month}-01`)
+    .order("period")
+    .limit(4);
+  const paid = new Set((data || []).filter((r) => cents(r.outstanding) <= 0).map((r) => String(r.period).slice(0, 7)));
+  let m = month;
+  for (let i = 0; i < 3 && paid.has(m); i++) {
+    const [y, mo] = m.split("-").map(Number);
+    m = mo === 12 ? `${y + 1}-01` : `${y}-${String(mo + 1).padStart(2, "0")}`;
+  }
+  return m;
+}
+
 const newSplitRow = (month) => ({ key: Math.random().toString(36).slice(2), tenancyId: "", amount: "", month });
 
 function MatchCard({ payment, tenancies, onDone }) {
@@ -103,6 +122,8 @@ function MatchCard({ payment, tenancies, onDone }) {
   const [mode, setMode] = useState("");
   const [tenancyId, setTenancyId] = useState("");
   const [month, setMonth] = useState(defaultMonth);
+  const [monthTouched, setMonthTouched] = useState(false);
+  const [monthNote, setMonthNote] = useState("");
   const [kind, setKind] = useState(payment.kind || "rent");
   const [note, setNote] = useState("");
   const [rows, setRows] = useState(() => [newSplitRow(defaultMonth)]);
@@ -129,10 +150,19 @@ function MatchCard({ payment, tenancies, onDone }) {
     if (!id) return setError("Choose the tenancy this payment is for.");
     if (!month && kind === "rent") return setError("Choose the rent month this pays for.");
     const t = tenancies.find((x) => x.id === id);
-    return run(
-      () => savePayment(payment.id, { tenancy_id: id, kind, period: periodOf(month) }),
-      `Matched ${describe} to ${t ? primaryTenant(t) : "the tenancy"}.`
-    );
+    return run(async () => {
+      const m = kind === "rent" && !monthTouched ? await firstUnpaidMonth(id, month) : month;
+      await savePayment(payment.id, { tenancy_id: id, kind, period: periodOf(m) });
+    }, `Matched ${describe} to ${t ? primaryTenant(t) : "the tenancy"}.`);
+  };
+
+  const pickTenancy = async (id) => {
+    setTenancyId(id);
+    setMonthNote("");
+    if (!id || kind !== "rent" || monthTouched) return;
+    const m = await firstUnpaidMonth(id, defaultMonth);
+    setMonth(m);
+    if (m !== defaultMonth) setMonthNote(`${defaultMonth} is already paid, so this goes toward ${m}.`);
   };
 
   const ignore = (e) => {
@@ -219,7 +249,7 @@ function MatchCard({ payment, tenancies, onDone }) {
 
       {mode === "" ? (
         <div className="stack">
-          <TenancyPicker id={`t-${payment.id}`} tenancies={tenancies} value={tenancyId} onChange={setTenancyId} />
+          <TenancyPicker id={`t-${payment.id}`} tenancies={tenancies} value={tenancyId} onChange={pickTenancy} />
           <div className="row2">
             <div className="field">
               <label htmlFor={`k-${payment.id}`}>What it&apos;s for</label>
@@ -233,7 +263,17 @@ function MatchCard({ payment, tenancies, onDone }) {
             </div>
             <div className="field">
               <label htmlFor={`m-${payment.id}`}>Rent month</label>
-              <input id={`m-${payment.id}`} type="month" value={month} onChange={(e) => setMonth(e.target.value)} />
+              <input
+                id={`m-${payment.id}`}
+                type="month"
+                value={month}
+                onChange={(e) => {
+                  setMonth(e.target.value);
+                  setMonthTouched(true);
+                  setMonthNote("");
+                }}
+              />
+              {monthNote ? <span className="small">{monthNote}</span> : null}
             </div>
           </div>
           <div className="req-actions">
