@@ -303,38 +303,89 @@ export default function OwnerLetter({ letter }) {
 
       {letter?.staff_note?.trim() ? <p className="letter-staff-note pre-line">{letter.staff_note.trim()}</p> : null}
 
+      {properties.length > 1 ? <AtAGlance properties={properties} totals={totals} /> : null}
+
       {properties.length ? (
         properties.map((p) => <PropertyBlock key={p.property_id} p={p} />)
       ) : (
         <p className="small">No properties on this statement.</p>
       )}
 
-      {properties.length > 1 ? (
-        <dl className="letter-summary letter-totals">
-          <div className="letter-strong">
-            <dt>All properties: net to you</dt>
-            <dd className="num">{money(totals.net)}</dd>
-          </div>
-          <div>
-            <dt>Paid to you</dt>
-            <dd className="num">{money(totals.paid)}</dd>
-          </div>
-          <div className="letter-strong">
-            <dt>Balance</dt>
-            <dd className="num">{signedMoney(totals.balance)}</dd>
-          </div>
-        </dl>
-      ) : null}
-
       <p className="receipt-note">Questions? Reply to this email or call {SITE.phone}.</p>
     </article>
   );
 }
 
-export function PrintButton() {
+// Owner statement overview: one line per property, so page 1 shows the whole month.
+function AtAGlance({ properties, totals }) {
+  const balanceText = (c) => (c === 0 ? "Paid in full" : c < 0 ? `Overpaid ${money(Math.abs(c) / 100)}` : `${money(c / 100)} to come`);
   return (
-    <button type="button" className="btn primary sm" onClick={() => window.print()}>
-      Print / Save as PDF
-    </button>
+    <section className="letter-section letter-glance" aria-label="All properties at a glance">
+      <h3 className="letter-h3">At a Glance</h3>
+      <table className="letter-table">
+        <thead>
+          <tr>
+            <th scope="col">Property</th>
+            <th scope="col" className="r">
+              Rent collected
+            </th>
+            <th scope="col" className="r">
+              Net to you
+            </th>
+            <th scope="col" className="r">
+              Paid to you
+            </th>
+            <th scope="col" className="r">
+              Balance
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {properties.map((p) => {
+            const s = p.statement;
+            return (
+              <tr key={p.property_id}>
+                <td>{p.address}</td>
+                <td className="r num">{s ? money(s.rent_collected) : "—"}</td>
+                <td className="r num">{s ? money(s.net_due) : "—"}</td>
+                <td className="r num">{s ? money(s.paid_out) : "—"}</td>
+                <td className="r num">{s ? balanceText(cents(s.to_pay)) : "—"}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+        <tfoot>
+          <tr className="letter-strong">
+            <th scope="row">All properties</th>
+            <td className="r num">{money(totals.collected)}</td>
+            <td className="r num">{money(totals.net)}</td>
+            <td className="r num">{money(totals.paid)}</td>
+            <td className="r num">{balanceText(cents(totals.balance))}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </section>
+  );
+}
+
+// Names the PDF after the owner and month ("Print to PDF" uses the page title as the file name).
+export function PrintButton() {
+  function print() {
+    const old = document.title;
+    const owner = document.querySelector(".letter .letter-meta b")?.textContent?.trim();
+    const title = document.querySelector(".letter .receipt-title")?.textContent?.split("—")[1]?.trim();
+    if (owner || title) document.title = [owner, title, "statement"].filter(Boolean).join(" - ");
+    window.print();
+    setTimeout(() => {
+      document.title = old;
+    }, 1000);
+  }
+  return (
+    <span className="stack" style={{ gap: 4 }}>
+      <button type="button" className="btn primary sm" onClick={print}>
+        Print / Save as PDF
+      </button>
+      <span className="small">In the print window, untick &ldquo;Headers and footers&rdquo; for a clean copy.</span>
+    </span>
   );
 }

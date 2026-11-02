@@ -611,7 +611,7 @@ label.btn[aria-disabled="true"] { opacity: .6; cursor: progress; }
 
 .letter-meta { display: flex; flex-wrap: wrap; gap: 6px 24px; margin-top: 16px; font-size: .875rem; color: #555; }
 .letter-staff-note { margin: 0 0 24px; padding: 14px 16px; background: #F7F4EE; border-left: 3px solid #B41710; font-size: .9375rem; }
-.letter-property { margin-top: 32px; padding-top: 24px; border-top: 1px solid #e3ded4; break-inside: avoid-page; }
+.letter-property { margin-top: 32px; padding-top: 24px; border-top: 1px solid #e3ded4; }
 .letter-h2 { font-family: var(--font-display, "Cormorant Garamond", serif); font-size: 1.5rem; margin: 0 0 12px; }
 .letter-section { margin-top: 20px; }
 .letter-h3 { font-size: .75rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #555; margin: 0 0 8px; }
@@ -628,6 +628,22 @@ label.btn[aria-disabled="true"] { opacity: .6; cursor: progress; }
 .letter-strong { font-weight: 700; }
 .letter-summary > .letter-strong { border-bottom: 0; border-top: 2px solid #161616; }
 .letter-totals { margin-top: 32px; max-width: none; padding-top: 16px; border-top: 2px solid #B41710; }
+.letter-glance { margin-top: 8px; }
+.letter-glance tfoot th, .letter-glance tfoot td { font-weight: 700; border-top: 2px solid #161616; border-bottom: 0; }
+@media print {
+  @page { size: letter; margin: 14mm 14mm 16mm; }
+  .letter.receipt { font-size: 10.5pt; }
+  .letter .receipt-head { padding-bottom: 12px; }
+  .letter .receipt-title { font-size: 20pt; margin: 14px 0 8px; }
+  .letter-property { margin-top: 18px; padding-top: 14px; }
+  .letter-h2, .letter-h3 { break-after: avoid-page; }
+  .letter-summary, .letter-glance, .letter-table tr { break-inside: avoid-page; }
+  .letter-section { break-inside: auto; }
+  .letter-table th, .letter-table td { padding: 5px 6px; }
+  .letter-summary > div { padding: 4px 0; }
+  .letter .receipt-note { break-before: avoid-page; margin-top: 16px; }
+  .letter-property, .letter-glance { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
 
 .letter-list { list-style: none; margin: 0; padding: 0; display: grid; }
 .letter-list li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; padding: 12px 0; border-bottom: 1px solid var(--line); }
