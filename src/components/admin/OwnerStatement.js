@@ -11,6 +11,7 @@ import { ITEM_KIND_LABEL, PAYOUT_METHOD_LABEL, nextPeriodStart, signedMoney, toP
 import StatementItemForm from "./StatementItemForm";
 import PayoutForm from "./PayoutForm";
 import LeasingFeeHelper from "./LeasingFeeHelper";
+import { HoldRentForm, OpenHolds } from "./RentHolds";
 import ClearedTag, { useClearing } from "./accounting/ClearedTag";
 import { lockedMessage } from "@/lib/accounting";
 
@@ -160,6 +161,7 @@ export default function OwnerStatement({ propertyId, period }) {
   const [state, setState] = useState({ loading: true });
   const [editingItem, setEditingItem] = useState(null);
   const [editingPayout, setEditingPayout] = useState(null);
+  const [holdKey, setHoldKey] = useState(0);
   const [actionError, setActionError] = useState("");
   const clearing = useClearing({ payoutIds: (state.payouts || []).map((p) => p.id) });
 
@@ -361,13 +363,41 @@ export default function OwnerStatement({ propertyId, period }) {
                 {items.map((i) => (
                   <tr key={i.id} className={editingItem?.id === i.id ? "editing-row" : undefined}>
                     <td>{ITEM_KIND_LABEL[i.kind] || "Other"}</td>
-                    <td>{i.description}</td>
+                    <td>
+                      {i.description}
+                      {i.kind === "rent_hold" && i.hold_status === "settled" ? (
+                        <span className="small sub-line">
+                          Settled{cents(i.refunded_amount) > 0 ? `: ${money(i.refunded_amount)} refunded to the tenant` : ""}
+                          {i.settle_note ? ` · ${i.settle_note}` : ""}
+                        </span>
+                      ) : null}
+                    </td>
                     <td className="r num">{signedMoney(i.amount)}</td>
-                    <RowActions
-                      label={i.description}
-                      onEdit={() => setEditingItem(i)}
-                      onDelete={() => remove("statement_items", i.id, "item")}
-                    />
+                    {i.kind === "rent_hold" ? (
+                      <td className="r no-print stmt-actions">
+                        {i.hold_status === "held" ? (
+                          <a className="link-btn" href="#sec-hold">
+                            Settle
+                          </a>
+                        ) : null}
+                        {i.hold_status !== "settled" ? (
+                          <button
+                            type="button"
+                            className="link-btn danger"
+                            onClick={() => remove("statement_items", i.id, i.hold_of ? "release" : "hold")}
+                            aria-label={`Delete ${i.description}`}
+                          >
+                            Delete
+                          </button>
+                        ) : null}
+                      </td>
+                    ) : (
+                      <RowActions
+                        label={i.description}
+                        onEdit={() => setEditingItem(i)}
+                        onDelete={() => remove("statement_items", i.id, "item")}
+                      />
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -454,6 +484,22 @@ export default function OwnerStatement({ propertyId, period }) {
           onCancel={editingItem ? () => setEditingItem(null) : null}
           onSaved={() => {
             setEditingItem(null);
+            reload();
+          }}
+        />
+      </section>
+
+      <section className="boxed stack no-print" aria-labelledby="sec-hold">
+        <h2 id="sec-hold" className="sec-title">
+          Hold Rent
+        </h2>
+        <OpenHolds propertyId={property.id} refreshKey={holdKey} onChanged={reload} />
+        <HoldRentForm
+          propertyId={property.id}
+          period={period}
+          rentRows={rentRows}
+          onSaved={() => {
+            setHoldKey((k) => k + 1);
             reload();
           }}
         />

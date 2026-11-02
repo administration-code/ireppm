@@ -7,6 +7,7 @@ export const ITEM_KIND_LABEL = {
   fee_adjustment: "Fee adjustment",
   carryover: "Carry-over",
   other: "Other",
+  rent_hold: "Rent held",
 };
 
 // Staff type a positive number for these and it's saved as a deduction.

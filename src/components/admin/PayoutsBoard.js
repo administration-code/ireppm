@@ -1,6 +1,7 @@
 "use client";
 
 import PayoutReminders from "./PayoutReminders";
+import { HoldsBanner } from "./RentHolds";
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -100,6 +101,7 @@ export default function PayoutsBoard({ initialMonth }) {
       </RentHead>
 
       <PayoutReminders />
+      <HoldsBanner />
 
       <div className="filters">
         <div className="field" style={{ flex: "0 1 220px" }}>

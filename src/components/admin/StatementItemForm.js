@@ -55,7 +55,9 @@ export default function StatementItemForm({ propertyId, period, item, onSaved, o
         <div className="field">
           <label htmlFor={`${id}-kind`}>Kind</label>
           <select id={`${id}-kind`} value={form.kind} onChange={set("kind")}>
-            {Object.entries(ITEM_KIND_LABEL).map(([k, v]) => (
+            {Object.entries(ITEM_KIND_LABEL)
+              .filter(([k]) => k !== "rent_hold" || form.kind === "rent_hold")
+              .map(([k, v]) => (
               <option key={k} value={k}>
                 {v}
               </option>
