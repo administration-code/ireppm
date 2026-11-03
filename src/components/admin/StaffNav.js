@@ -358,9 +358,10 @@ function under(path, prefix) {
   return path === prefix || path.startsWith(`${prefix}/`);
 }
 
-function activeFor(pathname, tab) {
+function activeFor(pathname, tab, forWhom) {
   const path = (pathname || "/admin").replace(/\/$/, "") || "/admin";
   if (path === "/admin") return "dashboard";
+  if (under(path, "/admin/signatures")) return forWhom === "landlords" ? "contract-signatures" : "signatures";
   if (under(path, "/admin/requests")) return REQUEST_TABS.includes(tab) ? tab : "showings";
   let best = { key: null, length: 0 };
   const consider = (prefix, key) => {
@@ -404,7 +405,7 @@ function NavBody({ active, c }) {
 
 function NavWithTab({ pathname, c }) {
   const params = useSearchParams();
-  return <NavBody active={activeFor(pathname, params.get("tab"))} c={c} />;
+  return <NavBody active={activeFor(pathname, params.get("tab"), params.get("for"))} c={c} />;
 }
 
 // Rendered once in the admin layout. Hidden until we know the visitor is staff.
