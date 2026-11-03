@@ -7,7 +7,7 @@ export default async function StaffWorkOrderInvoicePage({ params }) {
   const { id } = await params;
   return (
     <StaffGate>
-      <WorkOrderInvoice id={id} backHref={`/admin/maintenance/${id}`} backLabel="Back to the work order" />
+      <WorkOrderInvoice id={id} backHref={`/admin/maintenance/${id}`} backLabel="Back to the work order" staff />
     </StaffGate>
   );
 }

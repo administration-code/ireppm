@@ -13,7 +13,110 @@ import { invoiceNumber } from "@/lib/work-order-invoice";
 const qty = (n) => (Number(n) % 1 === 0 ? String(Number(n)) : Number(n).toFixed(2));
 
 // Printable itemized invoice for one work order (staff, or the landlord who owns the property).
-export default function WorkOrderInvoice({ id, backHref, backLabel }) {
+async function bearer() {
+  const { data } = await getBrowserClient().auth.getSession();
+  return data?.session?.access_token || "";
+}
+
+// Staff only: email this invoice to the property's owner.
+function EmailInvoice({ id, hasLines }) {
+  const [owner, setOwner] = useState(null);
+  const [open, setOpen] = useState(false);
+  const [message, setMessage] = useState("");
+  const [ccOffice, setCcOffice] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState({ kind: "", text: "" });
+
+  useEffect(() => {
+    getBrowserClient()
+      .from("maintenance_requests")
+      .select("staff_notes, unit:units(property:properties(owner:owners(name, email)))")
+      .eq("id", id)
+      .maybeSingle()
+      .then(({ data }) => {
+        const o = data?.unit?.property?.owner || {};
+        const last = String(data?.staff_notes || "")
+          .split("\n")
+          .filter((l) => l.startsWith("Invoice emailed to"))
+          .pop();
+        setOwner({ name: o.name || "", email: o.email || "", last: last || "" });
+      });
+  }, [id]);
+
+  async function send() {
+    setBusy(true);
+    setResult({ kind: "", text: "" });
+    const res = await fetch(`/api/work-orders/${id}/email`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${await bearer()}` },
+      body: JSON.stringify({ message, cc_office: ccOffice }),
+    });
+    const json = await res.json().catch(() => ({}));
+    setBusy(false);
+    if (!res.ok) return setResult({ kind: "err", text: json.error || "The email didn't send. Try again." });
+    setOpen(false);
+    setOwner((o) => ({ ...o, last: json.stamp }));
+    setResult({ kind: "ok", text: `Sent to ${json.to}.` });
+  }
+
+  if (!owner) return null;
+  return (
+    <div className="boxed stack no-print" style={{ gap: 10 }}>
+      <div className="req-actions" style={{ justifyContent: "space-between" }}>
+        <span className="small">
+          {owner.email ? (
+            <>
+              Landlord: <b>{owner.name || "Owner"}</b> · {owner.email}
+            </>
+          ) : (
+            "This landlord has no email on file. Add one on the owner's page first."
+          )}
+          {owner.last ? <span className="sub-line">{owner.last}</span> : null}
+        </span>
+        {owner.email && !open ? (
+          <button type="button" className="btn primary sm" onClick={() => setOpen(true)} disabled={!hasLines}>
+            Email to landlord
+          </button>
+        ) : null}
+      </div>
+      {!hasLines ? <span className="small">Save the invoice lines on the work order before emailing it.</span> : null}
+      {open ? (
+        <div className="stack" style={{ gap: 8 }}>
+          <div className="field">
+            <label htmlFor="inv-msg">Message (optional)</label>
+            <textarea
+              id="inv-msg"
+              rows={3}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder={`Hi ${owner.name || ""}, here is the invoice for the work Chuck completed…`}
+            />
+            <span className="small">Leave blank for a short standard note. The full itemized invoice is in the email.</span>
+          </div>
+          <label className="check-line">
+            <input type="checkbox" checked={ccOffice} onChange={(e) => setCcOffice(e.target.checked)} />
+            Send a copy to {SITE.email}
+          </label>
+          <div className="req-actions">
+            <button type="button" className="btn primary sm" onClick={send} disabled={busy}>
+              {busy ? "Sending…" : `Send to ${owner.email}`}
+            </button>
+            <button type="button" className="btn ghost sm" onClick={() => setOpen(false)} disabled={busy}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : null}
+      {result.text ? (
+        <div className={result.kind === "err" ? "warnbox" : "okbox"} role={result.kind === "err" ? "alert" : "status"}>
+          {result.text}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export default function WorkOrderInvoice({ id, backHref, backLabel, staff = false }) {
   const [state, setState] = useState({ loading: true, inv: null, error: "" });
 
   useEffect(() => {
@@ -63,6 +166,8 @@ export default function WorkOrderInvoice({ id, backHref, backLabel }) {
           </button>
         </div>
       </div>
+
+      {staff ? <EmailInvoice id={id} hasLines={lines.length > 0} /> : null}
 
       <article className="receipt letter invoice" aria-label={`Invoice ${invoiceNumber(inv.invoice_no)}`}>
         <header className="receipt-head">
