@@ -26,6 +26,7 @@ import {
 import { MaintenancePills } from "./MaintenanceBadges";
 import { partnerName } from "./MaintenanceTable";
 import ReporterEditor from "./ReporterEditor";
+import WorkOrderInvoiceEditor from "./WorkOrderInvoiceEditor";
 import PhotoPicker, { uploadPhotos } from "./PhotoPicker";
 import { specialKind } from "@/lib/maintenance-units";
 
@@ -747,6 +748,13 @@ export default function MaintenanceEditor({ id }) {
           ) : null}
         </div>
       </form>
+
+      <section className="boxed stack" aria-labelledby="sec-m-invoice">
+        <h2 id="sec-m-invoice" className="sec-title">
+          Invoice
+        </h2>
+        <WorkOrderInvoiceEditor key={request.id} request={request} onSaved={applySaved} />
+      </section>
 
       <section className="boxed stack" aria-labelledby="sec-m-remove">
         <h2 id="sec-m-remove" className="sec-title">

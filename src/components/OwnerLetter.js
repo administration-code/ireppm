@@ -120,7 +120,7 @@ function Summary({ s, items, payouts }) {
   );
 }
 
-function PropertyBlock({ p }) {
+function PropertyBlock({ p, invoiceHref }) {
   const rent = list(p.rent);
   const arrears = list(p.arrears);
   const notices = list(p.notices);
@@ -242,7 +242,11 @@ function PropertyBlock({ p }) {
               key: i,
               cells: [
                 w.unit || "—",
-                w.title,
+                w.id && invoiceHref && w.charge_to === "owner" && w.cost != null ? (
+                  <a href={invoiceHref(w.id)}>{w.title}</a>
+                ) : (
+                  w.title
+                ),
                 WORK_STATUS[w.status] || w.status,
                 w.completed_on ? shortDate(w.completed_on) : "—",
                 w.charge_to === "owner" && w.cost != null
@@ -265,7 +269,7 @@ function PropertyBlock({ p }) {
   );
 }
 
-export default function OwnerLetter({ letter }) {
+export default function OwnerLetter({ letter, invoiceHref }) {
   const data = letter?.data || {};
   const properties = letterProperties(letter);
   const totals = letterTotals(letter);
@@ -306,7 +310,7 @@ export default function OwnerLetter({ letter }) {
       {properties.length > 1 ? <AtAGlance properties={properties} totals={totals} /> : null}
 
       {properties.length ? (
-        properties.map((p) => <PropertyBlock key={p.property_id} p={p} />)
+        properties.map((p) => <PropertyBlock key={p.property_id} p={p} invoiceHref={invoiceHref} />)
       ) : (
         <p className="small">No properties on this statement.</p>
       )}

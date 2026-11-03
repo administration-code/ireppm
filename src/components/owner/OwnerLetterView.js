@@ -57,7 +57,7 @@ export default function OwnerLetterView({ id }) {
         </Link>
         <PrintButton />
       </div>
-      <OwnerLetter letter={letter} />
+      <OwnerLetter letter={letter} invoiceHref={(id) => `/owner/work-orders/${id}`} />
     </div>
   );
 }

@@ -169,7 +169,7 @@ export default function LetterEditor({ id }) {
         ) : null}
       </div>
 
-      <OwnerLetter letter={{ ...letter, staff_note: isDraft ? note : letter.staff_note }} />
+      <OwnerLetter letter={{ ...letter, staff_note: isDraft ? note : letter.staff_note }} invoiceHref={(id) => `/admin/maintenance/${id}/invoice`} />
     </div>
   );
 }

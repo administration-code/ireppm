@@ -1239,3 +1239,14 @@ a[href^="tel:"] { white-space: nowrap; }
 .pill.us-leased { background: var(--ok-bg); color: var(--ok); }
 .linkish { background: none; border: 0; padding: 0; font: inherit; font-weight: 600; color: inherit; cursor: pointer; text-align: left; }
 .linkish:hover { text-decoration: underline; }
+
+/* Work-order invoices */
+.invoice-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px 32px; margin: 4px 0 8px; }
+.invoice-meta dl { margin: 0; display: grid; gap: 8px; }
+.invoice-meta dt { font-size: .75rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #555; }
+.invoice-meta dd { margin: 2px 0 0; }
+.invoice-meta .sub-line { display: block; color: #555; font-size: .875rem; }
+.invoice-lines { margin-top: 16px; }
+.invoice-lines .sub-line { display: block; }
+.invoice-totals { max-width: 340px; margin-left: auto; }
+.invoice-edit .cell-input { width: 100%; }
