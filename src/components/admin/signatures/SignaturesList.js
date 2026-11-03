@@ -8,9 +8,17 @@ import DeleteRecord from "@/components/admin/DeleteRecord";
 import { canDeleteSignature, deleteSignatureRequest } from "@/lib/delete-records";
 import { SIG_FILTERS, SIG_KIND, kindLabel, SIG_LIST_SELECT, docusignApi, outTo, shortDate } from "@/lib/signatures";
 
+const LANDLORD_KINDS = ["pm_contract"];
+
 export default function SignaturesList() {
   const [filter, setFilter] = useState("awaiting");
   const [kind, setKind] = useState("");
+  // Who the documents are for: tenants (leases, notices, consents) or landlords (management contracts).
+  const [side, setSide] = useState("");
+  useEffect(() => {
+    const f = new URLSearchParams(window.location.search).get("for");
+    if (f === "landlords" || f === "tenants") setSide(f);
+  }, []);
   const [rows, setRows] = useState(null);
   const [error, setError] = useState("");
   const [syncing, setSyncing] = useState(false);
@@ -58,6 +66,8 @@ export default function SignaturesList() {
       .order("created_at", { ascending: false })
       .limit(200);
     if (kind) q = q.eq("kind", kind);
+    else if (side === "landlords") q = q.in("kind", LANDLORD_KINDS);
+    else if (side === "tenants") q = q.not("kind", "in", `(${LANDLORD_KINDS.join(",")})`);
     q.then(({ data, error: e }) => {
       if (!live) return;
       setRows(data || []);
@@ -66,7 +76,7 @@ export default function SignaturesList() {
     return () => {
       live = false;
     };
-  }, [filter, kind, version]);
+  }, [filter, kind, side, version]);
 
   return (
     <div className="stack" style={{ gap: 24 }}>
@@ -75,7 +85,7 @@ export default function SignaturesList() {
           <div style={{ display: "grid", gap: 8 }}>
             <span className="eyebrow">Staff · Signatures</span>
             <h1 className="admin-title">Signatures</h1>
-            <p className="small">Leases, contracts and notices sent through DocuSign.</p>
+            <p className="small">Tenant leases and notices, and landlord management contracts, sent through DocuSign.</p>
           </div>
           <div className="req-actions">
             <button type="button" className="btn ghost sm" onClick={sync} disabled={syncing}>
@@ -99,13 +109,38 @@ export default function SignaturesList() {
             </button>
           ))}
         </div>
+        <div className="seg" role="group" aria-label="Filter by who it's for">
+          {[
+            ["", "Everyone"],
+            ["tenants", "Tenants"],
+            ["landlords", "Landlords"],
+          ].map(([k, label]) => (
+            <button
+              key={k || "all"}
+              type="button"
+              aria-pressed={side === k}
+              onClick={() => {
+                setSide(k);
+                setKind("");
+                const url = new URL(window.location.href);
+                if (k) url.searchParams.set("for", k);
+                else url.searchParams.delete("for");
+                window.history.replaceState(null, "", url);
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
         <div className="field" style={{ minWidth: 200 }}>
           <label htmlFor="sig-kind" className="visually-hidden">
             Kind
           </label>
           <select id="sig-kind" value={kind} onChange={(e) => setKind(e.target.value)}>
             <option value="">All kinds</option>
-            {Object.entries(SIG_KIND).map(([k, label]) => (
+            {Object.entries(SIG_KIND)
+              .filter(([k]) => !side || (side === "landlords") === LANDLORD_KINDS.includes(k))
+              .map(([k, label]) => (
               <option key={k} value={k}>
                 {label}
               </option>

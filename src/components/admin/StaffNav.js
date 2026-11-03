@@ -32,7 +32,6 @@ export const NAV_GROUPS = [
       { key: "payprop-letters", label: "PayProp Letters", href: "/admin/payprop-letters" },
       { key: "maintenance", label: "Maintenance", href: "/admin/maintenance", count: "maintenanceNew", note: "new" },
       { key: "notices", label: "Notices", href: "/admin/notices", count: "earlyMoveOuts", note: "early move-out" },
-      { key: "signatures", label: "Signatures", href: "/admin/signatures", count: "awaitingSignatures", note: "awaiting signature" },
       { key: "insurance", label: "Tenant Insurance", href: "/admin/insurance", count: "insuranceToReview", note: "to review" },
     ],
   },
@@ -45,11 +44,13 @@ export const NAV_GROUPS = [
       { key: "invites", label: "Portal Invitations", href: "/admin/invites" },
       { key: "work-orders", label: "Work Orders", href: "/admin/work-orders" },
       { key: "payouts", label: "Landlord Payouts", href: "/admin/payouts" },
+      { key: "contract-signatures", label: "Contract Signatures", href: "/admin/signatures?for=landlords" },
       { key: "letters", label: "Landlord Letters", href: "/admin/letters" },
       { key: "inquiries", label: "New Landlord Inquiries", href: "/admin/requests?tab=inquiries", count: "inquiries", note: "new" },
       { key: "referrals", label: "Referrals", href: "/admin/referrals" },
     ],
   },
+  { key: "signatures", label: "Signatures", href: "/admin/signatures", count: "awaitingSignatures", note: "awaiting signature" },
   {
     key: "accounting",
     label: "Accounting",
@@ -86,6 +87,7 @@ function Count({ value, note, muted }) {
 }
 
 function groupTotal(group, c) {
+  if (!group.items) return group.count ? Number(c[group.count]) || 0 : 0;
   return (group.items || []).reduce((sum, i) => (i.count && !i.muted ? sum + (Number(c[i.count]) || 0) : sum), 0);
 }
 
@@ -268,6 +270,7 @@ function DesktopNav({ active, c }) {
           <li key={g.key} className={active === g.key ? "staff-nav-group is-active" : "staff-nav-group"}>
             <Link href={g.href} className="staff-nav-top" aria-current={active === g.key ? "page" : undefined}>
               {g.label}
+              {g.count ? <Count value={c[g.count]} note={g.note} /> : null}
             </Link>
           </li>
         ),
@@ -331,7 +334,8 @@ function MobileNav({ active, c }) {
                 aria-current={active === g.key ? "page" : undefined}
                 onClick={() => setOpen(false)}
               >
-                {g.label}
+                <span>{g.label}</span>
+                {g.count ? <Count value={c[g.count]} note={g.note} /> : null}
               </Link>
             )}
           </div>
