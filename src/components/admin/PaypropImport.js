@@ -65,7 +65,8 @@ async function prepare(text) {
   const report = readReport(text);
   if (!report.length) throw new Error("No paid PayProp payments in that file.");
   const sb = getBrowserClient();
-  const from = report[0].date;
+  // Earliest payment in the file (PayProp reports aren't always sorted by date).
+  const from = report.reduce((m, p) => (p.date < m ? p.date : m), report[0].date);
   const [tenancies, { data: existing }] = await Promise.all([
     loadTenancyOptions({ includePast: true }),
     sb.from("payments").select("id, tenancy_id, amount, received_on, reference").eq("method", "payprop").gte("received_on", from),
