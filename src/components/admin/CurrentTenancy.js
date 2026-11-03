@@ -48,7 +48,20 @@ export default function CurrentTenancy({ tenancy, onChanged }) {
     // An upcoming tenancy whose start date is now today or earlier starts right away.
     const row = tenancyRow(form);
     const startsNow = tenancy.status === "upcoming" && row.start_date && row.start_date <= todayISO();
-    return run(() => updateTenancy(tenancy.id, startsNow ? { ...row, status: "active" } : row));
+    const rentChanged = row.rent != null && Math.round(Number(row.rent) * 100) !== Math.round(Number(tenancy.rent) * 100);
+    return run(async () => {
+      await updateTenancy(tenancy.id, startsNow ? { ...row, status: "active" } : row);
+      // A new rent applies from this month on: update the rent already charged for this month and later.
+      if (rentChanged) {
+        const { error: chErr } = await getBrowserClient()
+          .from("rent_charges")
+          .update({ amount: row.rent })
+          .eq("tenancy_id", tenancy.id)
+          .eq("kind", "rent")
+          .gte("period", `${todayISO().slice(0, 7)}-01`);
+        if (chErr) throw new Error("The rent saved, but this month's rent charge didn't update. Try saving again.");
+      }
+    });
   }
 
   function recordNotice(e) {
