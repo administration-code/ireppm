@@ -11,6 +11,7 @@ export default function PartnerProperties({ partnerId }) {
   const [assigned, setAssigned] = useState([]);
   const [busy, setBusy] = useState("");
   const [msg, setMsg] = useState("");
+  const [confirmAll, setConfirmAll] = useState(false);
 
   async function load() {
     const sb = getBrowserClient();
@@ -53,13 +54,26 @@ export default function PartnerProperties({ partnerId }) {
     setBusy("");
   }
 
+  // role: one role, or null for every role.
+  async function unassignAll(role) {
+    setBusy(role ? `un:${role}` : "un:all");
+    setMsg("");
+    let q = getBrowserClient().from("property_agents").delete().eq("partner_id", partnerId);
+    if (role) q = q.eq("role", role);
+    const { data, error } = await q.select("property_id");
+    setMsg(error ? "That didn't save. Try again." : `Removed ${data?.length || 0} assignment${data?.length === 1 ? "" : "s"}.`);
+    setConfirmAll(false);
+    await load();
+    setBusy("");
+  }
+
   if (!props) return <p className="small">Loading assignments…</p>;
 
   return (
     <section className="boxed stack" aria-labelledby="pp-title" style={{ gap: 14 }}>
       <div>
         <h2 id="pp-title" className="sub-title">Assigned Properties</h2>
-        <p className="small">Tick the properties this partner covers, or assign them to every property in one click.</p>
+        <p className="small">Tick the properties this partner covers, or assign or unassign them everywhere in one click.</p>
       </div>
       <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
         {AGENT_ROLES.map(([role, label]) => (
@@ -67,6 +81,34 @@ export default function PartnerProperties({ partnerId }) {
             {busy === role ? "Assigning…" : `${label}: assign to all`}
           </button>
         ))}
+      </div>
+      <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+        {AGENT_ROLES.map(([role, label]) => (
+          <button
+            key={role}
+            type="button"
+            className="btn ghost sm"
+            disabled={Boolean(busy) || !assigned.some((a) => a.role === role)}
+            onClick={() => unassignAll(role)}
+          >
+            {busy === `un:${role}` ? "Removing…" : `${label}: unassign from all`}
+          </button>
+        ))}
+        {confirmAll ? (
+          <span className="req-actions">
+            <span className="small">Remove all {assigned.length} assignments?</span>
+            <button type="button" className="btn primary sm" disabled={Boolean(busy)} onClick={() => unassignAll(null)}>
+              {busy === "un:all" ? "Removing…" : "Yes, unassign from everything"}
+            </button>
+            <button type="button" className="btn ghost sm" onClick={() => setConfirmAll(false)}>
+              Cancel
+            </button>
+          </span>
+        ) : (
+          <button type="button" className="btn ghost sm danger" disabled={Boolean(busy) || !assigned.length} onClick={() => setConfirmAll(true)}>
+            Unassign from everything
+          </button>
+        )}
       </div>
       {msg ? <p className="small" role="status">{msg}</p> : null}
       <div className="list table-scroll">
