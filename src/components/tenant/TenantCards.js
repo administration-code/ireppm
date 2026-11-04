@@ -271,6 +271,17 @@ const TENANT_STEPS = [
   ["Add the app to your phone", "Open Get the App at the bottom of any page to put IRep on your home screen."],
 ];
 
+const PARTNER_STEPS = [
+  ["Your properties", "The bottom of this page lists the properties IRep has assigned you and what you do there: showings, maintenance, or lawn and snow."],
+  ["Answer showing requests", "When a renter books a showing, it appears under Showings and you get an email. Approve, decline or suggest another time; the renter hears back right away."],
+  ["Occupied units", "If tenants live there, approving a showing sends them written notice. Only go in at the confirmed time."],
+  ["Check open jobs", "Open Jobs lists work IRep has sent you, with the scheduled date. Each job says how to get in: outside or shared areas only, may enter if no one is home, or arrange a time with the tenant first."],
+  ["Respect entry rules", "Don't enter a unit unless the job says you may, or the tenant has agreed to a time. Knock and announce yourself."],
+  ["Emergencies", `Flooding, no heat, fire or safety issues come first. Call ${SITE.emergency.name} at ${SITE.emergency.phone}, then IRep at ${SITE.phone}.`],
+  ["When a job is done", `Email ${SITE.email} with before and after photos, what you did, and your price before HST. IRep invoices the landlord; you don't bill them yourself.`],
+  ["Add the app to your phone", "Open Get the App at the bottom of any page to put IRep on your home screen, so showings and jobs are one tap away."],
+];
+
 export function GettingStarted({ role = "tenant", dismissedAt, onDismiss }) {
   const [hidden, setHidden] = useState(Boolean(dismissedAt));
   if (hidden) return null;
@@ -286,7 +297,9 @@ export function GettingStarted({ role = "tenant", dismissedAt, onDismiss }) {
           ["Refer a landlord", "When a landlord you refer signs with us, you get a month's management fee free."],
           ["Add the app to your phone", "Open Get the App at the bottom of any page to put IRep on your home screen."],
         ]
-      : TENANT_STEPS;
+      : role === "partner"
+        ? PARTNER_STEPS
+        : TENANT_STEPS;
 
   async function dismiss() {
     setHidden(true);

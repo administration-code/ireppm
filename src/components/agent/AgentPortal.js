@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import { getBrowserClient } from "@/lib/supabase";
 import { SITE } from "@/lib/site";
+import { GettingStarted } from "@/components/tenant/TenantCards";
 
 const longDay = (iso) =>
   iso ? new Date(`${iso}T12:00:00`).toLocaleDateString("en-CA", { weekday: "short", month: "long", day: "numeric" }) : "";
@@ -18,6 +19,17 @@ const ROLE = { showings: "Showings", maintenance: "Maintenance", lawn_snow: "Law
 export default function AgentPortal() {
   const { user, ready, openSignIn } = useAuth();
   const [state, setState] = useState({ loading: true, data: null });
+  const [tour, setTour] = useState({ loaded: false, dismissedAt: null });
+
+  useEffect(() => {
+    if (!user) return;
+    getBrowserClient()
+      .from("profiles")
+      .select("tour_dismissed_at")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data }) => setTour({ loaded: true, dismissedAt: data?.tour_dismissed_at || null }));
+  }, [user]);
 
   useLiveRefresh(() => user && getBrowserClient().rpc("agent_portal").then(({ data }) => data && setState({ loading: false, data })), 60000);
 
@@ -65,6 +77,8 @@ export default function AgentPortal() {
         <span className="eyebrow">Agent Portal</span>
         <h1 className="admin-title">Hi {String(d.partner.name || "").split(" ")[0]}</h1>
       </div>
+
+      {tour.loaded ? <GettingStarted role="partner" dismissedAt={tour.dismissedAt} /> : null}
 
       <section className={`boxed stack${toAnswer.length ? " attention" : ""}`} aria-labelledby="ag-show">
         <h2 id="ag-show" className="sec-title">
