@@ -15,6 +15,7 @@ const TITLES = {
   N4: "N4: Non-payment of rent",
   N5: "N5: Interfering, damage or overcrowding",
   upload: "Upload a document",
+  draft: "Draft a document",
 };
 
 export default function NewSignature({ kind, params }) {
@@ -62,8 +63,8 @@ export default function NewSignature({ kind, params }) {
         <p className="small">Loading…</p>
       ) : kind === "lease" ? (
         <LeaseForm ctx={ctx} />
-      ) : kind === "upload" ? (
-        <UploadForm ctx={ctx} />
+      ) : kind === "upload" || kind === "draft" ? (
+        <UploadForm ctx={ctx} mode={kind} />
       ) : kind === "pm_contract" ? (
         <PmContractForm ctx={ctx} />
       ) : (

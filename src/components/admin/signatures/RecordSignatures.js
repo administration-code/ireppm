@@ -8,10 +8,12 @@ const SENDS = {
     ["N4", "N4 non-payment"],
     ["N5", "N5 interference"],
     ["upload", "Upload a document"],
+    ["draft", "Draft a document"],
   ],
   property: [
     ["pm_contract", "Send management contract"],
     ["upload", "Upload a document"],
+    ["draft", "Draft a document"],
   ],
 };
 

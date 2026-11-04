@@ -94,6 +94,9 @@ export default function SignaturesList() {
             <Link className="btn primary sm" href="/admin/signatures/new?kind=upload">
               Upload a document
             </Link>
+            <Link className="btn primary sm" href="/admin/signatures/new?kind=draft">
+              Draft a document
+            </Link>
             <Link className="btn ghost sm" href="/admin/signatures/templates">
               Check Templates
             </Link>

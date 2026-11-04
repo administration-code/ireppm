@@ -24,7 +24,9 @@ function signersFrom(tenancy, owner) {
 }
 
 // Upload your own PDF (an amended lease, an addendum…) and send it through DocuSign.
-export default function UploadForm({ ctx }) {
+export default function UploadForm({ ctx, mode = "upload" }) {
+  const drafting = mode === "draft";
+  const [draftBody, setDraftBody] = useState("");
   const router = useRouter();
   const [props, setProps] = useState(null);
   const [link, setLink] = useState({ property_id: ctx.property?.id || "", unit_id: ctx.unit?.id || "" });
@@ -80,7 +82,8 @@ export default function UploadForm({ ctx }) {
 
   async function submit() {
     setError("");
-    if (!files.length) return setError("Choose the PDF to send.");
+    if (drafting && draftBody.trim().length < 20) return setError("Write the document first.");
+    if (!drafting && !files.length) return setError("Choose the PDF to send.");
     if (!title.trim()) return setError("Give it a title, like “Lease amendment: 1753 Benjamin Ave, Upper”.");
     const people = signers.filter((s) => s.name.trim() || s.email.trim());
     if (!people.length) return setError("Add at least one person to sign.");
@@ -89,7 +92,7 @@ export default function UploadForm({ ctx }) {
     setBusy("upload");
     const sb = getBrowserClient();
     const uploaded = [];
-    for (const f of files) {
+    for (const f of drafting ? [] : files) {
       const path = `uploads/${randomId()}/${safe(f.name.endsWith(".pdf") ? f.name : `${f.name}.pdf`)}`;
       const { error: upErr } = await sb.storage.from(BUCKET).upload(path, f, { contentType: "application/pdf", upsert: false });
       if (upErr) {
@@ -106,6 +109,7 @@ export default function UploadForm({ ctx }) {
       const res = await docusignApi("/upload", {
         body: {
           files: uploaded,
+          draft_body: drafting ? draftBody : undefined,
           title: title.trim(),
           signers: people,
           signing_order: ordered,
@@ -134,7 +138,24 @@ export default function UploadForm({ ctx }) {
         <h2 id="up-doc" className="sec-title">
           Document
         </h2>
-        <div className="field">
+        {drafting ? (
+          <div className="field">
+            <label htmlFor="up-body">Document text</label>
+            <textarea
+              id="up-body"
+              rows={18}
+              value={draftBody}
+              onChange={(e) => setDraftBody(e.target.value)}
+              placeholder={"# Addendum to the lease\n\nThis addendum is made between…\n\n# Terms\n\n1. …"}
+              style={{ fontFamily: "inherit" }}
+            />
+            <span className="small">
+              Leave a blank line between paragraphs. Start a line with &ldquo;# &rdquo; for a heading. It goes out on IRep letterhead with the
+              title and date, and a signature and date line for each signer is added at the end, with their DocuSign fields already placed.
+            </span>
+          </div>
+        ) : null}
+        <div className="field" hidden={drafting}>
           <span className="label-text">
             PDF to send <span className="small">(up to {MAX_MB} MB; several PDFs are sent as one envelope)</span>
           </span>
@@ -281,7 +302,9 @@ export default function UploadForm({ ctx }) {
           {busy === "upload" ? "Uploading…" : busy === "send" ? "Opening DocuSign…" : "Continue in DocuSign"}
         </button>
         <span className="small">
-          Opens the draft in DocuSign: drag signature, initial and date fields onto the pages for each person, then click Send.
+          {drafting
+            ? "Opens the draft in DocuSign with each person's signature and date fields already placed. Check it over, add anything else, then click Send."
+            : "Opens the draft in DocuSign: drag signature, initial and date fields onto the pages for each person, then click Send."}
         </span>
       </div>
     </div>
