@@ -7,7 +7,7 @@ const today = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/
 
 function YesNo({ id, label, hint, value, onChange }) {
   return (
-    <fieldset className="field">
+    <fieldset className="field" style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
       <legend className="label-text">{label}</legend>
       {hint ? <span className="small">{hint}</span> : null}
       <div className="req-actions">
@@ -167,7 +167,7 @@ export default function InspectionReportForm({ properties, onSubmit, submitLabel
                 Unit Checks
               </h2>
               {form.units.map((u) => (
-                <fieldset key={u.unit_id} className="stack" style={{ gap: 8, borderTop: "1px solid var(--line)", paddingTop: 12 }}>
+                <fieldset key={u.unit_id} className="stack" style={{ gap: 8, border: 0, borderTop: "1px solid var(--line)", padding: "12px 0 0", margin: 0, minWidth: 0 }}>
                   <legend className="label-text">
                     <b>{u.label || "Main unit"}</b>
                   </legend>
