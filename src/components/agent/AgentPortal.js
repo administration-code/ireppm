@@ -78,6 +78,9 @@ export default function AgentPortal() {
         <span className="eyebrow">Agent Portal</span>
         <h1 className="admin-title">Hi {String(d.partner.name || "").split(" ")[0]}</h1>
         <div className="req-actions">
+          <Link className="btn primary sm" href="/agent/inspection">
+            Inspection report
+          </Link>
           <Link className="btn ghost sm" href="/agent/pay">
             Your pay and tax statement
           </Link>

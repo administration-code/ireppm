@@ -44,6 +44,7 @@ export const NAV_GROUPS = [
       { key: "invites", label: "Portal Invitations", href: "/admin/invites" },
       { key: "work-orders", label: "Work Orders", href: "/admin/work-orders" },
       { key: "payouts", label: "Landlord Payouts", href: "/admin/payouts" },
+      { key: "inspection-reports", label: "Inspection Reports", href: "/admin/inspection-reports", count: "inspectionReportsToReview", note: "to review" },
       { key: "contract-signatures", label: "Contract Signatures", href: "/admin/signatures?for=landlords" },
       { key: "letters", label: "Landlord Letters", href: "/admin/letters" },
       { key: "inquiries", label: "New Landlord Inquiries", href: "/admin/requests?tab=inquiries", count: "inquiries", note: "new" },

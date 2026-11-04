@@ -14,6 +14,7 @@ import { SITE } from "@/lib/site";
 import OwnerMonthly from "@/components/owner/OwnerMonthly";
 import InsuranceReview from "@/components/InsuranceReview";
 import { GettingStarted } from "@/components/tenant/TenantCards";
+import OwnerImprovementsCard from "./OwnerImprovementsCard";
 import EmailPrefs from "@/components/EmailPrefs";
 
 async function loadPortal() {
@@ -84,6 +85,8 @@ export default function OwnerHome() {
       </div>
 
       <GettingStarted role="owner" dismissedAt={state.tourDismissed} />
+
+      <OwnerImprovementsCard />
 
       <section className="boxed stack" aria-labelledby="sec-own-props">
         <h2 id="sec-own-props" className="sec-title">
