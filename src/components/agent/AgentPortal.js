@@ -77,6 +77,11 @@ export default function AgentPortal() {
       <div style={{ display: "grid", gap: 6 }}>
         <span className="eyebrow">Agent Portal</span>
         <h1 className="admin-title">Hi {String(d.partner.name || "").split(" ")[0]}</h1>
+        <div className="req-actions">
+          <Link className="btn ghost sm" href="/agent/pay">
+            Your pay and tax statement
+          </Link>
+        </div>
       </div>
 
       {tour.loaded ? <GettingStarted role="partner" dismissedAt={tour.dismissedAt} /> : null}
