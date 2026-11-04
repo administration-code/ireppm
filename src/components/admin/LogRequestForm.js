@@ -312,6 +312,7 @@ export default function LogRequestForm({ initialPropertyId = "", initialUnitId =
             <textarea id="l-desc" value={form.description} onChange={update("description")} />
           </div>
           <CostEstimateFields
+            urgency={form.urgency}
             repair={form.est_repair}
             replace={form.est_replace}
             onRepair={(v) => set("est_repair", v)}

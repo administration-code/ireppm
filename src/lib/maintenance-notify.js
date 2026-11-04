@@ -57,8 +57,8 @@ export async function notifyLandlordAndTenants(sb, record) {
     const intro = emergency
       ? `An emergency repair was reported at ${place}. We're handling it right away and will update you.`
       : record.owner_approval === "pending"
-        ? `A repair was reported at ${place}. It's estimated over ${money(threshold)}, so we won't go ahead without your OK. Reply to this email to approve it or ask questions.`
-        : `A repair was reported at ${place}. We're arranging it now. Repairs under ${money(threshold)} go ahead without waiting for approval; anything more needs your OK first.`;
+        ? `A repair was reported at ${place}. It's estimated at more than ${money(threshold)} before HST, so we won't go ahead without your OK. Reply to this email to approve it or ask questions.`
+        : `A repair was reported at ${place}. We're arranging it now. Repairs up to ${money(threshold)} before HST go ahead without waiting for approval; anything more needs your OK first.`;
     const rows = [
       ["Property", place],
       ["Problem", record.title],

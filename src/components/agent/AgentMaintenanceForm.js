@@ -170,6 +170,7 @@ export default function AgentMaintenanceForm({ userId, onLogged }) {
             />
           </div>
           <CostEstimateFields
+            urgency={form.urgency}
             repair={form.est_repair}
             replace={form.est_replace}
             onRepair={(v) => setForm((f) => ({ ...f, est_repair: v }))}

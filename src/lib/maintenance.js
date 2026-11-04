@@ -150,13 +150,18 @@ export function randomId() {
 
 // Cost estimate entered when a request is logged: a repair price and, for things like
 // appliances, a replacement price (both before HST). The repair price (or the replacement
-// price if that's all there is) becomes the request's estimate; both go into the description.
+// price if that's all there is) becomes the request's estimate; both go into the description
+// with their HST-included totals.
+export const ESTIMATE_HST_PERCENT = 13;
+export const withHst = (n, pct = ESTIMATE_HST_PERCENT) => Math.round(Number(n) * (100 + pct)) / 100;
+const dollars = (n) => `$${Number(n).toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
 export function estimateFromForm(repair, replace) {
   const ok = (v) => /^\d+(\.\d{1,2})?$/.test(String(v ?? "").trim()) && Number(v) > 0;
   const r = ok(repair) ? Number(repair) : null;
   const p = ok(replace) ? Number(replace) : null;
   if (r === null && p === null) return { estimated_cost: null, note: "" };
-  const fmt = (n) => `$${n.toLocaleString("en-CA", { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 })} + HST`;
+  const fmt = (n) => `${dollars(n)} + HST = ${dollars(withHst(n))}`;
   const parts = [r !== null ? `repair ${fmt(r)}` : null, p !== null ? `replace ${fmt(p)}` : null].filter(Boolean);
   return { estimated_cost: r ?? p, note: `Estimate: ${parts.join("; ")}.` };
 }
