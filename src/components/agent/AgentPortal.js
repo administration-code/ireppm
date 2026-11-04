@@ -9,6 +9,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { getBrowserClient } from "@/lib/supabase";
 import { SITE } from "@/lib/site";
 import { GettingStarted } from "@/components/tenant/TenantCards";
+import AgentMaintenanceForm from "./AgentMaintenanceForm";
 
 const longDay = (iso) =>
   iso ? new Date(`${iso}T12:00:00`).toLocaleDateString("en-CA", { weekday: "short", month: "long", day: "numeric" }) : "";
@@ -125,6 +126,11 @@ export default function AgentPortal() {
         )}
       </section>
 
+      <AgentMaintenanceForm
+        userId={user.id}
+        onLogged={() => getBrowserClient().rpc("agent_portal").then(({ data }) => data && setState({ loading: false, data }))}
+      />
+
       {d.jobs.length ? (
         <section className="boxed stack" aria-labelledby="ag-jobs">
           <h2 id="ag-jobs" className="sec-title">
@@ -134,6 +140,7 @@ export default function AgentPortal() {
             {d.jobs.map((j) => (
               <li key={j.id}>
                 <b>{j.title}</b> · {j.place}
+                {j.status === "new" ? <span className="small"> · waiting for IRep to review</span> : null}
                 {j.scheduled_for ? ` · scheduled ${longDay(String(j.scheduled_for).slice(0, 10))}` : ""}
                 {j.urgency === "emergency" ? <b className="err"> · emergency</b> : null}
                 <span className="sub-line small">

@@ -276,6 +276,7 @@ const PARTNER_STEPS = [
   ["Answer showing requests", "When a renter books a showing, it appears under Showings and you get an email. Approve, decline or suggest another time; the renter hears back right away."],
   ["Occupied units", "If tenants live there, approving a showing sends them written notice. Only go in at the confirmed time."],
   ["Check open jobs", "Open Jobs lists work IRep has sent you, with the scheduled date. Each job says how to get in: outside or shared areas only, may enter if no one is home, or arrange a time with the tenant first."],
+  ["Log problems you find", "Use Log a Maintenance Request, with photos from your phone, for anything that needs fixing. IRep reviews it and gets the landlord's OK if needed."],
   ["Respect entry rules", "Don't enter a unit unless the job says you may, or the tenant has agreed to a time. Knock and announce yourself."],
   ["Emergencies", `Flooding, no heat, fire or safety issues come first. Call ${SITE.emergency.name} at ${SITE.emergency.phone}, then IRep at ${SITE.phone}.`],
   ["When a job is done", `Email ${SITE.email} with before and after photos, what you did, and your price before HST. IRep invoices the landlord; you don't bill them yourself.`],

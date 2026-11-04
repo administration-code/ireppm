@@ -19,7 +19,7 @@ export async function uploadPhotos(sb, userId, files) {
   return { photos };
 }
 
-export default function PhotoPicker({ files, setFiles, onError, max = STAFF_MAX_PHOTOS, id = "photo-files", label = "Photos or videos" }) {
+export default function PhotoPicker({ files, setFiles, onError, max = STAFF_MAX_PHOTOS, id = "photo-files", label = "Photos or videos", hint = "Save photos from the tenant's email to your computer first, then add them here." }) {
   function addFiles(list) {
     onError?.("");
     const picked = Array.from(list || []);
@@ -65,7 +65,7 @@ export default function PhotoPicker({ files, setFiles, onError, max = STAFF_MAX_
           />
         </div>
       ) : null}
-      <span className="small">Save photos from the tenant&apos;s email to your computer first, then add them here.</span>
+      {hint ? <span className="small">{hint}</span> : null}
     </div>
   );
 }
