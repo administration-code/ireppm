@@ -6,7 +6,7 @@ import { getBrowserClient } from "@/lib/supabase";
 import { money } from "@/lib/format";
 import { checkAmount, cents, shortDate } from "@/lib/rent";
 import { DEFAULT_HST_PERCENT } from "@/lib/admin-properties";
-import { JOB_SELECT, LEDGER_KIND_LABEL, PAY_METHODS, contractorPay, monthLabel } from "@/lib/contractor-pay";
+import { JOB_SELECT, LEDGER_KIND_LABEL, PAY_METHODS, contractorPay, monthLabel, statementFeeEntries } from "@/lib/contractor-pay";
 
 const today = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" });
 const CHARGE_LABEL = { owner: "Owner", tenant: "Tenant", irep: "IRep" };
@@ -60,17 +60,7 @@ export default function ContractorPay({ id }) {
   const loanName = partner.loan_name || "Loan";
   const loanLower = loanName.toLowerCase();
   const feeShare = Number(partner.leasing_fee_share || 0);
-  // Leasing fees on landlord statements: his share of the fee before HST (HST is always held back).
-  const statementFees = fees.map((f) => {
-    const beforeHst = Math.round((Math.abs(Number(f.amount)) / (1 + DEFAULT_HST_PERCENT / 100)) * 100) / 100;
-    return {
-      id: `si-${f.id}`,
-      kind: "leasing_fee",
-      entry_date: f.period,
-      amount: Math.round(beforeHst * feeShare) / 100,
-      notes: `${f.property?.address || ""}: ${feeLabel(f.description).replace(/\s*\(\$[\d,.]+ \+ HST\)$/, "")} (fee ${money(beforeHst)} before HST, his ${feeShare}%)`,
-    };
-  });
+  const statementFees = statementFeeEntries(fees, feeShare, DEFAULT_HST_PERCENT);
   const pay = contractorPay(jobs, [...ledger, ...statementFees], pct);
   const noPrice = jobs.filter((j) => j.partner_pay == null && Number(j.actual_cost) > 0);
   const firstName = partner.name.match(/\(([^)]+)\)/)?.[1] || partner.name.split(" ")[0];

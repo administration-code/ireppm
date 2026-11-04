@@ -98,3 +98,42 @@ export function monthLabel(ym) {
   const [y, m] = ym.split("-").map(Number);
   return new Date(Date.UTC(y, m - 1, 15)).toLocaleDateString("en-CA", { month: "long", year: "numeric", timeZone: "UTC" });
 }
+
+// Leasing fees on landlord statements, as ledger-style entries for the partner's share of each
+// fee before HST (HST is always held back).
+export function statementFeeEntries(fees, sharePct, hstPct = 13) {
+  const share = Number(sharePct || 0);
+  if (!share) return [];
+  const money2 = (n) => `$${Number(n).toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return (fees || []).map((f) => {
+    const beforeHst = Math.round((Math.abs(Number(f.amount)) / (1 + hstPct / 100)) * 100) / 100;
+    const label = String(f.description || "")
+      .replace(/^Leasing fee:\s*/i, "")
+      .replace(/\s*\(\$[\d,.]+ \+ HST\)$/, "");
+    return {
+      id: `si-${f.id}`,
+      kind: "leasing_fee",
+      entry_date: f.period,
+      amount: Math.round(beforeHst * share) / 100,
+      notes: `${f.property?.address || ""}: ${label} (fee ${money2(beforeHst)} before HST, ${share}% share)`,
+    };
+  });
+}
+
+// Totals for one calendar year (for a tax summary), from contractorPay().months.
+export function yearSummary(pay, year) {
+  const ms = pay.months.filter((m) => m.month.startsWith(`${year}-`));
+  const c = (k) => ms.reduce((s, m) => s + Math.round(Number(m[k]) * 100), 0) / 100;
+  const last = ms[0]; // months are newest first
+  return {
+    months: ms,
+    earned: c("earned"),
+    leasing: c("leasing"),
+    toLoan: c("toLoan"),
+    paid: c("paid"),
+    adjustments: c("adjustments"),
+    gross: Math.round((c("earned") + c("leasing") + c("adjustments")) * 100) / 100,
+    owedAtEnd: last ? last.owedAtEnd : null,
+    loanAtEnd: last ? last.loanAtEnd : null,
+  };
+}

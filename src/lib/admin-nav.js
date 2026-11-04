@@ -28,6 +28,7 @@ export async function loadNavCounts() {
     awaitingSignatures: sb.from("signature_requests").select("id", head).in("status", ["draft", "sent", "delivered"]),
     earlyMoveOuts: sb.from("n11_requests").select("id", head).eq("status", "requested"),
     insuranceToReview: sb.from("tenant_insurance").select("id", head).eq("status", "submitted"),
+    inspectionReportsToReview: sb.from("inspection_reports").select("id", head).eq("status", "submitted"),
     unmatchedBankLines: sb.from("bank_transactions").select("id", head).eq("status", "unmatched"),
   };
   const keys = Object.keys(queries);
