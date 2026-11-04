@@ -147,3 +147,19 @@ export function randomId() {
   if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
   return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
+
+// Cost estimate entered when a request is logged: a repair price and, for things like
+// appliances, a replacement price (both before HST). The repair price (or the replacement
+// price if that's all there is) becomes the request's estimate; both go into the description.
+export function estimateFromForm(repair, replace) {
+  const ok = (v) => /^\d+(\.\d{1,2})?$/.test(String(v ?? "").trim()) && Number(v) > 0;
+  const r = ok(repair) ? Number(repair) : null;
+  const p = ok(replace) ? Number(replace) : null;
+  if (r === null && p === null) return { estimated_cost: null, note: "" };
+  const fmt = (n) => `$${n.toLocaleString("en-CA", { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 })} + HST`;
+  const parts = [r !== null ? `repair ${fmt(r)}` : null, p !== null ? `replace ${fmt(p)}` : null].filter(Boolean);
+  return { estimated_cost: r ?? p, note: `Estimate: ${parts.join("; ")}.` };
+}
+
+export const estimateProblem = (v, label) =>
+  String(v ?? "").trim() && !/^\d+(\.\d{1,2})?$/.test(String(v).trim()) ? `Enter the ${label} in dollars, like 350 or 89.99.` : "";

@@ -43,7 +43,7 @@ function docTypeName(key) {
   return DOC_TYPES.find((d) => d.key === key)?.name || key || "Document";
 }
 
-function renderEmail({ heading, intro, rows, extraHtml = "", link = { href: INBOX_URL, label: "Open the requests inbox" } }) {
+export function renderEmail({ heading, intro, rows, extraHtml = "", link = { href: INBOX_URL, label: "Open the requests inbox" } }) {
   const rowHtml = rows
     .filter(([, value]) => value !== null && value !== undefined && String(value).trim() !== "")
     .map(
@@ -90,7 +90,7 @@ function renderEmail({ heading, intro, rows, extraHtml = "", link = { href: INBO
 </html>`;
 }
 
-function renderText({ heading, rows, extra = "", link = { href: INBOX_URL, label: "Open the requests inbox" } }) {
+export function renderText({ heading, rows, extra = "", link = { href: INBOX_URL, label: "Open the requests inbox" } }) {
   const lines = rows
     .filter(([, value]) => value !== null && value !== undefined && String(value).trim() !== "")
     .map(([label, value]) => `${label}: ${value}`);

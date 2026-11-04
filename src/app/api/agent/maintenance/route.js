@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { CATEGORIES, URGENCY } from "@/lib/maintenance";
+import { CATEGORIES, URGENCY, estimateFromForm, estimateProblem } from "@/lib/maintenance";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -73,6 +73,9 @@ export async function POST(request) {
   if (!UUID.test(propertyId)) return NextResponse.json({ error: "Choose the property." }, { status: 400 });
   if (!title) return NextResponse.json({ error: "Give the problem a short title." }, { status: 400 });
   if (!description) return NextResponse.json({ error: "Describe the problem." }, { status: 400 });
+  const estProblem = estimateProblem(body?.est_repair, "repair estimate") || estimateProblem(body?.est_replace, "replacement cost");
+  if (estProblem) return NextResponse.json({ error: estProblem }, { status: 400 });
+  const est = estimateFromForm(body?.est_repair, body?.est_replace);
 
   const props = await assignedProperties(sb, partner.id);
   const property = props.find((p) => p.id === propertyId);
@@ -130,7 +133,9 @@ export async function POST(request) {
       category,
       urgency,
       title,
-      description,
+      description: [description, est.note].filter(Boolean).join("\n\n"),
+      estimated_cost: est.estimated_cost,
+      estimate_plus_hst: est.estimated_cost != null,
       photos,
       status: "new",
       partner_id: partner.id,

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getBrowserClient } from "@/lib/supabase";
 import { currentTenancy, orNull, propertyTitle } from "@/lib/admin-properties";
-import { CATEGORIES, SOURCES, STAFF_LOG_SOURCES, URGENCY, URGENCY_HELP } from "@/lib/maintenance";
+import { CATEGORIES, SOURCES, STAFF_LOG_SOURCES, URGENCY, URGENCY_HELP, estimateFromForm, estimateProblem } from "@/lib/maintenance";
 import {
   SPECIAL_UNITS,
   SPECIAL_VALUE,
@@ -15,6 +15,7 @@ import {
   specialKind,
 } from "@/lib/maintenance-units";
 import ReporterPicker from "./ReporterPicker";
+import CostEstimateFields from "./CostEstimateFields";
 import PhotoPicker, { uploadPhotos } from "./PhotoPicker";
 
 const EMPTY = {
@@ -30,6 +31,8 @@ const EMPTY = {
   urgency: "routine",
   permission_to_enter: false,
   access_notes: "",
+  est_repair: "",
+  est_replace: "",
 };
 
 export default function LogRequestForm({ initialPropertyId = "", initialUnitId = "", taskId = "", initialTitle = "" }) {
@@ -103,6 +106,9 @@ export default function LogRequestForm({ initialPropertyId = "", initialUnitId =
     if (special === "other" && !form.reporter_name.trim() && !form.reporter_phone.trim() && !form.reporter_email.trim())
       return setMsg("Add who reported it, since they aren't on an IRep lease.");
     if (!form.title.trim()) return setMsg("Add a short title.");
+    const estProblem = estimateProblem(form.est_repair, "repair estimate") || estimateProblem(form.est_replace, "replacement cost");
+    if (estProblem) return setMsg(estProblem);
+    const est = estimateFromForm(form.est_repair, form.est_replace);
     if (form.reporter_email.trim() && !/^\S+@\S+\.\S+$/.test(form.reporter_email.trim()))
       return setMsg("Check the reporter's email address.");
     setSaving(true);
@@ -138,7 +144,9 @@ export default function LogRequestForm({ initialPropertyId = "", initialUnitId =
         reporter_email: orNull(form.reporter_email),
         category: form.category,
         title: form.title.trim(),
-        description: orNull(form.description),
+        description: orNull([form.description.trim(), est.note].filter(Boolean).join("\n\n")),
+        estimated_cost: est.estimated_cost,
+        estimate_plus_hst: est.estimated_cost != null,
         urgency: form.urgency,
         permission_to_enter: form.permission_to_enter,
         access_notes: orNull(form.access_notes),
@@ -303,6 +311,12 @@ export default function LogRequestForm({ initialPropertyId = "", initialUnitId =
             <label htmlFor="l-desc">Description</label>
             <textarea id="l-desc" value={form.description} onChange={update("description")} />
           </div>
+          <CostEstimateFields
+            repair={form.est_repair}
+            replace={form.est_replace}
+            onRepair={(v) => set("est_repair", v)}
+            onReplace={(v) => set("est_replace", v)}
+          />
           <label className="check-line">
             <input
               type="checkbox"

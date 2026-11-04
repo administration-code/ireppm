@@ -2,7 +2,8 @@
 
 import { useEffect, useId, useState } from "react";
 import { getBrowserClient } from "@/lib/supabase";
-import { CATEGORIES, URGENCY, URGENCY_HELP } from "@/lib/maintenance";
+import { CATEGORIES, URGENCY, URGENCY_HELP, estimateProblem } from "@/lib/maintenance";
+import CostEstimateFields from "@/components/admin/CostEstimateFields";
 import { SITE } from "@/lib/site";
 import PhotoPicker, { uploadPhotos } from "@/components/admin/PhotoPicker";
 
@@ -11,7 +12,7 @@ async function authHeader() {
   return { Authorization: `Bearer ${data?.session?.access_token || ""}` };
 }
 
-const EMPTY = { property_id: "", unit_id: "", category: "other", urgency: "routine", title: "", description: "" };
+const EMPTY = { property_id: "", unit_id: "", category: "other", urgency: "routine", title: "", description: "", est_repair: "", est_replace: "" };
 
 // Partners log a problem they found at one of their properties. It goes to IRep staff as New.
 export default function AgentMaintenanceForm({ userId, onLogged }) {
@@ -48,6 +49,8 @@ export default function AgentMaintenanceForm({ userId, onLogged }) {
     if (!form.property_id) return setError("Choose the property.");
     if (!form.title.trim()) return setError("Give it a short title, like “Leak under kitchen sink”.");
     if (!form.description.trim()) return setError("Describe what you found.");
+    const estProblem = estimateProblem(form.est_repair, "repair estimate") || estimateProblem(form.est_replace, "replacement cost");
+    if (estProblem) return setError(estProblem);
     setBusy(true);
     const sb = getBrowserClient();
     let photos = [];
@@ -166,6 +169,12 @@ export default function AgentMaintenanceForm({ userId, onLogged }) {
               placeholder="What's wrong, where exactly, and what you think it needs (parts, time, rough cost)."
             />
           </div>
+          <CostEstimateFields
+            repair={form.est_repair}
+            replace={form.est_replace}
+            onRepair={(v) => setForm((f) => ({ ...f, est_repair: v }))}
+            onReplace={(v) => setForm((f) => ({ ...f, est_replace: v }))}
+          />
           <PhotoPicker
             id={`${id}-photos`}
             files={files}

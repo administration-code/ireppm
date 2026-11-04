@@ -4,6 +4,7 @@ import { mailer, mailConfigured } from "@/lib/mailer";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { applicationEmail, landlordEmail, maintenanceEmail, showingEmail } from "@/lib/staff-alerts";
 import { decideBy, respondLink, showingAgents } from "@/lib/showings";
+import { notifyLandlordAndTenants } from "@/lib/maintenance-notify";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -101,6 +102,15 @@ export async function POST(request) {
     const email = await buildEmail(table, record);
     const mail = mailer();
     const { error } = await mail.emails.send({ from: FROM, to, ...email });
+
+    // New maintenance: also tell the landlord, and the tenants that it's being worked on.
+    if (table === "maintenance_requests") {
+      try {
+        await notifyLandlordAndTenants(getSupabaseAdmin(), record);
+      } catch (err) {
+        console.error(`[notify] landlord/tenant emails for ${record.id} failed:`, err?.message || err);
+      }
+    }
     if (error) throw new Error(`Email: ${error.name || ""} ${error.message || ""}`.trim());
 
     return NextResponse.json({ ok: true });
