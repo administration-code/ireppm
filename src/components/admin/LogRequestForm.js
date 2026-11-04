@@ -144,7 +144,7 @@ export default function LogRequestForm({ initialPropertyId = "", initialUnitId =
         reporter_email: orNull(form.reporter_email),
         category: form.category,
         title: form.title.trim(),
-        description: orNull([form.description.trim(), est.note].filter(Boolean).join("\n\n")),
+        description: [form.description.trim() || form.title.trim(), est.note].filter(Boolean).join("\n\n"),
         estimated_cost: est.estimated_cost,
         estimate_plus_hst: est.estimated_cost != null,
         urgency: form.urgency,
