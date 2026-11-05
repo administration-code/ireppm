@@ -58,6 +58,7 @@ export default function RentBoard() {
   const [state, setState] = useState({ loading: true, collection: [], balances: [], tenancies: [], unmatched: 0, error: "" });
   const [open, setOpen] = useState(() => new Set());
   const [who, setWho] = useState("all");
+  const [how, setHow] = useState("");
   const [copied, setCopied] = useState("");
 
   useEffect(() => {
@@ -240,6 +241,8 @@ export default function RentBoard() {
         people={people}
         who={who}
         setWho={setWho}
+        how={how}
+        setHow={setHow}
         copied={copied}
         setCopied={setCopied}
       />
@@ -302,16 +305,28 @@ export default function RentBoard() {
 }
 
 // Paid vs in arrears, one row per tenant, so staff can update PayProp quickly.
-function TenantsPaid({ month, loading, people, who, setWho, copied, setCopied }) {
+function TenantsPaid({ month, loading, people: everyone, who, setWho, how, setHow, copied, setCopied }) {
+  const methodsOf = (p) => p.c?.methods || [];
+  const methodsUsed = [...new Set(everyone.flatMap(methodsOf))].sort((a, b) =>
+    String(METHOD_LABEL[a] || a).localeCompare(String(METHOD_LABEL[b] || b))
+  );
+  const people = !how ? everyone : how === "none" ? everyone.filter((p) => !methodsOf(p).length) : everyone.filter((p) => methodsOf(p).includes(how));
   const paid = people.filter((p) => !p.behind);
   const behind = people.filter((p) => p.behind);
   const shown = who === "paid" ? paid : who === "arrears" ? behind : people;
 
   async function copy() {
     const lines = [
-      ["Tenant", "Rental unit", `${monthLabel(`${month}-01`)} owing`, "Total owing", "Last paid"].join("\t"),
+      ["Tenant", "Rental unit", "Paid by", `${monthLabel(`${month}-01`)} owing`, "Total owing", "Last paid"].join("\t"),
       ...shown.map((p) =>
-        [p.name, p.address, p.monthOwing.toFixed(2), p.totalOwing.toFixed(2), p.balance?.last_paid_on || p.c?.last_paid_on || ""].join("\t")
+        [
+          p.name,
+          p.address,
+          methodsOf(p).map((m) => METHOD_LABEL[m] || m).join(", "),
+          p.monthOwing.toFixed(2),
+          p.totalOwing.toFixed(2),
+          p.balance?.last_paid_on || p.c?.last_paid_on || "",
+        ].join("\t")
       ),
     ];
     try {
@@ -339,6 +354,20 @@ function TenantsPaid({ month, loading, people, who, setWho, copied, setCopied })
             </button>
           ))}
         </div>
+        <div className="field" style={{ minWidth: 180 }}>
+          <label htmlFor="tp-how" className="visually-hidden">
+            How they paid
+          </label>
+          <select id="tp-how" value={how} onChange={(e) => (setHow(e.target.value), setCopied(""))}>
+            <option value="">Any way they paid</option>
+            {methodsUsed.map((m) => (
+              <option key={m} value={m}>
+                {METHOD_LABEL[m] || m}
+              </option>
+            ))}
+            <option value="none">No payment this month</option>
+          </select>
+        </div>
         <button type="button" className="btn ghost sm" onClick={copy} disabled={loading || !shown.length}>
           Copy list
         </button>
@@ -365,6 +394,7 @@ function TenantsPaid({ month, loading, people, who, setWho, copied, setCopied })
                 <th scope="col">Rental unit</th>
                 <th scope="col" className="r">Due this month</th>
                 <th scope="col" className="r">Paid this month</th>
+                <th scope="col">Paid by</th>
                 <th scope="col" className="r">Owing this month</th>
                 <th scope="col" className="r">Total owing</th>
                 <th scope="col">Last paid</th>
@@ -381,6 +411,7 @@ function TenantsPaid({ month, loading, people, who, setWho, copied, setCopied })
                   </td>
                   <td className="r num">{p.c ? money(p.c.due) : "—"}</td>
                   <td className="r num">{p.c ? money(p.c.paid) : "—"}</td>
+                  <td className="small">{methodsOf(p).map((m) => METHOD_LABEL[m] || m).join(", ") || "—"}</td>
                   <td className={`r num${cents(p.monthOwing) > 0 ? " owing" : ""}`}>{money(p.monthOwing)}</td>
                   <td className={`r num${cents(p.totalOwing) > 0 ? " owing" : ""}`}>{money(p.totalOwing)}</td>
                   <td>{shortDate(p.balance?.last_paid_on || p.c?.last_paid_on) || "—"}</td>
