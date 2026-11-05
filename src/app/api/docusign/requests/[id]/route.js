@@ -35,7 +35,16 @@ export async function POST(request, { params }) {
       case "remind": {
         if (!["sent", "delivered"].includes(row.status)) return NextResponse.json({ error: "Only envelopes out for signature can be resent." }, { status: 400 });
         await resendEnvelope(row.envelope_id);
-        return NextResponse.json({ ok: true });
+        const remindedAt = new Date().toISOString();
+        // Log it so the Signatures page can show when the last reminder went out.
+        await sb.from("signature_events").insert({
+          signature_request_id: row.id,
+          envelope_id: row.envelope_id,
+          event: "reminder-sent",
+          occurred_at: remindedAt,
+          dedupe_key: `${row.envelope_id}|reminder-sent|${remindedAt}`,
+        });
+        return NextResponse.json({ ok: true, reminded_at: remindedAt });
       }
       case "void": {
         const reason = String(body.reason || "").trim();

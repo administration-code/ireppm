@@ -57,6 +57,8 @@ export default function RentBoard() {
   const [month, setMonth] = useState(thisMonth);
   const [state, setState] = useState({ loading: true, collection: [], balances: [], tenancies: [], unmatched: 0, error: "" });
   const [open, setOpen] = useState(() => new Set());
+  const [who, setWho] = useState("all");
+  const [copied, setCopied] = useState("");
 
   useEffect(() => {
     if (!/^\d{4}-\d{2}$/.test(month)) return undefined;
@@ -74,7 +76,7 @@ export default function RentBoard() {
   const { loading, collection, balances, tenancies, unmatched, error } = state;
   const pastSeventh = todayISO() > `${month}-07`;
 
-  const { groups, totals, arrears } = useMemo(() => {
+  const { groups, totals, arrears, people } = useMemo(() => {
     const byTenancy = new Map(tenancies.map((t) => [t.id, t]));
     const balanceOf = new Map(balances.map((b) => [b.tenancy_id, b]));
     const map = new Map();
@@ -107,6 +109,22 @@ export default function RentBoard() {
         .filter((b) => cents(b.balance) > 0)
         .map((b) => ({ ...b, tenancy: byTenancy.get(b.tenancy_id) }))
         .sort((a, b) => Number(b.balance) - Number(a.balance)),
+      // One row per tenant: everyone charged this month, plus anyone else who still owes (moved out, say).
+      people: [
+        ...collection.map((c) => ({ id: c.tenancy_id, c, tenancy: byTenancy.get(c.tenancy_id), balance: balanceOf.get(c.tenancy_id) })),
+        ...balances
+          .filter((b) => cents(b.balance) > 0 && !collection.some((c) => c.tenancy_id === b.tenancy_id))
+          .map((b) => ({ id: b.tenancy_id, c: null, tenancy: byTenancy.get(b.tenancy_id), balance: b })),
+      ]
+        .map((p) => ({
+          ...p,
+          name: p.tenancy ? primaryTenant(p.tenancy) : "Unknown tenancy",
+          address: p.tenancy ? tenancyAddress(p.tenancy) : "—",
+          monthOwing: p.c ? owing(p.c.outstanding) : 0,
+          totalOwing: owing(p.balance?.balance),
+        }))
+        .map((p) => ({ ...p, behind: cents(p.monthOwing) > 0 || cents(p.totalOwing) > 0 }))
+        .sort((a, b) => String(a.address).localeCompare(String(b.address)) || String(a.name).localeCompare(String(b.name))),
     };
   }, [collection, balances, tenancies]);
 
@@ -216,6 +234,16 @@ export default function RentBoard() {
         )}
       </section>
 
+      <TenantsPaid
+        month={month}
+        loading={loading}
+        people={people}
+        who={who}
+        setWho={setWho}
+        copied={copied}
+        setCopied={setCopied}
+      />
+
       <section className="boxed stack" aria-labelledby="sec-arrears">
         <h2 id="sec-arrears" className="sec-title">
           Arrears
@@ -270,6 +298,102 @@ export default function RentBoard() {
         )}
       </section>
     </div>
+  );
+}
+
+// Paid vs in arrears, one row per tenant, so staff can update PayProp quickly.
+function TenantsPaid({ month, loading, people, who, setWho, copied, setCopied }) {
+  const paid = people.filter((p) => !p.behind);
+  const behind = people.filter((p) => p.behind);
+  const shown = who === "paid" ? paid : who === "arrears" ? behind : people;
+
+  async function copy() {
+    const lines = [
+      ["Tenant", "Rental unit", `${monthLabel(`${month}-01`)} owing`, "Total owing", "Last paid"].join("\t"),
+      ...shown.map((p) =>
+        [p.name, p.address, p.monthOwing.toFixed(2), p.totalOwing.toFixed(2), p.balance?.last_paid_on || p.c?.last_paid_on || ""].join("\t")
+      ),
+    ];
+    try {
+      await navigator.clipboard.writeText(lines.join("\n"));
+      setCopied(`Copied ${shown.length} row${shown.length === 1 ? "" : "s"}. Paste into a spreadsheet or email.`);
+    } catch {
+      setCopied("Your browser blocked copying. Select the table and copy it instead.");
+    }
+  }
+
+  return (
+    <section className="boxed stack" aria-labelledby="sec-tenants-paid">
+      <div className="sec-head">
+        <h2 id="sec-tenants-paid" className="sec-title" style={{ margin: 0 }}>
+          Tenants: Paid or in Arrears
+        </h2>
+        <div className="seg" role="group" aria-label="Show tenants">
+          {[
+            ["all", `All (${people.length})`],
+            ["paid", `Paid (${paid.length})`],
+            ["arrears", `In arrears (${behind.length})`],
+          ].map(([k, label]) => (
+            <button key={k} type="button" aria-pressed={who === k} onClick={() => (setWho(k), setCopied(""))}>
+              {label}
+            </button>
+          ))}
+        </div>
+        <button type="button" className="btn ghost sm" onClick={copy} disabled={loading || !shown.length}>
+          Copy list
+        </button>
+      </div>
+      <p className="small" style={{ margin: 0 }}>
+        Paid means {monthLabel(`${month}-01`)} rent is in full and nothing is owing from earlier months. In arrears means anything is owing,
+        this month or earlier (including tenants who have moved out).
+      </p>
+      {copied ? (
+        <p className="small" role="status" style={{ margin: 0 }}>
+          {copied}
+        </p>
+      ) : null}
+      {loading ? (
+        <p className="small">Loading…</p>
+      ) : !shown.length ? (
+        <p className="small">{who === "arrears" ? "Nobody is behind." : who === "paid" ? "Nobody has paid in full yet." : "No tenants this month."}</p>
+      ) : (
+        <div className="table-scroll">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th scope="col">Tenant</th>
+                <th scope="col">Rental unit</th>
+                <th scope="col" className="r">Due this month</th>
+                <th scope="col" className="r">Paid this month</th>
+                <th scope="col" className="r">Owing this month</th>
+                <th scope="col" className="r">Total owing</th>
+                <th scope="col">Last paid</th>
+                <th scope="col">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {shown.map((p) => (
+                <tr key={p.id}>
+                  <td className="addr">{p.name}</td>
+                  <td>
+                    {p.tenancy?.unit ? <Link href={`/admin/units/${p.tenancy.unit.id}`}>{p.address}</Link> : p.address}
+                    {p.tenancy?.status === "ended" ? <span className="small"> · moved out</span> : null}
+                  </td>
+                  <td className="r num">{p.c ? money(p.c.due) : "—"}</td>
+                  <td className="r num">{p.c ? money(p.c.paid) : "—"}</td>
+                  <td className={`r num${cents(p.monthOwing) > 0 ? " owing" : ""}`}>{money(p.monthOwing)}</td>
+                  <td className={`r num${cents(p.totalOwing) > 0 ? " owing" : ""}`}>{money(p.totalOwing)}</td>
+                  <td>{shortDate(p.balance?.last_paid_on || p.c?.last_paid_on) || "—"}</td>
+                  <td>
+                    <span className={`pill ${p.behind ? "cs-none" : "cs-full"}`}>{p.behind ? "In arrears" : "Paid"}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
   );
 }
 

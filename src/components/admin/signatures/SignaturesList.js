@@ -6,7 +6,7 @@ import { getBrowserClient } from "@/lib/supabase";
 import SigStatus from "@/components/admin/signatures/SigStatus";
 import DeleteRecord from "@/components/admin/DeleteRecord";
 import { canDeleteSignature, deleteSignatureRequest } from "@/lib/delete-records";
-import { SIG_FILTERS, SIG_KIND, kindLabel, SIG_LIST_SELECT, docusignApi, outTo, shortDate } from "@/lib/signatures";
+import { SIG_FILTERS, SIG_KIND, kindLabel, SIG_LIST_SELECT, docusignApi, openInTab, outTo, shortDate } from "@/lib/signatures";
 
 const LANDLORD_KINDS = ["pm_contract"];
 
@@ -25,6 +25,8 @@ export default function SignaturesList() {
   const [syncNote, setSyncNote] = useState("");
   const [version, setVersion] = useState(0);
   const [busy, setBusy] = useState({});
+  const [reminded, setReminded] = useState({});
+  const [openError, setOpenError] = useState("");
 
   // Pull the latest from DocuSign (statuses, and envelopes made directly in DocuSign) when the page opens.
   const sync = async () => {
@@ -51,8 +53,18 @@ export default function SignaturesList() {
     try {
       const res = await docusignApi(`/requests/${r.id}`, { body: { action: "remind" } });
       setBusy((b) => ({ ...b, [r.id]: res?.error ? `Couldn't resend: ${res.error}` : "Resent" }));
+      if (!res?.error) setReminded((m) => ({ ...m, [r.id]: res?.reminded_at || new Date().toISOString() }));
     } catch (err) {
       setBusy((b) => ({ ...b, [r.id]: `Couldn't resend: ${err.message}` }));
+    }
+  };
+
+  const openDocusign = async (r) => {
+    setOpenError("");
+    try {
+      await openInTab(async () => (await docusignApi(`/requests/${r.id}`, { body: { action: "open" } })).url);
+    } catch (err) {
+      setOpenError(`Couldn't open “${r.title}” in DocuSign: ${err.message}`);
     }
   };
 
@@ -68,10 +80,23 @@ export default function SignaturesList() {
     if (kind) q = q.eq("kind", kind);
     else if (side === "landlords") q = q.in("kind", LANDLORD_KINDS);
     else if (side === "tenants") q = q.not("kind", "in", `(${LANDLORD_KINDS.join(",")})`);
-    q.then(({ data, error: e }) => {
+    q.then(async ({ data, error: e }) => {
       if (!live) return;
       setRows(data || []);
       setError(e ? "We couldn't load signature requests. Refresh the page to try again." : "");
+      // Latest reminder per request (sent from this site, or reported by DocuSign).
+      const ids = (data || []).map((r) => r.id);
+      if (!ids.length) return;
+      const { data: ev } = await getBrowserClient()
+        .from("signature_events")
+        .select("signature_request_id, event, occurred_at")
+        .in("signature_request_id", ids)
+        .or("event.ilike.*remind*,event.ilike.*resent*")
+        .order("occurred_at", { ascending: false });
+      if (!live) return;
+      const latest = {};
+      for (const x of ev || []) if (!latest[x.signature_request_id]) latest[x.signature_request_id] = x.occurred_at;
+      setReminded(latest);
     });
     return () => {
       live = false;
@@ -154,6 +179,7 @@ export default function SignaturesList() {
 
       {error ? <div className="warnbox">{error}</div> : null}
       {syncNote ? <p className="small" role="status">{syncNote}</p> : null}
+      {openError ? <div className="warnbox" role="alert">{openError}</div> : null}
       {rows === null ? (
         <p className="small">Loading…</p>
       ) : rows.length === 0 ? (
@@ -170,6 +196,7 @@ export default function SignaturesList() {
                 <th scope="col">Out to</th>
                 <th scope="col">Status</th>
                 <th scope="col">Sent</th>
+                <th scope="col">Reminder sent</th>
                 <th scope="col">Completed</th>
                 <th scope="col" className="r">
                   <span className="visually-hidden">Actions</span>
@@ -191,8 +218,14 @@ export default function SignaturesList() {
                     <SigStatus status={r.status} />
                   </td>
                   <td className="small">{shortDate(r.sent_at) || "—"}</td>
+                  <td className="small">{reminded[r.id] ? shortDate(reminded[r.id]) : "—"}</td>
                   <td className="small">{shortDate(r.completed_at) || "—"}</td>
                   <td className="r">
+                    {r.envelope_id && ["draft", "sent", "delivered"].includes(r.status) ? (
+                      <button type="button" className="btn ghost sm" onClick={() => openDocusign(r)}>
+                        Open in DocuSign<span className="visually-hidden">: {r.title}</span>
+                      </button>
+                    ) : null}{" "}
                     {["sent", "delivered"].includes(r.status) ? (
                       busy[r.id] ? (
                         <span className="small">{busy[r.id]}</span>
