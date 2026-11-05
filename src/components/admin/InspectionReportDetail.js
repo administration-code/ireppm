@@ -140,7 +140,8 @@ export default function InspectionReportDetail({ id }) {
         <span className="eyebrow">Staff · Inspection report</span>
         <h1 className="admin-title">{r.property?.address}</h1>
         <p className="small" style={{ margin: 0 }}>
-          {shortDate(r.inspected_on)} · by {r.inspected_by || "IRep staff"} · <span className="pill">{REPORT_STATUS[r.status]}</span>
+          {shortDate(r.inspected_on)} · by {r.inspected_by || "IRep staff"} · <span className="pill">{REPORT_STATUS[r.status]}</span> ·{" "}
+          <Link href={`/admin/inspection-reports/${r.id}/print`}>PDF</Link>
           {r.sent_at ? ` · sent to ${r.sent_to} on ${shortDate(String(r.sent_at).slice(0, 10))}` : ""}
         </p>
       </div>
@@ -299,6 +300,9 @@ export default function InspectionReportDetail({ id }) {
       </section>
 
       <div className="req-actions">
+        <Link className="btn primary sm" href={`/admin/inspection-reports/${r.id}/print`}>
+          PDF for the landlord
+        </Link>
         {r.status !== "closed" ? (
           <button type="button" className="btn ghost sm" onClick={() => setStatus("closed")}>
             Mark report closed
