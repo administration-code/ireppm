@@ -59,6 +59,7 @@ export default function RentBoard() {
   const [open, setOpen] = useState(() => new Set());
   const [who, setWho] = useState("all");
   const [how, setHow] = useState("");
+  const [find, setFind] = useState("");
   const [copied, setCopied] = useState("");
 
   useEffect(() => {
@@ -243,6 +244,8 @@ export default function RentBoard() {
         setWho={setWho}
         how={how}
         setHow={setHow}
+        find={find}
+        setFind={setFind}
         copied={copied}
         setCopied={setCopied}
       />
@@ -305,12 +308,26 @@ export default function RentBoard() {
 }
 
 // Paid vs in arrears, one row per tenant, so staff can update PayProp quickly.
-function TenantsPaid({ month, loading, people: everyone, who, setWho, how, setHow, copied, setCopied }) {
+function TenantsPaid({ month, loading, people: everyone, who, setWho, how, setHow, find, setFind, copied, setCopied }) {
   const methodsOf = (p) => p.c?.methods || [];
   const methodsUsed = [...new Set(everyone.flatMap(methodsOf))].sort((a, b) =>
     String(METHOD_LABEL[a] || a).localeCompare(String(METHOD_LABEL[b] || b))
   );
-  const people = !how ? everyone : how === "none" ? everyone.filter((p) => !methodsOf(p).length) : everyone.filter((p) => methodsOf(p).includes(how));
+  // Every word typed must appear in the tenants' names, address, unit, email, phone or PayProp reference.
+  const words = find.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const haystack = (p) =>
+    [
+      p.name,
+      p.address,
+      p.tenancy?.payprop_reference,
+      ...(p.tenancy?.tenancy_tenants || []).flatMap((t) => [t.full_name, t.email, t.phone, String(t.phone || "").replace(/\D/g, "")]),
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+  const people = everyone
+    .filter((p) => (!how ? true : how === "none" ? !methodsOf(p).length : methodsOf(p).includes(how)))
+    .filter((p) => !words.length || words.every((w) => haystack(p).includes(w)));
   const paid = people.filter((p) => !p.behind);
   const behind = people.filter((p) => p.behind);
   const shown = who === "paid" ? paid : who === "arrears" ? behind : people;
@@ -354,6 +371,18 @@ function TenantsPaid({ month, loading, people: everyone, who, setWho, how, setHo
             </button>
           ))}
         </div>
+        <div className="field" style={{ minWidth: 200, flex: "1 1 200px" }}>
+          <label htmlFor="tp-find" className="visually-hidden">
+            Search tenants
+          </label>
+          <input
+            id="tp-find"
+            type="search"
+            value={find}
+            onChange={(e) => (setFind(e.target.value), setCopied(""))}
+            placeholder="Search name, address, email, phone…"
+          />
+        </div>
         <div className="field" style={{ minWidth: 180 }}>
           <label htmlFor="tp-how" className="visually-hidden">
             How they paid
@@ -384,7 +413,15 @@ function TenantsPaid({ month, loading, people: everyone, who, setWho, how, setHo
       {loading ? (
         <p className="small">Loading…</p>
       ) : !shown.length ? (
-        <p className="small">{who === "arrears" ? "Nobody is behind." : who === "paid" ? "Nobody has paid in full yet." : "No tenants this month."}</p>
+        <p className="small">
+          {words.length || how
+            ? "No tenants match your search."
+            : who === "arrears"
+              ? "Nobody is behind."
+              : who === "paid"
+                ? "Nobody has paid in full yet."
+                : "No tenants this month."}
+        </p>
       ) : (
         <div className="table-scroll">
           <table className="admin-table">
