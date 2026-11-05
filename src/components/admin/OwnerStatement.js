@@ -123,7 +123,7 @@ function PaymentsTable({ rows, muted }) {
               <td>
                 {p.tenant || p.payer_name || "—"}
                 {p.payer_name && p.tenant && p.payer_name !== p.tenant ? (
-                  <span className="small sub-line">Paid by {p.payer_name}</span>
+                  <span className="small sub-line no-print">Paid by {p.payer_name}</span>
                 ) : null}
               </td>
               <td>{shortDate(p.received_on)}</td>

@@ -7,6 +7,7 @@ const LINKS = [
   ["/admin/rent/match", "To Match"],
   ["/admin/rent/new", "Record a Payment"],
   ["/admin/rent/payprop", "PayProp Batch"],
+  ["/admin/rent/senders", "Sender Rules"],
 ];
 
 export default function RentNav({ current, unmatched = 0 }) {
