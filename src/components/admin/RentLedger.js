@@ -156,7 +156,7 @@ export default function RentLedger({ tenancy }) {
                       <td>{shortDate(e.date)}</td>
                       <td>
                         {REFUND_LABEL[f.reason]}
-                        {f.reason === "rent" ? `: ${monthLabel(f.rent_period)}` : ""} · {f.funding === "irep" ? "IRep covered it" : "taken off the landlord's payout"}
+                        {f.reason === "rent" ? `: ${monthLabel(f.rent_period)}` : ""} · {f.funding === "irep" ? "not off the landlord’s payout" : "taken off the landlord’s payout"}
                         {f.status === "to_send" ? " · not sent yet" : ""}
                         <span className="sub-line small">
                           {f.reason === "rent"

@@ -22,7 +22,7 @@ const REASON_LABEL = { ...TENANT_REASONS, overpaid: "Overpayment", rent: "Rent",
 const METHODS = { etransfer: "e-Transfer", cheque: "Cheque", direct_deposit: "Direct deposit", other: "Other" };
 const FUNDING_LABEL = {
   landlord: "Off the landlord's payout",
-  irep: "IRep covered it",
+  irep: "Not off the landlord’s payout",
   payout: "Added to their payout",
   separate: "Sent separately",
 };
@@ -350,7 +350,7 @@ export default function Refunds() {
               {(isTenant
                 ? [
                     ["landlord", "The landlord: take it off their payout"],
-                    ["irep", "IRep covers it (doesn't touch the landlord)"],
+                    ["irep", "Not off the landlord: IRep covers it, or it’s already held back with Hold Rent"],
                   ]
                 : [
                     ["payout", "Add it to their payout"],
