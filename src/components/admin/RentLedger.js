@@ -25,18 +25,27 @@ const CHARGE_FIELDS = "id, period, kind, description, amount, maintenance_reques
 const PAYMENT_FIELDS = "id, received_on, amount, method, kind, period, payer_name, received_by, source, status, notes, created_at";
 
 // Matches tenancy_balances: every charge, and matched rent payments only.
+const REFUND_FIELDS = "id, reason, rent_period, amount, funding, status, sent_on, note, created_at";
+const REFUND_LABEL = {
+  overpaid: "Refund of overpayment",
+  rent: "Rent refunded",
+  last_month_rent: "Last month's rent refunded",
+  other: "Refund",
+};
 const countsTowardBalance = (p) => p.status === "matched" && p.kind === "rent";
 
 async function loadLedger(tenancyId) {
   const sb = getBrowserClient();
-  const [c, p] = await Promise.all([
+  const [c, p, r] = await Promise.all([
     sb.from("rent_charges").select(CHARGE_FIELDS).eq("tenancy_id", tenancyId),
     sb.from("payments").select(PAYMENT_FIELDS).eq("tenancy_id", tenancyId),
+    sb.from("refunds").select(REFUND_FIELDS).eq("tenancy_id", tenancyId).eq("recipient", "tenant"),
   ]);
   if (c.error || p.error) throw new Error("We couldn't load the rent ledger. Refresh the page to try again.");
   const entries = [
     ...(c.data || []).map((x) => ({ type: "charge", key: `c-${x.id}`, date: x.period, row: x })),
     ...(p.data || []).map((x) => ({ type: "payment", key: `p-${x.id}`, date: x.received_on, row: x })),
+    ...(r.data || []).map((x) => ({ type: "refund", key: `r-${x.id}`, date: x.sent_on || String(x.created_at).slice(0, 10), row: x })),
   ].sort(
     (a, b) =>
       String(a.date).localeCompare(String(b.date)) ||
@@ -46,6 +55,9 @@ async function loadLedger(tenancyId) {
   let running = 0;
   return entries.map((e) => {
     if (e.type === "charge") running += cents(e.row.amount);
+    // An overpayment refund uses up the tenant's credit. A rent refund cancels that month's charge and
+    // payment together, so it doesn't move the balance (the same as tenancy_balances).
+    else if (e.type === "refund") running += e.row.reason === "overpaid" ? cents(e.row.amount) : 0;
     else if (countsTowardBalance(e.row)) running -= cents(e.row.amount);
     return { ...e, balance: running / 100 };
   });
@@ -137,6 +149,35 @@ export default function RentLedger({ tenancy }) {
             </thead>
             <tbody>
               {entries.map((e) => {
+                if (e.type === "refund") {
+                  const f = e.row;
+                  return (
+                    <tr key={e.key} className={f.reason === "overpaid" ? undefined : "muted-row"}>
+                      <td>{shortDate(e.date)}</td>
+                      <td>
+                        {REFUND_LABEL[f.reason]}
+                        {f.reason === "rent" ? `: ${monthLabel(f.rent_period)}` : ""} · {f.funding === "irep" ? "not off the landlord’s payout" : "taken off the landlord’s payout"}
+                        {f.status === "to_send" ? " · not sent yet" : ""}
+                        <span className="sub-line small">
+                          {f.reason === "rent"
+                            ? "That month's charge and payment are both cancelled, so the balance doesn't change."
+                            : f.reason === "overpaid"
+                              ? "Uses up the tenant's credit."
+                              : "Not part of the rent balance."}
+                        </span>
+                        {f.note ? <span className="sub-line small">{f.note}</span> : null}
+                      </td>
+                      <td className="r num">{f.reason === "overpaid" ? money(f.amount) : ""}</td>
+                      <td className="r num">{f.reason === "overpaid" ? "" : <span className="small">{money(f.amount)} out</span>}</td>
+                      <td className={`r num${cents(e.balance) > 0 ? " owing" : ""}`}>{money(e.balance)}</td>
+                      <td>
+                        <div className="row-actions">
+                          <Link href="/admin/rent/refunds">Refunds</Link>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                }
                 const isCharge = e.type === "charge";
                 const counted = isCharge || countsTowardBalance(e.row);
                 return (

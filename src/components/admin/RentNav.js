@@ -7,6 +7,7 @@ const LINKS = [
   ["/admin/rent/match", "To Match"],
   ["/admin/rent/new", "Record a Payment"],
   ["/admin/rent/payprop", "PayProp Batch"],
+  ["/admin/rent/refunds", "Refunds"],
   ["/admin/rent/senders", "Sender Rules"],
 ];
 
