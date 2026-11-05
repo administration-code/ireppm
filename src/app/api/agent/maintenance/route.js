@@ -75,7 +75,9 @@ export async function POST(request) {
   if (!description) return NextResponse.json({ error: "Describe the problem." }, { status: 400 });
   const estProblem = estimateProblem(body?.est_repair, "repair estimate") || estimateProblem(body?.est_replace, "replacement cost");
   if (estProblem) return NextResponse.json({ error: estProblem }, { status: 400 });
-  const est = estimateFromForm(body?.est_repair, body?.est_replace);
+  const done = body?.already_done === true;
+  const settled = done && body?.settled_direct === true;
+  const est = settled ? { estimated_cost: null, note: "" } : estimateFromForm(body?.est_repair, body?.est_replace);
 
   const props = await assignedProperties(sb, partner.id);
   const property = props.find((p) => p.id === propertyId);
@@ -133,17 +135,22 @@ export async function POST(request) {
       category,
       urgency,
       title,
-      description: [description, est.note].filter(Boolean).join("\n\n"),
+      description: [description, est.note, settled ? "Work completed and settled directly with the landlord; nothing billed through IRep." : done ? "Work completed." : ""]
+        .filter(Boolean)
+        .join("\n\n"),
       estimated_cost: est.estimated_cost,
       estimate_plus_hst: est.estimated_cost != null,
       photos,
-      status: "new",
+      status: done ? "completed" : "new",
+      completed_at: done ? new Date().toISOString() : null,
       partner_id: partner.id,
       reporter_name: partner.name,
       reporter_phone: partner.phone || null,
       reporter_email: partner.email,
       permission_to_enter: false,
-      staff_notes: `Logged by ${partner.name} through the Agent Portal.`,
+      staff_notes: `Logged by ${partner.name} through the Agent Portal${
+        settled ? " as completed and settled directly with the landlord (nothing to bill)" : done ? " as already completed" : ""
+      }.`,
     })
     .select("id")
     .single();

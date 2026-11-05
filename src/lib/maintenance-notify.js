@@ -28,7 +28,10 @@ function estimateText(r, hstPct) {
 }
 
 export async function notifyLandlordAndTenants(sb, record) {
-  if (!record?.id || ["completed", "cancelled"].includes(record.status)) return { skipped: true };
+  // Work logged as already done: a vendor's record of work (often settled with the landlord
+  // directly). The landlord gets a "for your records" note; tenants aren't emailed.
+  const doneRecord = record?.status === "completed" && /Agent Portal/.test(record?.staff_notes || "");
+  if (!record?.id || record.status === "cancelled" || (record.status === "completed" && !doneRecord)) return { skipped: true };
   if (!mailConfigured()) return { skipped: true };
 
   const { data: unit } = await sb
@@ -54,11 +57,17 @@ export async function notifyLandlordAndTenants(sb, record) {
   const owner = property.owner;
   if (owner && emailOk(owner.email)) {
     const emergency = record.urgency === "emergency";
-    const intro = emergency
-      ? `An emergency repair was reported at ${place}. We're handling it right away and will update you.`
-      : record.owner_approval === "pending"
-        ? `A repair was reported at ${place}. It's estimated at more than ${money(threshold)} before HST, so we won't go ahead without your OK. Reply to this email to approve it or ask questions.`
-        : `A repair was reported at ${place}. We're arranging it now. Repairs up to ${money(threshold)} before HST go ahead without waiting for approval; anything more needs your OK first.`;
+    const needsOk = record.owner_approval === "pending";
+    const hasEstimate = record.estimated_cost != null;
+    const intro = doneRecord
+      ? `For your records: work was completed at ${place}. There's nothing you need to do.`
+      : emergency
+        ? `An emergency repair was reported at ${place}. We're handling it right away and will update you.`
+        : needsOk
+          ? `A repair was reported at ${place}. It's estimated at more than ${money(threshold)} before HST, so we won't go ahead without your OK. Reply to this email to approve it or ask questions.`
+          : hasEstimate
+            ? `A repair was reported at ${place}. It's estimated at ${money(record.estimated_cost)} + HST, which is within our ${money(threshold)} approval limit, so we're going ahead. No action is needed from you.`
+            : `A repair was reported at ${place}. We're looking into it, and there's nothing you need to do. If it turns out to cost more than ${money(threshold)} before HST, we'll ask for your OK first.`;
     const rows = [
       ["Property", place],
       ["Problem", record.title],
@@ -69,12 +78,18 @@ export async function notifyLandlordAndTenants(sb, record) {
       ["Reported by", reporterText(record)],
     ];
     const link = { href: "https://ireppm.ca/owner", label: "Open your landlord portal" };
-    const heading = emergency ? "Emergency repair at your property" : "New maintenance request";
+    const heading = doneRecord
+      ? "Work completed at your property"
+      : emergency
+        ? "Emergency repair at your property"
+        : needsOk
+          ? "Your approval is needed"
+          : "Maintenance update: no action needed";
     const { error } = await mail.emails.send({
       from: FROM,
       to: [owner.email.trim()],
       replyTo: SITE.email,
-      subject: `${emergency ? "Emergency repair" : "Maintenance request"}: ${record.title}, ${property.address}`,
+      subject: `${doneRecord ? "Work completed" : emergency ? "Emergency repair" : needsOk ? "Approval needed" : "Maintenance update"}: ${record.title}, ${property.address}`,
       html: renderEmail({ heading, intro: `Hi ${owner.name || "there"}, ${intro}`, rows, link }),
       text: renderText({ heading, rows, link, extra: `Hi ${owner.name || "there"}, ${intro}` }),
     });
@@ -85,7 +100,9 @@ export async function notifyLandlordAndTenants(sb, record) {
   // Tenants: the unit's current tenants; for shared areas and outside, everyone at the property
   // (not for routine lawn and snow work); for someone not on an IRep lease, the person who reported it.
   let recipients = [];
-  if (other) {
+  if (doneRecord) {
+    // no tenant email for a record of finished work
+  } else if (other) {
     if (emailOk(record.reporter_email)) recipients = [{ name: record.reporter_name, email: record.reporter_email }];
   } else if (!(whole && record.category === "lawn_snow")) {
     let unitIds = [unit.id];

@@ -12,7 +12,7 @@ async function authHeader() {
   return { Authorization: `Bearer ${data?.session?.access_token || ""}` };
 }
 
-const EMPTY = { property_id: "", unit_id: "", category: "other", urgency: "routine", title: "", description: "", est_repair: "", est_replace: "" };
+const EMPTY = { property_id: "", unit_id: "", category: "other", urgency: "routine", title: "", description: "", est_repair: "", est_replace: "", already_done: false, settled_direct: false };
 
 // Partners log a problem they found at one of their properties. It goes to IRep staff as New.
 export default function AgentMaintenanceForm({ userId, onLogged }) {
@@ -73,7 +73,11 @@ export default function AgentMaintenanceForm({ userId, onLogged }) {
     setForm({ ...EMPTY, property_id: props?.length === 1 ? props[0].id : "" });
     setFiles([]);
     setOpen(false);
-    setDone("Thanks, IRep has your request. It's assigned to you and listed under Open Jobs while IRep reviews it.");
+    setDone(
+      form.already_done
+        ? "Thanks, it's on record as completed. The landlord gets a note that the work was done."
+        : "Thanks, IRep has your request. It's assigned to you and listed under Open Jobs while IRep reviews it."
+    );
     onLogged?.();
   }
 
@@ -169,13 +173,23 @@ export default function AgentMaintenanceForm({ userId, onLogged }) {
               placeholder="What's wrong, where exactly, and what you think it needs (parts, time, rough cost)."
             />
           </div>
-          <CostEstimateFields
+          <label className="check-line">
+            <input type="checkbox" checked={form.already_done} onChange={(e) => setForm((f) => ({ ...f, already_done: e.target.checked, settled_direct: e.target.checked && f.settled_direct }))} />
+            This work is already done (I&apos;m logging it for the record)
+          </label>
+          {form.already_done ? (
+            <label className="check-line">
+              <input type="checkbox" checked={form.settled_direct} onChange={(e) => setForm((f) => ({ ...f, settled_direct: e.target.checked }))} />
+              I settled it directly with the landlord, so there&apos;s nothing to bill through IRep
+            </label>
+          ) : null}
+          {form.settled_direct ? null : <CostEstimateFields
             urgency={form.urgency}
             repair={form.est_repair}
             replace={form.est_replace}
             onRepair={(v) => setForm((f) => ({ ...f, est_repair: v }))}
             onReplace={(v) => setForm((f) => ({ ...f, est_replace: v }))}
-          />
+          />}
           <PhotoPicker
             id={`${id}-photos`}
             files={files}

@@ -27,6 +27,9 @@ async function loadPayouts(month) {
   return { rows, error: failed ? "Some figures couldn't load. Refresh the page to try again." : "" };
 }
 
+// A payout was recorded and nothing more is owed to the owner this month.
+const paidUp = (row) => cents(row.paid_out) > 0 && cents(row.to_pay) <= 0;
+
 // All of the month's rent is in (on time or late).
 const fullRent = (row) => cents(row.rent_expected) > 0 && cents(row.rent_outstanding) <= 0;
 
@@ -51,6 +54,7 @@ export default function PayoutsBoard({ initialMonth }) {
   const [month, setMonth] = useState(() => initialMonth || thisMonth());
   const [onlyToSend, setOnlyToSend] = useState(false);
   const [onlyFull, setOnlyFull] = useState(false);
+  const [showPaid, setShowPaid] = useState(false);
   const [state, setState] = useState({ loading: true, rows: [], error: "" });
 
   useEffect(() => {
@@ -67,10 +71,13 @@ export default function PayoutsBoard({ initialMonth }) {
   }, [month]);
 
   const { loading, rows, error } = state;
+  // Totals cover the whole month; properties already paid out drop off the table unless shown.
   const shown = useMemo(
     () => rows.filter((r) => (!onlyToSend || cents(r.to_pay) > 0) && (!onlyFull || fullRent(r))),
     [rows, onlyToSend, onlyFull]
   );
+  const paidCount = shown.filter(paidUp).length;
+  const visible = showPaid ? shown : shown.filter((r) => !paidUp(r));
 
   const totals = useMemo(
     () => ({
@@ -116,6 +123,10 @@ export default function PayoutsBoard({ initialMonth }) {
           <input type="checkbox" checked={onlyFull} onChange={(e) => setOnlyFull(e.target.checked)} />
           Only properties with full rent received
         </label>
+        <label className="check" style={{ flex: "1 1 240px", alignSelf: "center" }}>
+          <input type="checkbox" checked={showPaid} onChange={(e) => setShowPaid(e.target.checked)} />
+          Show properties already paid out{paidCount ? ` (${paidCount})` : ""}
+        </label>
       </div>
 
       {error ? <div className="warnbox">{error}</div> : null}
@@ -142,9 +153,13 @@ export default function PayoutsBoard({ initialMonth }) {
         </h2>
         {loading ? (
           <p className="small">Loading statements…</p>
-        ) : !shown.length ? (
+        ) : !visible.length ? (
           <p className="small">
-            {onlyToSend && rows.length ? "Every owner is paid up for this month." : "No statements for this month yet."}
+            {paidCount
+              ? `Every owner here has been paid for this month (${paidCount}). Tick “Show properties already paid out” to see them.`
+              : onlyToSend && rows.length
+                ? "Every owner is paid up for this month."
+                : "No statements for this month yet."}
           </p>
         ) : (
           <div className="table-scroll">
@@ -166,12 +181,13 @@ export default function PayoutsBoard({ initialMonth }) {
                 </tr>
               </thead>
               <tbody>
-                {shown.map((r) => (
+                {visible.map((r) => (
                   <tr key={r.property_id}>
                     <td className="addr">
                       <Link href={`/admin/payouts/${r.property_id}/${month}`}>
                         {r.property?.address || "Unknown property"}
                       </Link>
+                      {paidUp(r) ? <span className="pill cs-full inline-pill">Paid out</span> : null}
                     </td>
                     <td>{r.property?.owner?.name || "—"}</td>
                     <td className="r num">{money(r.rent_expected)}</td>
@@ -194,7 +210,9 @@ export default function PayoutsBoard({ initialMonth }) {
               <tfoot>
                 <tr className="totals-row">
                   <th scope="row" colSpan={2}>
-                    Total ({shown.length} {shown.length === 1 ? "property" : "properties"})
+                    {visible.length === shown.length
+                      ? `Total (${shown.length} ${shown.length === 1 ? "property" : "properties"})`
+                      : `Month total, all ${shown.length} properties (incl. ${paidCount} paid out)`}
                   </th>
                   <td className="r num">{money(totals.expected)}</td>
                   <td className="r num">{money(totals.collected)}</td>
