@@ -122,6 +122,9 @@ export default function SignaturesList() {
             <Link className="btn primary sm" href="/admin/signatures/new?kind=draft">
               Draft a document
             </Link>
+            <Link className="btn primary sm" href="/admin/signatures/new?kind=N11">
+              N11 (end a tenancy)
+            </Link>
             <Link className="btn ghost sm" href="/admin/signatures/templates">
               Check Templates
             </Link>

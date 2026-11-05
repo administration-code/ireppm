@@ -139,6 +139,13 @@ export default function UploadForm({ ctx, mode = "upload" }) {
           Document
         </h2>
         {drafting ? (
+          <p className="small" style={{ margin: 0 }}>
+            Ending a tenancy early? Use the{" "}
+            <a href={`/admin/signatures/new?kind=N11${ctx.tenancy?.id ? `&tenancy=${ctx.tenancy.id}` : ""}`}>official N11 form</a> instead. You
+            can add your own terms to it on an extra page.
+          </p>
+        ) : null}
+        {drafting ? (
           <div className="field">
             <label htmlFor="up-body">Document text</label>
             <textarea
