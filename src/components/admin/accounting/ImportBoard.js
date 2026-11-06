@@ -6,6 +6,7 @@ import { getBrowserClient } from "@/lib/supabase";
 import { refreshStaffCounts } from "@/lib/admin-nav";
 import {
   applyMapping,
+  detectDateOrder,
   dollars,
   guessMapping,
   loadAccounts,
@@ -163,7 +164,7 @@ export default function ImportBoard() {
   function setField(key, value) {
     setMapping((m) => {
       const next = { ...m, [key]: value };
-      if (key === "date") next.dateOrder = null;
+      if (key === "date") next.dateOrder = detectDateOrder((m.hasHeader ? rows.slice(1) : rows).map((r) => r[value]));
       return next;
     });
   }
@@ -179,8 +180,8 @@ export default function ImportBoard() {
     : [];
 
   const bodyDates = mapping && mapping.date >= 0 ? (mapping.hasHeader ? rows.slice(1) : rows).map((r) => r[mapping.date]) : [];
-  const dateNeedsOrder =
-    mapping && mapping.date >= 0 && !mapping.dateOrder && bodyDates.some((d) => /^\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}$/.test(String(d).trim()));
+  const shortDates = mapping && mapping.date >= 0 && bodyDates.some((d) => /^\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}$/.test(String(d).trim()));
+  const dateNeedsOrder = shortDates && !mapping.dateOrder;
 
   const parsed = mapping && !dateNeedsOrder ? applyMapping(rows, mapping) : [];
   const good = parsed.filter((r) => !r.problem);
@@ -367,14 +368,16 @@ export default function ImportBoard() {
               ))}
             </div>
 
-            {dateNeedsOrder ? (
-              <div className="field acct-ask">
+            {shortDates ? (
+              <div className={`field${dateNeedsOrder ? " acct-ask" : ""}`} style={{ maxWidth: 520 }}>
                 <label htmlFor={`${id}-order`}>
-                  We can&apos;t tell how the dates are written (e.g. {bodyDates.find(Boolean)}). Which is it?
+                  {dateNeedsOrder
+                    ? `We can't tell how the dates are written (e.g. ${bodyDates.find((d) => /\d/.test(String(d))) || ""}). Which is it?`
+                    : `How the dates are written (e.g. ${bodyDates.find((d) => /\d/.test(String(d))) || ""})`}
                 </label>
                 <select
                   id={`${id}-order`}
-                  value=""
+                  value={mapping.dateOrder || ""}
                   onChange={(e) => setMapping((m) => ({ ...m, dateOrder: e.target.value }))}
                 >
                   <option value="" disabled>
@@ -382,6 +385,7 @@ export default function ImportBoard() {
                   </option>
                   <option value="mdy">Month / day / year (10/03/2026 is Oct 3)</option>
                   <option value="dmy">Day / month / year (10/03/2026 is Mar 10)</option>
+                  <option value="ymd">Year / month / day (26/10/03 is Oct 3, 2026)</option>
                 </select>
               </div>
             ) : null}

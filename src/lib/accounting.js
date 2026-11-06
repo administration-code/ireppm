@@ -307,28 +307,32 @@ export function parseAmount(raw) {
 
 const DATE_RE = /^(\d{1,4})[/.-](\d{1,2})[/.-](\d{1,4})$/;
 
-// Which order do the dates use? "iso", "mdy", "dmy" or null when we can't tell.
+const ORDERS = ["mdy", "dmy", "ymd"];
+
+// Which order do the dates use? "iso", "mdy", "dmy", "ymd" (year first, two digits, like Scotiabank's
+// 26/10/31) or null when we can't tell. Each order is tried on every date; the one where all dates are
+// real and fall in a sensible range (the last few years) wins.
 export function detectDateOrder(values) {
-  let sawIso = false;
-  let firstBig = false;
-  let secondBig = false;
-  let any = false;
-  for (const v of values) {
-    const m = DATE_RE.exec(String(v || "").trim());
-    if (!m) continue;
-    any = true;
-    if (m[1].length === 4) {
-      sawIso = true;
-      continue;
+  const dates = values.map((v) => String(v || "").trim()).filter((v) => DATE_RE.test(v));
+  if (!dates.length) return null;
+  if (dates.some((v) => DATE_RE.exec(v)[1].length === 4)) return "iso";
+  const now = Date.now();
+  const lo = now - 3 * 365 * 86400000;
+  const hi = now + 90 * 86400000;
+  const score = (order) => {
+    let n = 0;
+    for (const v of dates) {
+      const iso = parseDate(v, order);
+      if (!iso) return -1;
+      const t = new Date(`${iso}T12:00:00Z`).getTime();
+      if (t >= lo && t <= hi) n += 1;
     }
-    if (Number(m[1]) > 12) firstBig = true;
-    if (Number(m[2]) > 12) secondBig = true;
-  }
-  if (!any) return null;
-  if (sawIso) return "iso";
-  if (firstBig && !secondBig) return "dmy";
-  if (secondBig && !firstBig) return "mdy";
-  return null;
+    return n;
+  };
+  const scores = ORDERS.map((o) => [o, score(o)]).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]);
+  if (!scores.length) return null;
+  if (scores.length > 1 && scores[0][1] === scores[1][1]) return null;
+  return scores[0][0];
 }
 
 export function parseDate(raw, order) {
@@ -337,7 +341,7 @@ export function parseDate(raw, order) {
   let y;
   let mo;
   let d;
-  if (m[1].length === 4) [y, mo, d] = [m[1], m[2], m[3]];
+  if (m[1].length === 4 || order === "ymd") [y, mo, d] = [m[1], m[2], m[3]];
   else if (order === "dmy") [d, mo, y] = [m[1], m[2], m[3]];
   else [mo, d, y] = [m[1], m[2], m[3]];
   if (String(y).length === 2) y = `20${y}`;
