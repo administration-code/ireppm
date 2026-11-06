@@ -594,6 +594,7 @@ label.btn[aria-disabled="true"] { opacity: .6; cursor: progress; }
 
 @media print {
   .site-header, .site-footer, .no-print, .admin-tabs, .staff-nav { display: none !important; }
+  .print-only { display: block !important; }
   body { background: #fff; }
   .receipt { border: 0; padding: 0; max-width: none; }
   .editing-row td, .editing-row th { background: none; }
@@ -1250,3 +1251,6 @@ a[href^="tel:"] { white-space: nowrap; }
 .invoice-lines .sub-line { display: block; }
 .invoice-totals { max-width: 340px; margin-left: auto; }
 .invoice-edit .cell-input { width: 100%; }
+
+/* Shown only when printing (e.g. the landlord's inspection report letter). */
+.print-only { display: none; }

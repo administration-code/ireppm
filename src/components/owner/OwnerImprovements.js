@@ -7,6 +7,7 @@ import { shortDate } from "@/lib/rent";
 import { money } from "@/lib/format";
 import { SITE } from "@/lib/site";
 import InspectionChecks from "@/components/InspectionChecks";
+import InspectionLetter, { normalizeOwnerReport } from "@/components/InspectionLetter";
 
 async function authHeader() {
   const { data } = await getBrowserClient().auth.getSession();
@@ -61,19 +62,39 @@ export default function OwnerImprovements({ id }) {
     setMsg({ kind: "ok", text: "Thanks, we have your answers. We'll send you a price for each approved item before any work starts." });
   }
 
+  const hasItems = report.items.length > 0;
+  function print() {
+    const old = document.title;
+    document.title = `${report.property.address} - Inspection Report ${report.inspected_on}`;
+    window.print();
+    setTimeout(() => {
+      document.title = old;
+    }, 1000);
+  }
+
   return (
-    <div className="stack" style={{ gap: 20 }}>
+    <>
+    <div className="print-only">
+      <InspectionLetter report={normalizeOwnerReport(report)} opts={{ decisions: true, prices: true }} />
+    </div>
+    <div className="stack no-print" style={{ gap: 20 }}>
       <div style={{ display: "grid", gap: 6 }}>
         <Link className="back" href="/owner">
           ← Your portal
         </Link>
         <span className="eyebrow">Owner Portal</span>
-        <h1 className="admin-title">Recommended Improvements</h1>
+        <h1 className="admin-title">{hasItems ? "Recommended Improvements" : "Inspection Report"}</h1>
         <p className="small" style={{ margin: 0 }}>
           {report.property.address} · inspected {shortDate(report.inspected_on)}
         </p>
+        <div>
+          <button type="button" className="btn ghost sm" onClick={print}>
+            Download PDF
+          </button>
+        </div>
       </div>
 
+      {hasItems ? (
       <section className="boxed stack" aria-labelledby="oi-items">
         <h2 id="oi-items" className="sec-title">
           Approve or Decline Each Item
@@ -132,6 +153,9 @@ export default function OwnerImprovements({ id }) {
           </button>
         </div>
       </section>
+      ) : (
+        <div className="okbox">No improvements are recommended from this inspection. The details are below.</div>
+      )}
 
       <section className="boxed stack" aria-labelledby="oi-checks">
         <h2 id="oi-checks" className="sec-title">
@@ -142,5 +166,6 @@ export default function OwnerImprovements({ id }) {
       </section>
       <p className="small">Questions? Call {SITE.phone} or email {SITE.email}.</p>
     </div>
+    </>
   );
 }

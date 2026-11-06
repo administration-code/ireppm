@@ -276,8 +276,9 @@ export default function InspectionReportDetail({ id }) {
         {owner?.email ? (
           <>
             <p className="small" style={{ margin: 0 }}>
-              Emails {owner.name || "the landlord"} ({owner.email}) the checks and the list of improvements, with a link to approve or decline each
-              one in their portal. They don&apos;t see prices or who inspected.
+              Emails {owner.name || "the landlord"} ({owner.email}) and puts the report in their landlord portal, where they can approve or decline
+              each improvement and download the report as a PDF. They don&apos;t see who inspected, or prices until you add them.
+              {!r.items.length ? " There are no improvements, so it goes as a report for their records." : ""}
               {r.sent_at ? " You can send it again after adding items." : ""}
             </p>
             <div className="field">
@@ -289,7 +290,7 @@ export default function InspectionReportDetail({ id }) {
               Send a copy to administration@ireppm.ca
             </label>
             <div className="req-actions">
-              <button type="button" className="btn primary sm" onClick={send} disabled={sending || !r.items.length}>
+              <button type="button" className="btn primary sm" onClick={send} disabled={sending}>
                 {sending ? "Sending…" : r.sent_at ? "Send again" : `Send to ${owner.email}`}
               </button>
             </div>

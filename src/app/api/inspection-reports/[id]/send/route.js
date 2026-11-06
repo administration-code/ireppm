@@ -29,13 +29,17 @@ export async function POST(request, { params }) {
   const to = String(owner?.email || "").trim();
   if (!to) return NextResponse.json({ error: "This landlord has no email on file." }, { status: 400 });
   const pending = r.items.filter((i) => i.decision === "pending");
-  if (!r.items.length) return NextResponse.json({ error: "Add at least one recommended improvement first." }, { status: 400 });
+  const hasItems = r.items.length > 0;
 
   const name = owner.name || "there";
   const message = String(body?.message || "").trim().slice(0, 2000);
-  const intro = `Hi ${name}, ${
-    message || `we inspected ${r.property.address} on ${r.inspected_on}. Below are our recommended improvements.`
-  } Please approve or decline each one in your landlord portal. We'll send you a price for each item you approve before any work starts.`;
+  const intro = hasItems
+    ? `Hi ${name}, ${
+        message || `we inspected ${r.property.address} on ${r.inspected_on}. Below are our recommended improvements.`
+      } Please approve or decline each one in your landlord portal. We'll send you a price for each item you approve before any work starts.`
+    : `Hi ${name}, ${
+        message || `we inspected ${r.property.address} on ${r.inspected_on}. We have no improvements to recommend at this time.`
+      } The full report is in your landlord portal, where you can also download it as a PDF.`;
   const rows = [
     ["Property", [r.property.address, r.property.city].filter(Boolean).join(", ")],
     ["Inspected", r.inspected_on],
@@ -47,21 +51,21 @@ export async function POST(request, { params }) {
   const list = r.items
     .map((i) => `<li style="margin:0 0 6px;"><b>${escapeHtml(i.description)}</b>${i.unit?.label && i.unit.label !== "Whole property" ? ` (${escapeHtml(i.unit.label)})` : ""}${i.details ? `<br><span style="color:#555;">${escapeHtml(i.details)}</span>` : ""}</li>`)
     .join("");
-  const extraHtml = `<h2 style="margin:20px 0 8px;font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;">Recommended improvements</h2><ol style="margin:0;padding-left:20px;font-size:15px;line-height:1.5;">${list}</ol>`;
-  const link = { href: ownerReportUrl(id), label: "Approve or decline each item" };
-  const heading = "Inspection report and recommended improvements";
+  const extraHtml = !hasItems ? "" : `<h2 style="margin:20px 0 8px;font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;">Recommended improvements</h2><ol style="margin:0;padding-left:20px;font-size:15px;line-height:1.5;">${list}</ol>`;
+  const link = { href: ownerReportUrl(id), label: hasItems ? "Approve or decline each item" : "View the inspection report" };
+  const heading = hasItems ? "Inspection report and recommended improvements" : "Inspection report";
   const { error } = await mailer().emails.send({
     from: "IRep Property Management <statements@ireppm.ca>",
     to: [to],
     cc: body?.cc_office ? [SITE.email] : undefined,
     replyTo: SITE.email,
-    subject: `Recommended improvements: ${r.property.address}`,
+    subject: hasItems ? `Recommended improvements: ${r.property.address}` : `Inspection report: ${r.property.address}`,
     html: renderEmail({ heading, intro, rows, extraHtml, link }),
     text: renderText({
       heading,
       rows,
       link,
-      extra: `${intro}\n\nRecommended improvements:\n${r.items.map((i, n) => `${n + 1}. ${i.description}${i.details ? `: ${i.details}` : ""}`).join("\n")}`,
+      extra: !hasItems ? intro : `${intro}\n\nRecommended improvements:\n${r.items.map((i, n) => `${n + 1}. ${i.description}${i.details ? `: ${i.details}` : ""}`).join("\n")}`,
     }),
   });
   if (error) return NextResponse.json({ error: "The email didn't send. Try again." }, { status: 502 });
