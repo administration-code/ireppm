@@ -97,15 +97,18 @@ export default function MatchPayments() {
 
 // The first month from `month` on that this tenancy hasn't fully paid (up to 3 months ahead),
 // so early rent from a tenant who already paid this month goes to next month.
+// Rent is counted oldest month first: the earliest month still owing, or if nothing earlier is owing,
+// the month itself (or the next unpaid one after it).
 async function firstUnpaidMonth(tenancyId, month) {
   const { data } = await getBrowserClient()
     .from("rent_collection")
     .select("period, outstanding")
     .eq("tenancy_id", tenancyId)
-    .gte("period", `${month}-01`)
-    .order("period")
-    .limit(4);
-  const paid = new Set((data || []).filter((r) => cents(r.outstanding) <= 0).map((r) => String(r.period).slice(0, 7)));
+    .order("period");
+  const rows = (data || []).map((r) => ({ m: String(r.period).slice(0, 7), owing: cents(r.outstanding) > 0 }));
+  const earlier = rows.find((r) => r.m < month && r.owing);
+  if (earlier) return earlier.m;
+  const paid = new Set(rows.filter((r) => !r.owing).map((r) => r.m));
   let m = month;
   for (let i = 0; i < 3 && paid.has(m); i++) {
     const [y, mo] = m.split("-").map(Number);

@@ -200,7 +200,7 @@ export default function RecordPayment({ tenancyId = "" }) {
               <label htmlFor="rp-month">Rent month</label>
               <input id="rp-month" type="month" value={form.month} onChange={set("month")} aria-describedby="rp-month-hint" />
               <span id="rp-month-hint" className="small">
-                Leave blank to use the date received. On or after the 25th counts toward next month.
+                Leave blank and it goes to the oldest month still owing (or the month received; on or after the 25th, next month).
               </span>
             </div>
           )}
