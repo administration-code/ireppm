@@ -5,7 +5,8 @@
 -- makes the import ignore the ~ and extra spaces from now on, and re-runs the automatic matching.
 
 -- 1. Pair each repeat from the November 6 imports with the line already there.
-create temp table bank_repeats on commit drop as
+drop table if exists bank_repeats;
+create temp table bank_repeats as
 with norm as (
   select t.id, t.account_id, t.posted_on, t.amount, t.status, i.imported_at,
          lower(regexp_replace(trim(regexp_replace(t.description, '~', ' ', 'g')), '\s+', ' ', 'g')) as nd
