@@ -161,9 +161,21 @@ function PropertyBlock({ p, invoiceHref }) {
       {arrears.length ? (
         <Section title="Arrears">
           <Table
-            head={["Unit", "Tenant", "Owing"]}
-            numCols={[2]}
-            rows={arrears.map((a, i) => ({ key: i, cells: [a.unit, a.tenant, money(a.balance)] }))}
+            head={["Unit", "Tenants", "N4 issued", "Owing"]}
+            numCols={[3]}
+            rows={arrears.map((a, i) => ({
+              key: i,
+              cells: [
+                a.unit,
+                a.tenant,
+                a.n4
+                  ? [shortDate(a.n4.served_on), a.n4.effective_date ? `termination date ${shortDate(a.n4.effective_date)}` : ""]
+                      .filter(Boolean)
+                      .join(", ")
+                  : "—",
+                money(a.balance),
+              ],
+            }))}
           />
         </Section>
       ) : null}
