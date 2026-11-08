@@ -14,10 +14,15 @@ const feeLabel = (d) => String(d || "").replace(/^Leasing fee:\s*/i, "");
 
 async function load(id) {
   const sb = getBrowserClient();
-  const [partner, jobs, ledger] = await Promise.all([
-    sb.from("partners").select("id, name, company, loan_share_pct, loan_name, leasing_fee_share, leasing_fees_from").eq("id", id).maybeSingle(),
+  const [partner, jobs, ledger, dividends] = await Promise.all([
+    sb
+      .from("partners")
+      .select("id, name, company, loan_share_pct, loan_name, leasing_fee_share, leasing_fees_from, charges_hst, monthly_dividend, dividends_from, lawn_snow_from")
+      .eq("id", id)
+      .maybeSingle(),
     sb.from("maintenance_requests").select(JOB_SELECT).eq("partner_id", id).eq("status", "completed").order("completed_at", { ascending: false }),
     sb.from("partner_ledger").select("*").eq("partner_id", id).order("entry_date", { ascending: false }).order("created_at", { ascending: false }),
+    sb.from("dividends").select("id, paid_on, amount, note").eq("partner_id", id).order("paid_on", { ascending: false }),
   ]);
   if (partner.error || jobs.error || ledger.error) throw new Error("load");
   let fees = [];
@@ -33,11 +38,11 @@ async function load(id) {
     if (res.error) throw new Error("load");
     fees = res.data || [];
   }
-  return { partner: p, jobs: jobs.data || [], ledger: ledger.data || [], fees };
+  return { partner: p, jobs: jobs.data || [], ledger: ledger.data || [], fees, dividends: dividends.data || [] };
 }
 
 export default function ContractorPay({ id }) {
-  const [state, setState] = useState({ loading: true, error: "", partner: null, jobs: [], ledger: [], fees: [] });
+  const [state, setState] = useState({ loading: true, error: "", partner: null, jobs: [], ledger: [], fees: [], dividends: [] });
   const [open, setOpen] = useState("");
 
   const refresh = useCallback(
@@ -52,7 +57,7 @@ export default function ContractorPay({ id }) {
     refresh();
   }, [refresh]);
 
-  const { loading, error, partner, jobs, ledger, fees } = state;
+  const { loading, error, partner, jobs, ledger, fees, dividends } = state;
   if (loading) return <p className="small">Loading…</p>;
   if (!partner) return <div className="warnbox">{error || "Partner not found."}</div>;
 
@@ -61,7 +66,13 @@ export default function ContractorPay({ id }) {
   const loanLower = loanName.toLowerCase();
   const feeShare = Number(partner.leasing_fee_share || 0);
   const statementFees = statementFeeEntries(fees, feeShare, DEFAULT_HST_PERCENT);
-  const pay = contractorPay(jobs, [...ledger, ...statementFees], pct);
+  const chargesHst = Boolean(partner.charges_hst);
+  const pay = contractorPay(jobs, [...ledger, ...statementFees], pct, { chargesHst, hstPct: DEFAULT_HST_PERCENT, dividends });
+  const show = {
+    lawn: pay.totals.lawn > 0 || Boolean(partner.lawn_snow_from),
+    hst: chargesHst || pay.totals.hst > 0,
+    div: pay.totals.dividends > 0 || Number(partner.monthly_dividend) > 0,
+  };
   const noPrice = jobs.filter((j) => j.partner_pay == null && Number(j.actual_cost) > 0);
   const firstName = partner.name.match(/\(([^)]+)\)/)?.[1] || partner.name.split(" ")[0];
   const done = () => {
@@ -79,7 +90,13 @@ export default function ContractorPay({ id }) {
         <span className="eyebrow">Staff · Contractor Pay</span>
         <h1 className="admin-title">{firstName}&apos;s Pay</h1>
         <p className="small">
-          HST is always held back. Work orders count at {firstName}&apos;s price before HST and are paid in full.
+          {chargesHst
+            ? `Work orders count at ${firstName}'s price before HST, and IRep pays him HST on top (except jobs marked "no HST", where he agreed the price with the landlord).`
+            : "HST is always held back. Work orders count at the partner's price before HST and are paid in full."}
+          {partner.lawn_snow_from ? ` Lawn and snow care: each property's monthly add-on fee${chargesHst ? " plus HST" : ""}, from ${monthLabel(String(partner.lawn_snow_from).slice(0, 7))}.` : ""}
+          {Number(partner.monthly_dividend) > 0
+            ? ` Dividend: ${money(partner.monthly_dividend)} a month${partner.dividends_from ? ` from ${monthLabel(String(partner.dividends_from).slice(0, 7))}` : ""}, recorded on the 1st in Dividends & T5 (paid separately from what's owing below).`
+            : ""}
           {feeShare > 0
             ? ` He gets ${feeShare}% of each leasing fee on the landlord statements (half a month's rent, before HST)${
                 partner.leasing_fees_from ? ` from ${monthLabel(partner.leasing_fees_from.slice(0, 7))} on` : ""
@@ -95,6 +112,8 @@ export default function ContractorPay({ id }) {
       <div className="rent-stats">
         {[
           ["Work orders (before HST)", pay.totals.earned],
+          ...(show.lawn ? [["Lawn & snow (before HST)", pay.totals.lawn]] : []),
+          ...(show.hst ? [["HST paid on top", pay.totals.hst]] : []),
           ["Leasing fees", pay.totals.leasing],
           [pct > 0 ? `To ${loanLower}` : "Paid to him", pct > 0 ? pay.totals.toLoan : pay.totals.paid],
           ["Owing now", pay.owed],
@@ -190,12 +209,27 @@ export default function ContractorPay({ id }) {
                   <th scope="col" className="num">
                     Work orders
                   </th>
+                  {show.lawn ? (
+                    <th scope="col" className="num">
+                      Lawn &amp; snow
+                    </th>
+                  ) : null}
+                  {show.hst ? (
+                    <th scope="col" className="num">
+                      HST
+                    </th>
+                  ) : null}
                   <th scope="col" className="num">
                     Leasing fees
                   </th>
                   {pct > 0 ? (
                     <th scope="col" className="num">
                       To {loanLower}
+                    </th>
+                  ) : null}
+                  {show.div ? (
+                    <th scope="col" className="num">
+                      Dividend
                     </th>
                   ) : null}
                   <th scope="col" className="num">
@@ -208,7 +242,7 @@ export default function ContractorPay({ id }) {
               </thead>
               <tbody>
                 {pay.months.map((m) => (
-                  <MonthRows key={m.month} m={m} pct={pct} />
+                  <MonthRows key={m.month} m={m} pct={pct} show={show} chargesHst={chargesHst} />
                 ))}
               </tbody>
             </table>
@@ -223,11 +257,11 @@ export default function ContractorPay({ id }) {
   );
 }
 
-function MonthRows({ m, pct }) {
+function MonthRows({ m, pct, show: cols_, chargesHst }) {
   const [show, setShow] = useState(false);
-  const hst = (j) => (j.charge_to === "irep" ? 0 : Math.max(cents(j.actual_cost) - cents(j.partner_pay), 0) / 100);
-  const cols = pct > 0 ? 6 : 5;
-  const count = m.jobs.length + m.fees.length;
+  const heldBack = (j) => (j.charge_to === "irep" ? 0 : Math.max(cents(j.actual_cost) - cents(j.partner_pay), 0) / 100);
+  const cols = 5 + (pct > 0 ? 1 : 0) + (cols_.lawn ? 1 : 0) + (cols_.hst ? 1 : 0) + (cols_.div ? 1 : 0);
+  const count = m.jobs.length + m.fees.length + m.lawnItems.length + m.dividendItems.length;
   const day = (ts) => shortDate(new Date(ts).toLocaleDateString("en-CA", { timeZone: "America/Toronto" }));
   return (
     <>
@@ -238,8 +272,11 @@ function MonthRows({ m, pct }) {
           </button>
         </th>
         <td className="num">{m.earned ? money(m.earned) : "—"}</td>
+        {cols_.lawn ? <td className="num">{m.lawn ? money(m.lawn) : "—"}</td> : null}
+        {cols_.hst ? <td className="num">{m.hst ? money(m.hst) : "—"}</td> : null}
         <td className="num">{m.leasing ? money(m.leasing) : "—"}</td>
         {pct > 0 ? <td className="num">{m.toLoan ? `−${money(m.toLoan)}` : "—"}</td> : null}
+        {cols_.div ? <td className="num">{m.dividends ? money(m.dividends) : "—"}</td> : null}
         <td className="num">{m.paid ? `−${money(m.paid)}` : "—"}</td>
         <td className="num">
           <b>{money(m.owedAtEnd)}</b>
@@ -257,7 +294,33 @@ function MonthRows({ m, pct }) {
                       {j.unit?.label && j.unit.label !== "Whole property" ? `, ${j.unit.label}` : ""}: {j.title}
                     </Link>{" "}
                     · {money(j.partner_pay)} to him
-                    {hst(j) ? ` · ${money(hst(j))} HST held back` : ""} · charged to {CHARGE_LABEL[j.charge_to] || j.charge_to}
+                    {chargesHst
+                      ? j.hst
+                        ? ` + ${money(j.hst)} HST`
+                        : " · no HST (price agreed with the landlord)"
+                      : heldBack(j)
+                        ? ` · ${money(heldBack(j))} HST held back`
+                        : ""}{" "}
+                    · charged to {CHARGE_LABEL[j.charge_to] || j.charge_to}
+                  </span>
+                </td>
+              </tr>
+            )),
+            ...m.lawnItems.map((l) => (
+              <tr key={l.id} className="muted-row">
+                <td colSpan={cols}>
+                  <span className="small">
+                    {l.notes} · {money(l.amount)}
+                    {Number(l.hst) ? ` + ${money(l.hst)} HST` : ""}
+                  </span>
+                </td>
+              </tr>
+            )),
+            ...m.dividendItems.map((dv) => (
+              <tr key={dv.id} className="muted-row">
+                <td colSpan={cols}>
+                  <span className="small">
+                    Dividend {shortDate(dv.paid_on)} · {money(dv.amount)} (Dividends &amp; T5)
                   </span>
                 </td>
               </tr>
@@ -501,6 +564,10 @@ function LoanSettings({ partner, onDone }) {
   const [name, setName] = useState(partner.loan_name || "");
   const [share, setShare] = useState(String(partner.leasing_fee_share ?? 0));
   const [from, setFrom] = useState(String(partner.leasing_fees_from || "").slice(0, 7));
+  const [hst, setHst] = useState(Boolean(partner.charges_hst));
+  const [div, setDiv] = useState(String(Number(partner.monthly_dividend || 0) || ""));
+  const [divFrom, setDivFrom] = useState(String(partner.dividends_from || "").slice(0, 7));
+  const [lawnFrom, setLawnFrom] = useState(String(partner.lawn_snow_from || "").slice(0, 7));
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
@@ -510,6 +577,8 @@ function LoanSettings({ partner, onDone }) {
     const sh = Number(share);
     if (!Number.isFinite(n) || n < 0 || n > 100 || !Number.isFinite(sh) || sh < 0 || sh > 100)
       return setErr("Enter percentages from 0 to 100.");
+    const dv = div.trim() ? Number(div) : 0;
+    if (!Number.isFinite(dv) || dv < 0) return setErr("Enter the monthly dividend in dollars, like 1000.");
     setBusy(true);
     const { error } = await getBrowserClient()
       .from("partners")
@@ -518,6 +587,10 @@ function LoanSettings({ partner, onDone }) {
         loan_name: name.trim() || null,
         leasing_fee_share: sh,
         leasing_fees_from: from ? `${from}-01` : null,
+        charges_hst: hst,
+        monthly_dividend: dv,
+        dividends_from: divFrom ? `${divFrom}-01` : null,
+        lawn_snow_from: lawnFrom ? `${lawnFrom}-01` : null,
       })
       .eq("id", partner.id);
     setBusy(false);
@@ -550,6 +623,27 @@ function LoanSettings({ partner, onDone }) {
         </div>
       </div>
       <p className="small">Set to 0 for no loan. Work-order pay is never put toward the loan.</p>
+      <h2 className="sec-title">HST, Lawn and Snow, and Dividends</h2>
+      <label className="check-line">
+        <input type="checkbox" checked={hst} onChange={(e) => setHst(e.target.checked)} />
+        He charges HST: pay HST on top of work orders and lawn and snow care
+      </label>
+      <div className="row3">
+        <div className="field">
+          <label htmlFor="ls-lawn">Lawn and snow care from</label>
+          <input id="ls-lawn" type="month" value={lawnFrom} onChange={(e) => setLawnFrom(e.target.value)} />
+          <span className="small">Each property&apos;s monthly lawn/snow add-on fee is added on the 1st. Leave blank for none.</span>
+        </div>
+        <div className="field">
+          <label htmlFor="ls-div">Monthly dividend</label>
+          <input id="ls-div" inputMode="decimal" value={div} onChange={(e) => setDiv(e.target.value)} placeholder="1000" />
+        </div>
+        <div className="field">
+          <label htmlFor="ls-divf">Dividends from</label>
+          <input id="ls-divf" type="month" value={divFrom} onChange={(e) => setDivFrom(e.target.value)} />
+          <span className="small">Recorded on the 1st in Dividends &amp; T5.</span>
+        </div>
+      </div>
       {err ? (
         <div className="warnbox" role="alert">
           {err}

@@ -62,7 +62,13 @@ export default function AgentPay() {
   const loanLower = loanName.toLowerCase();
   const fees = statementFeeEntries(d.fees, p.leasing_fee_share, HST);
   const ledger = d.ledger || [];
-  const pay = contractorPay(d.jobs || [], [...ledger, ...fees], pct);
+  const chargesHst = Boolean(p.charges_hst);
+  const dividends = d.dividends || [];
+  const pay = contractorPay(d.jobs || [], [...ledger, ...fees], pct, { chargesHst, hstPct: HST, dividends });
+  const showLawn = pay.totals.lawn > 0 || Boolean(p.lawn_snow_from);
+  const showDiv = pay.totals.dividends > 0 || Number(p.monthly_dividend) > 0;
+  const showHst = chargesHst || pay.totals.hst > 0;
+  const cols = 4 + (showLawn ? 1 : 0) + (showHst ? 1 : 0) + (showDiv ? 1 : 0) + (pct > 0 ? 1 : 0);
   const loanSet = pay.loanSet;
   const years = [...new Set(pay.months.map((m) => Number(m.month.slice(0, 4))))];
   if (!years.includes(year)) years.push(year);
@@ -89,7 +95,10 @@ export default function AgentPay() {
         <span className="eyebrow">Agent Portal</span>
         <h1 className="admin-title">Your Pay</h1>
         <p className="small" style={{ margin: 0 }}>
-          Work orders count at your price before HST (IRep keeps the HST it bills).
+          {chargesHst
+            ? "Work orders and lawn and snow care count at your price before HST; IRep pays the HST on top, shown in its own column so you know what to set aside for your HST return. Jobs where you agreed the price directly with the landlord have no HST added."
+            : "Work orders count at your price before HST (IRep keeps the HST it bills)."}
+          {showDiv ? ` Dividends (${money(p.monthly_dividend)} a month${p.dividends_from ? ` from ${monthLabel(String(p.dividends_from).slice(0, 7))}` : ""}) are reported on your T5, not as business income.` : ""}
           {Number(p.leasing_fee_share) > 0 ? ` Leasing fees count at your ${Number(p.leasing_fee_share)}% share, before HST.` : ""}
           {pct > 0 ? ` ${pct}% of your leasing fees goes to your ${loanLower} until it's paid off.` : ""}
         </p>
@@ -99,7 +108,8 @@ export default function AgentPay() {
         {[
           ["Owing to you now", pay.owed],
           ["Paid to you, all time", pay.totals.paid],
-          ...(pct > 0 && loanSet ? [[`${loanName} balance`, pay.loanBalance]] : [["Earned, all time", pay.totals.earned + pay.totals.leasing]]),
+          ...(pct > 0 && loanSet ? [[`${loanName} balance`, pay.loanBalance]] : [["Earned, all time", pay.totals.earned + pay.totals.lawn + pay.totals.leasing]]),
+          ...(showHst ? [[`HST to set aside, ${year}`, y.hst]] : []),
           [`Earned in ${year}`, y.gross],
         ].map(([label, value]) => (
           <div key={label} className="stat">
@@ -122,12 +132,27 @@ export default function AgentPay() {
                   <th scope="col" className="num">
                     Work orders
                   </th>
+                  {showLawn ? (
+                    <th scope="col" className="num">
+                      Lawn &amp; snow
+                    </th>
+                  ) : null}
+                  {showHst ? (
+                    <th scope="col" className="num">
+                      HST (set aside)
+                    </th>
+                  ) : null}
                   <th scope="col" className="num">
                     Leasing fees
                   </th>
                   {pct > 0 ? (
                     <th scope="col" className="num">
                       To {loanLower}
+                    </th>
+                  ) : null}
+                  {showDiv ? (
+                    <th scope="col" className="num">
+                      Dividend
                     </th>
                   ) : null}
                   <th scope="col" className="num">
@@ -140,7 +165,7 @@ export default function AgentPay() {
               </thead>
               <tbody>
                 {pay.months.map((m) => {
-                  const count = m.jobs.length + m.fees.length;
+                  const count = m.jobs.length + m.fees.length + m.lawnItems.length + m.dividendItems.length;
                   const open = openMonth === m.month;
                   return [
                     <tr key={m.month}>
@@ -150,8 +175,11 @@ export default function AgentPay() {
                         </button>
                       </th>
                       <td className="num">{m.earned ? money(m.earned) : "—"}</td>
+                      {showLawn ? <td className="num">{m.lawn ? money(m.lawn) : "—"}</td> : null}
+                      {showHst ? <td className="num">{m.hst ? money(m.hst) : "—"}</td> : null}
                       <td className="num">{m.leasing ? money(m.leasing) : "—"}</td>
                       {pct > 0 ? <td className="num">{m.toLoan ? `−${money(m.toLoan)}` : "—"}</td> : null}
+                      {showDiv ? <td className="num">{m.dividends ? money(m.dividends) : "—"}</td> : null}
                       <td className="num">{m.paid ? `−${money(m.paid)}` : "—"}</td>
                       <td className="num">
                         <b>{money(m.owedAtEnd)}</b>
@@ -161,18 +189,38 @@ export default function AgentPay() {
                       ? [
                           ...m.jobs.map((j) => (
                             <tr key={j.id} className="muted-row">
-                              <td colSpan={pct > 0 ? 6 : 5}>
+                              <td colSpan={cols}>
                                 <span className="small">
                                   {day(j.completed_at)} · {j.unit?.property?.address}
                                   {j.unit?.label && j.unit.label !== "Whole property" ? `, ${j.unit.label}` : ""}: {j.title} ·{" "}
                                   {money(j.partner_pay)}
+                                  {j.hst ? ` + ${money(j.hst)} HST` : chargesHst && j.partner_hst === false ? " (no HST: price agreed with the landlord)" : ""}
+                                </span>
+                              </td>
+                            </tr>
+                          )),
+                          ...m.lawnItems.map((l) => (
+                            <tr key={l.id} className="muted-row">
+                              <td colSpan={cols}>
+                                <span className="small">
+                                  {l.notes} · {money(l.amount)}
+                                  {Number(l.hst) ? ` + ${money(l.hst)} HST` : ""}
+                                </span>
+                              </td>
+                            </tr>
+                          )),
+                          ...m.dividendItems.map((dv) => (
+                            <tr key={dv.id} className="muted-row">
+                              <td colSpan={cols}>
+                                <span className="small">
+                                  Dividend paid {shortDate(dv.paid_on)} · {money(dv.amount)}
                                 </span>
                               </td>
                             </tr>
                           )),
                           ...m.fees.map((f) => (
                             <tr key={f.id} className="muted-row">
-                              <td colSpan={pct > 0 ? 6 : 5}>
+                              <td colSpan={cols}>
                                 <span className="small">
                                   Leasing fee: {f.notes} · {money(f.amount)}
                                   {f.toLoan ? ` (${money(f.toLoan)} to ${loanLower})` : ""}
@@ -246,6 +294,12 @@ export default function AgentPay() {
               <dt>Work orders (your price, before HST)</dt>
               <dd className="num">{money(y.earned)}</dd>
             </div>
+            {y.lawn ? (
+              <div>
+                <dt>Lawn and snow care (before HST)</dt>
+                <dd className="num">{money(y.lawn)}</dd>
+              </div>
+            ) : null}
             {y.leasing ? (
               <div>
                 <dt>Leasing fees (your share, before HST)</dt>
@@ -259,9 +313,21 @@ export default function AgentPay() {
               </div>
             ) : null}
             <div className="letter-strong">
-              <dt>Total earned</dt>
+              <dt>Total earned (business income, before HST)</dt>
               <dd className="num">{money(y.gross)}</dd>
             </div>
+            {y.hst ? (
+              <div>
+                <dt>HST paid to you on top (set aside for your HST return)</dt>
+                <dd className="num">{money(y.hst)}</dd>
+              </div>
+            ) : null}
+            {y.dividends ? (
+              <div>
+                <dt>Dividends paid to you (reported on your T5)</dt>
+                <dd className="num">{money(y.dividends)}</dd>
+              </div>
+            ) : null}
             {pct > 0 && y.toLoan ? (
               <div>
                 <dt>Applied to your {loanLower} (part of what you earned, not paid in cash)</dt>
@@ -296,7 +362,10 @@ export default function AgentPay() {
                   <tr>
                     <th>Month</th>
                     <th className="r">Work orders</th>
+                    {showLawn ? <th className="r">Lawn &amp; snow</th> : null}
+                    {showHst ? <th className="r">HST</th> : null}
                     <th className="r">Leasing fees</th>
+                    {showDiv ? <th className="r">Dividend</th> : null}
                     <th className="r">Paid to you</th>
                   </tr>
                 </thead>
@@ -305,7 +374,10 @@ export default function AgentPay() {
                     <tr key={m.month}>
                       <td>{monthLabel(m.month)}</td>
                       <td className="r num">{money(m.earned)}</td>
+                      {showLawn ? <td className="r num">{money(m.lawn)}</td> : null}
+                      {showHst ? <td className="r num">{money(m.hst)}</td> : null}
                       <td className="r num">{money(m.leasing)}</td>
+                      {showDiv ? <td className="r num">{money(m.dividends)}</td> : null}
                       <td className="r num">{money(m.paid)}</td>
                     </tr>
                   ))}
@@ -341,7 +413,7 @@ export default function AgentPay() {
           ) : null}
 
           <p className="letter-note">
-            Amounts are before HST. IRep did not withhold income tax from these amounts. Amounts applied to your {pct > 0 ? loanLower : "loan"} are
+            Earnings are before HST{showHst ? "; the HST IRep paid you is shown separately for your HST return" : ""}. IRep did not withhold income tax from these amounts. Amounts applied to your {pct > 0 ? loanLower : "loan"} are
             part of what you earned. Keep this statement with your tax records.
           </p>
           <p className="receipt-note">Questions? Call {SITE.phone} or email {SITE.email}.</p>

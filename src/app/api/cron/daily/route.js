@@ -169,6 +169,10 @@ export async function GET(request) {
   }
   result.charges = data ?? "ok";
 
+  // Partners' monthly dividends and lawn/snow lines (safe to run every day; adds each month once).
+  const partnerMonth = await sb.rpc("ensure_partner_month", { p_month: today });
+  result.partnerMonth = partnerMonth.error ? `failed: ${partnerMonth.error.message}` : partnerMonth.data;
+
   if (Number(today.slice(8, 10)) === 1) {
     result.letters = await draftLastMonthsLetters(sb, today);
   }
