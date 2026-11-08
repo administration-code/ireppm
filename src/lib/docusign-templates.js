@@ -1,4 +1,4 @@
-import { IREP_SIGNER, LEASE_DEFAULTS, REP } from "@/lib/lease-defaults";
+import { LEASE_DEFAULTS, REP } from "@/lib/lease-defaults";
 
 // DocuSign templates: names, roles, field labels (tabLabel) and the builders that turn a
 // staff form into an envelope definition. Pure functions; the server calls them.
@@ -487,11 +487,6 @@ function consentTabs({ tenantName, tenantEmail, landlordName, unitAddress, signe
   };
 }
 
-// The "Administration" copy is in every template. Giving it the same recipientId in each
-// part of a lease envelope makes DocuSign count it once, not once per document.
-function adminCopy() {
-  return { recipientId: "30", roleName: "Administration", routingOrder: "3", name: IREP_SIGNER.name, email: IREP_SIGNER.email };
-}
 
 export function buildLease(f, ids, owner) {
   const tenants = (f.tenants || []).slice(0, MAX_TENANTS).map((t) => ({

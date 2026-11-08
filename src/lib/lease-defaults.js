@@ -2,11 +2,13 @@ import { SITE } from "@/lib/site";
 
 // Default values for the DocuSign forms. Change wording here, not in the components.
 
+// IRep's signing officer. On most documents he gets a copy ("Administration") and doesn't sign;
+// landlords, tenants and Chuck (management lead) sign.
 export const IREP_SIGNER = {
   name: "Rishi Bakshi",
   firstName: "Rishi",
   lastName: "Bakshi",
-  email: "ireppm@ireprealty.com",
+  email: "administration@ireppm.ca",
   phone: SITE.phone,
 };
 

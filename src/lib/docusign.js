@@ -2,6 +2,7 @@ import "server-only";
 import { createPrivateKey } from "node:crypto";
 import { SignJWT } from "jose";
 import { TEMPLATES } from "@/lib/docusign-templates";
+import { IREP_SIGNER } from "@/lib/lease-defaults";
 
 // DocuSign eSignature REST client using JWT grant. Server routes only.
 
@@ -142,7 +143,18 @@ export async function templateRecipients(templateId) {
 // ---------------------------------------------------------------------------
 // Envelopes
 // ---------------------------------------------------------------------------
-export const createEnvelope = (definition) => ds("/envelopes", { method: "POST", body: definition });
+// Every template has an "Administration" copy (IRep's signing officer gets a copy; he doesn't sign).
+// Fill it in from IREP_SIGNER so the copy goes to the right inbox, whatever the template's own default says.
+function withAdminCopy(definition) {
+  if (!definition?.templateId || !Array.isArray(definition.templateRoles)) return definition;
+  if (definition.templateRoles.some((r) => r.roleName === "Administration")) return definition;
+  return {
+    ...definition,
+    templateRoles: [...definition.templateRoles, { roleName: "Administration", name: IREP_SIGNER.name, email: IREP_SIGNER.email }],
+  };
+}
+
+export const createEnvelope = (definition) => ds("/envelopes", { method: "POST", body: withAdminCopy(definition) });
 export const getEnvelope = (id) => ds(`/envelopes/${id}`);
 export const getRecipients = (id, includeTabs = false) =>
   ds(`/envelopes/${id}/recipients${includeTabs ? "?include_tabs=true" : ""}`);
