@@ -204,8 +204,18 @@ export async function hrefForPayout(id) {
 // When each payment / payout cleared the bank (posted date of its bank line).
 export async function loadClearing({ paymentIds = [], payoutIds = [] }) {
   const sb = getBrowserClient();
-  const result = { payments: new Map(), payouts: new Map() };
-  const queries = [];
+  const result = { payments: new Map(), payouts: new Map(), bankThrough: null };
+  const queries = [
+    // How far the imported bank files go. A line is only "not at the bank yet" once the bank file covers its date.
+    sb
+      .from("bank_transactions")
+      .select("posted_on")
+      .order("posted_on", { ascending: false })
+      .limit(1)
+      .then(({ data }) => {
+        result.bankThrough = data?.[0]?.posted_on || null;
+      }),
+  ];
   if (paymentIds.length) {
     queries.push(
       sb

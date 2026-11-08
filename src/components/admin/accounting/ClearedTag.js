@@ -3,7 +3,12 @@
 import { useEffect, useState } from "react";
 import { TRUST_PAYMENT_METHODS, TRUST_PAYOUT_METHODS, loadClearing } from "@/lib/accounting";
 
-const EMPTY = { payments: new Map(), payouts: new Map() };
+const EMPTY = { payments: new Map(), payouts: new Map(), bankThrough: null };
+const addDays = (iso, n) => {
+  const d = new Date(`${String(iso).slice(0, 10)}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+};
 
 const fmt = (iso) =>
   new Date(`${String(iso).slice(0, 10)}T12:00:00`).toLocaleDateString("en-CA", { month: "short", day: "numeric" });
@@ -38,5 +43,10 @@ export default function ClearedTag({ kind, row, clearing }) {
   const trust = kind === "payout" ? TRUST_PAYOUT_METHODS : TRUST_PAYMENT_METHODS;
   if (!trust.includes(row.method)) return null;
   if (kind === "payment" && ["split", "ignored"].includes(row.status)) return null;
+  // Bank files are imported mid-month for the month before, so most recent lines simply haven't been
+  // imported yet. Only flag a line when the imported bank file already covers its date (plus a few days
+  // for it to clear) and it still isn't matched.
+  const date = kind === "payout" ? row.paid_on : row.received_on;
+  if (!clearing.bankThrough || !date || addDays(date, 4) > clearing.bankThrough) return null;
   return <span className="pill acct-tag is-pending no-print">Not at the bank yet</span>;
 }

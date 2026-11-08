@@ -234,9 +234,11 @@ const ACCOUNTING_URL = "https://ireppm.ca/admin/accounting";
 // One reconciliation email a day at most: last month's problems from the 5th, plus this month's
 // errors on Mondays. Both land in the same email when they fall on the same day.
 async function sendReconciliationAlert(sb, today) {
+  // Last month is reconciled mid-month (once its bank statements are in): a reminder on the 15th,
+  // then every Monday until it's locked.
   const day = Number(today.slice(8, 10));
   const isMonday = new Date(`${today}T12:00:00Z`).getUTCDay() === 1;
-  if (day < 5 && !isMonday) return "skipped (nothing due today)";
+  if (day < 15 && !isMonday) return "skipped (nothing due today)";
 
   const { data, error } = await sb.rpc("reconciliation_alerts");
   if (error) {
@@ -247,36 +249,21 @@ async function sendReconciliationAlert(sb, today) {
   const thisPeriod = `${today.slice(0, 7)}-01`;
   const rows = data || [];
   const lastRows = rows.filter((r) => String(r.period).slice(0, 10) < thisPeriod);
-  const thisRows = rows.filter((r) => String(r.period).slice(0, 10) === thisPeriod);
 
   const sections = [];
   let subject = "";
 
-  if (day >= 5 && lastRows.length) {
+  if (day >= 15 && (day === 15 || isMonday) && lastRows.length) {
     const month = String(lastRows[0].period).slice(0, 7);
     const label = monthLabel(`${month}-01`);
     const withIssues = lastRows.filter((r) => (r.issues || []).length);
-    const reminder = day >= 15;
-    if (withIssues.length || reminder) {
-      subject = `Reconciliation: ${label} needs attention`;
-      sections.push({
-        heading: label,
-        url: `${ACCOUNTING_URL}?month=${month}`,
-        note: reminder ? "Last month isn't locked yet." : "",
-        accounts: withIssues.map((r) => ({ name: r.account, issues: r.issues })),
-      });
-    }
-  }
-
-  if (isMonday) {
-    const withErrors = thisRows
-      .map((r) => ({ name: r.account, issues: (r.issues || []).filter((i) => i.severity === "error") }))
-      .filter((r) => r.issues.length);
-    if (withErrors.length) {
-      const label = monthLabel(thisPeriod);
-      subject ||= `Reconciliation: ${label} this week`;
-      sections.push({ heading: `${label} So Far`, url: `${ACCOUNTING_URL}?month=${today.slice(0, 7)}`, note: "", accounts: withErrors });
-    }
+    subject = day === 15 ? `Reconciliation: time to reconcile ${label}` : `Reconciliation: ${label} isn't locked yet`;
+    sections.push({
+      heading: label,
+      url: `${ACCOUNTING_URL}?month=${month}`,
+      note: "Import last month's bank files for both accounts, match the lines, then balance and lock the month.",
+      accounts: withIssues.map((r) => ({ name: r.account, issues: r.issues })),
+    });
   }
 
   if (!sections.length) return "skipped (nothing to report)";
