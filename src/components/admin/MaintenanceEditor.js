@@ -47,6 +47,7 @@ function toForm(r) {
     estimate_plus_hst: Boolean(r.estimate_plus_hst),
     actual_cost: text(r.actual_cost),
     partner_pay: text(r.partner_pay),
+    partner_hst: r.partner_hst !== false,
     owner_approval: r.owner_approval || "not_needed",
     charge_to: r.charge_to || "owner",
     entry_notice_served_at: toLocalInput(r.entry_notice_served_at),
@@ -66,6 +67,7 @@ function toRow(f) {
     estimate_plus_hst: Boolean(f.estimate_plus_hst),
     actual_cost: dollarsOrNull(f.actual_cost),
     partner_pay: f.partner_id ? dollarsOrNull(f.partner_pay) : null,
+    partner_hst: Boolean(f.partner_hst),
     owner_approval: f.owner_approval,
     charge_to: f.charge_to,
     entry_notice_served_at: fromLocalInput(f.entry_notice_served_at),
@@ -660,8 +662,16 @@ export default function MaintenanceEditor({ id }) {
                   }}
                 />
                 <span className="small" id="m-ppay-hint">
-                  What we pay them (HST held back). Fills in the actual cost with HST added.
+                  Their price before HST. Fills in the actual cost with HST added.
                 </span>
+                <label className="check-line">
+                  <input
+                    type="checkbox"
+                    checked={form.partner_hst}
+                    onChange={(e) => setForm((f) => ({ ...f, partner_hst: e.target.checked }))}
+                  />
+                  Pay them HST on top (untick if they agreed the price directly with the landlord)
+                </label>
               </div>
             ) : null}
             <div className="field">
