@@ -143,18 +143,31 @@ export async function templateRecipients(templateId) {
 // ---------------------------------------------------------------------------
 // Envelopes
 // ---------------------------------------------------------------------------
-// Every template has an "Administration" copy (IRep's signing officer gets a copy; he doesn't sign).
-// Fill it in from IREP_SIGNER so the copy goes to the right inbox, whatever the template's own default says.
-function withAdminCopy(definition) {
-  if (!definition?.templateId || !Array.isArray(definition.templateRoles)) return definition;
-  if (definition.templateRoles.some((r) => r.roleName === "Administration")) return definition;
-  return {
-    ...definition,
-    templateRoles: [...definition.templateRoles, { roleName: "Administration", name: IREP_SIGNER.name, email: IREP_SIGNER.email }],
-  };
+// Every template has an "Administration" copy (IRep's signing officer gets a copy; he never signs).
+// The templates' saved address is out of date, so after creating an envelope from a template we point that
+// copy at IREP_SIGNER.email. (Passing it as a template role would add him as a signer instead.) To do that
+// before anything goes out, template envelopes are always created as drafts, fixed, then sent if asked.
+async function fixAdminCopy(id) {
+  const data = await ds(`/envelopes/${id}/recipients`);
+  const cc = (data?.carbonCopies || []).filter((r) => r.roleName === "Administration" && r.email !== IREP_SIGNER.email);
+  if (!cc.length) return;
+  await ds(`/envelopes/${id}/recipients`, {
+    method: "PUT",
+    body: { carbonCopies: cc.map((r) => ({ recipientId: r.recipientId, name: IREP_SIGNER.name, email: IREP_SIGNER.email })) },
+  });
 }
 
-export const createEnvelope = (definition) => ds("/envelopes", { method: "POST", body: withAdminCopy(definition) });
+export async function createEnvelope(definition) {
+  if (!definition?.templateId) return ds("/envelopes", { method: "POST", body: definition });
+  const send = definition.status === "sent";
+  const env = await ds("/envelopes", { method: "POST", body: { ...definition, status: "created" } });
+  await fixAdminCopy(env.envelopeId);
+  if (send) {
+    await removeEmptyRecipients(env.envelopeId);
+    await ds(`/envelopes/${env.envelopeId}`, { method: "PUT", body: { status: "sent" } });
+  }
+  return env;
+}
 export const getEnvelope = (id) => ds(`/envelopes/${id}`);
 export const getRecipients = (id, includeTabs = false) =>
   ds(`/envelopes/${id}/recipients${includeTabs ? "?include_tabs=true" : ""}`);
