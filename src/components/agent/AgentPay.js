@@ -73,7 +73,7 @@ export default function AgentPay() {
 
   function print() {
     const old = document.title;
-    document.title = `${p.name} - ${year} pay statement`;
+    document.title = `${p.name} - ${year} Pay Statement`;
     window.print();
     setTimeout(() => {
       document.title = old;
@@ -214,7 +214,7 @@ export default function AgentPay() {
           </span>
         </div>
 
-        <article className="receipt letter" aria-label={`${year} pay statement`}>
+        <article className="receipt letter" aria-label={`${year} Pay Statement`}>
           <header className="receipt-head">
             <div className="receipt-brand">
               <IRepMark />

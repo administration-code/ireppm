@@ -150,7 +150,7 @@ function Report({ data }) {
     <article className="ly-report acct-print">
       <header className="ly-head">
         <p className="eyebrow">IRep Property Management</p>
-        <h2 className="admin-title">Rental income summary {data.year}</h2>
+        <h2 className="admin-title">Rental Income Summary {data.year}</h2>
         <p>
           <b>{data.owner?.name}</b>
         </p>

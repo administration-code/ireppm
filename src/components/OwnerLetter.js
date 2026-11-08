@@ -303,7 +303,7 @@ export default function OwnerLetter({ letter, invoiceHref }) {
         </p>
       </div>
 
-      <h1 className="receipt-title">Monthly property statement — {monthLabel(period)}</h1>
+      <h1 className="receipt-title">Monthly Property Statement — {monthLabel(period)}</h1>
 
       {letter?.staff_note?.trim() ? <p className="letter-staff-note pre-line">{letter.staff_note.trim()}</p> : null}
 

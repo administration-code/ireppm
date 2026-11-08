@@ -246,7 +246,7 @@ export default function OwnerStatement({ propertyId, period }) {
         </header>
 
         <h1 id="stmt-title" className="receipt-title">
-          Owner statement, {monthLabel(`${period}-01`)}
+          Owner Statement, {monthLabel(`${period}-01`)}
         </h1>
         <div className="stmt-parties">
           <div>

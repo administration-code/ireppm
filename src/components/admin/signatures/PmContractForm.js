@@ -111,7 +111,7 @@ export default function PmContractForm({ ctx }) {
   return (
     <form className="stack" style={{ gap: 20 }} onSubmit={(e) => e.preventDefault()}>
       <fieldset className="boxed stack">
-        <legend className="sub-title">Owner signers for {placeOf(ctx) || "this property"}</legend>
+        <legend className="sub-title">Owner Signers for {placeOf(ctx) || "this property"}</legend>
         {owners.map((o, i) => (
           <div className="row3" key={i}>
             <div className="field">
@@ -163,7 +163,7 @@ export default function PmContractForm({ ctx }) {
       </fieldset>
 
       <fieldset className="boxed stack">
-        <legend className="sub-title">Contract details</legend>
+        <legend className="sub-title">Contract Details</legend>
         <div className="row2">
           <div className="field">
             <label htmlFor="pm-addr">Property address</label>

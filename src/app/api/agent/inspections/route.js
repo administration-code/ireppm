@@ -66,12 +66,12 @@ export async function POST(request) {
       ["Recommended improvements", String(items)],
     ];
     const link = { href: `https://ireppm.ca/admin/inspection-reports/${id}`, label: "Review the report" };
-    const heading = "New inspection report";
+    const heading = "New Inspection Report";
     await mailer()
       .emails.send({
         from: "IRep Property Management <alerts@ireppm.ca>",
         to,
-        subject: `Inspection report: ${property.address}`,
+        subject: `Inspection Report: ${property.address}`,
         html: renderEmail({ heading, intro: "A vendor submitted an inspection report. Review it, then send the improvements to the landlord.", rows, link }),
         text: renderText({ heading, rows, link }),
       })

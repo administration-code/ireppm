@@ -56,7 +56,7 @@ function Decision({ app, onDone }) {
 
   return (
     <div className="stack" style={{ gap: 10 }}>
-      <h4 className="eyebrow">Your decision</h4>
+      <h4 className="eyebrow">Your Decision</h4>
       <div className="row">
         <button type="button" className="btn primary sm" onClick={approve} disabled={busy}>
           Approve Applicant
@@ -170,7 +170,7 @@ function ApplicantDetail({ app, onReload }) {
       </div>
 
       <div className="stack" style={{ gap: 8 }}>
-        <h4 className="eyebrow">Credit check</h4>
+        <h4 className="eyebrow">Credit Check</h4>
         <p>{app.credit_summary || "IRep hasn't added a summary yet."}</p>
         {app.credit_checked_at ? <p className="small">Checked {prettyDateTime(app.credit_checked_at)}</p> : null}
         {app.credit_report ? (

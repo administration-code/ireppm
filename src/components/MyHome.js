@@ -277,7 +277,7 @@ function ReportForm({ user, homes, onCancel, onSent }) {
 
       <div className="field">
         <span className="label-text">
-          Photos or videos <span className="small">(optional, up to {MAX_PHOTOS})</span>
+          Photos or Videos <span className="small">(optional, up to {MAX_PHOTOS})</span>
         </span>
         {files.length ? (
           <ul className="plain-list">

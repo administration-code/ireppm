@@ -51,21 +51,21 @@ export async function POST(request, { params }) {
   const list = r.items
     .map((i) => `<li style="margin:0 0 6px;"><b>${escapeHtml(i.description)}</b>${i.unit?.label && i.unit.label !== "Whole property" ? ` (${escapeHtml(i.unit.label)})` : ""}${i.details ? `<br><span style="color:#555;">${escapeHtml(i.details)}</span>` : ""}</li>`)
     .join("");
-  const extraHtml = !hasItems ? "" : `<h2 style="margin:20px 0 8px;font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;">Recommended improvements</h2><ol style="margin:0;padding-left:20px;font-size:15px;line-height:1.5;">${list}</ol>`;
+  const extraHtml = !hasItems ? "" : `<h2 style="margin:20px 0 8px;font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;">Recommended Improvements</h2><ol style="margin:0;padding-left:20px;font-size:15px;line-height:1.5;">${list}</ol>`;
   const link = { href: ownerReportUrl(id), label: hasItems ? "Approve or decline each item" : "View the inspection report" };
-  const heading = hasItems ? "Inspection report and recommended improvements" : "Inspection report";
+  const heading = hasItems ? "Inspection Report and Recommended Improvements" : "Inspection Report";
   const { error } = await mailer().emails.send({
     from: "IRep Property Management <statements@ireppm.ca>",
     to: [to],
     cc: body?.cc_office ? [SITE.email] : undefined,
     replyTo: SITE.email,
-    subject: hasItems ? `Recommended improvements: ${r.property.address}` : `Inspection report: ${r.property.address}`,
+    subject: hasItems ? `Recommended Improvements: ${r.property.address}` : `Inspection Report: ${r.property.address}`,
     html: renderEmail({ heading, intro, rows, extraHtml, link }),
     text: renderText({
       heading,
       rows,
       link,
-      extra: !hasItems ? intro : `${intro}\n\nRecommended improvements:\n${r.items.map((i, n) => `${n + 1}. ${i.description}${i.details ? `: ${i.details}` : ""}`).join("\n")}`,
+      extra: !hasItems ? intro : `${intro}\n\nRecommended Improvements:\n${r.items.map((i, n) => `${n + 1}. ${i.description}${i.details ? `: ${i.details}` : ""}`).join("\n")}`,
     }),
   });
   if (error) return NextResponse.json({ error: "The email didn't send. Try again." }, { status: 502 });

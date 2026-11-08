@@ -229,7 +229,7 @@ export function LeaseEndCard({ home, onChoice }) {
 
   return (
     <div className={`stack${choice ? "" : " attention"}`} style={{ gap: 8 }} id="lease-end">
-      <h3>Your lease ends {longDay(home.end_date)}</h3>
+      <h3>Your Lease Ends {longDay(home.end_date)}</h3>
       {choice ? (
         <p className="small" style={{ margin: 0 }}>
           You told us: <b>{CHOICES.find((c) => c[0] === choice)?.[1]}</b>. {CHOICES.find((c) => c[0] === choice)?.[2]} You can change

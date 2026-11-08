@@ -271,7 +271,7 @@ async function sendReconciliationAlert(sb, today) {
     if (withErrors.length) {
       const label = monthLabel(thisPeriod);
       subject ||= `Reconciliation: ${label} this week`;
-      sections.push({ heading: `${label} so far`, url: `${ACCOUNTING_URL}?month=${today.slice(0, 7)}`, note: "", accounts: withErrors });
+      sections.push({ heading: `${label} So Far`, url: `${ACCOUNTING_URL}?month=${today.slice(0, 7)}`, note: "", accounts: withErrors });
     }
   }
 

@@ -149,7 +149,7 @@ function CreditBlock({ app, onChange }) {
 
   return (
     <div className="stack" style={{ gap: 8 }}>
-      <h4 className="eyebrow">Credit check (FrontLobby)</h4>
+      <h4 className="eyebrow">Credit Check (FrontLobby)</h4>
       <p className="small">
         Run it in FrontLobby (Tenant Screening → Screen Tenant). Download the report and upload it here. FrontLobby keeps reports for 45
         days.
@@ -311,7 +311,7 @@ export default function ApplicationReview({ app, onChange, onAccept }) {
       <CreditBlock app={app} onChange={onChange} />
 
       <div className="stack" style={{ gap: 10 }}>
-        <h4 className="eyebrow">Landlord approval</h4>
+        <h4 className="eyebrow">Landlord Approval</h4>
         {sent ? (
           <div className="stack" style={{ gap: 6 }}>
             <div className="row">

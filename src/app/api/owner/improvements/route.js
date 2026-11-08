@@ -117,7 +117,7 @@ export async function POST(request) {
       `${i.description}${i.owner_note ? ` (note: ${i.owner_note})` : ""}`,
     ]);
     const link = { href: `https://ireppm.ca/admin/inspection-reports/${id}`, label: "Open the report" };
-    const heading = "Landlord decided on improvements";
+    const heading = "Landlord Decided on Improvements";
     await mailer()
       .emails.send({
         from: "IRep Property Management <alerts@ireppm.ca>",

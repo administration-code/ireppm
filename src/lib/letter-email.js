@@ -83,5 +83,5 @@ export function ownerLetterEmail(letter, ownerName, ownerEmail) {
     `Questions? Reply to this email or call ${SITE.phone}.`,
   ].join("\n");
 
-  return { subject: `Your ${label} property statement is ready`, html, text };
+  return { subject: `Your ${label} Property Statement is ready`, html, text };
 }

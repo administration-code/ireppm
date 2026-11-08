@@ -49,7 +49,7 @@ export function workOrderInvoiceEmail(inv, ownerName, ownerEmail, message) {
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-top:4px solid ${RED};">
           <tr><td style="padding:28px 32px 8px;color:${INK};font-size:15px;line-height:1.55;">
             <p style="margin:0 0 4px;font-size:12px;letter-spacing:0.12em;color:${RED};font-weight:600;">IREP PROPERTY MANAGEMENT</p>
-            <h1 style="margin:0 0 16px;font-family:'Cormorant Garamond',Georgia,serif;font-size:28px;font-weight:600;">Work order invoice ${escapeHtml(no)}</h1>
+            <h1 style="margin:0 0 16px;font-family:'Cormorant Garamond',Georgia,serif;font-size:28px;font-weight:600;">Work Order Invoice ${escapeHtml(no)}</h1>
             <p style="margin:0 0 12px;">Hi ${escapeHtml(name)},</p>
             ${note ? `<p style="margin:0 0 12px;white-space:pre-line;">${escapeHtml(note)}</p>` : `<p style="margin:0 0 12px;">Here is the invoice for work completed at ${escapeHtml(inv.address)}.</p>`}
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0 16px;font-size:14px;">

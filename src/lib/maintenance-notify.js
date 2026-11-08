@@ -79,12 +79,12 @@ export async function notifyLandlordAndTenants(sb, record) {
     ];
     const link = { href: "https://ireppm.ca/owner", label: "Open your landlord portal" };
     const heading = doneRecord
-      ? "Work completed at your property"
+      ? "Work Completed at Your Property"
       : emergency
-        ? "Emergency repair at your property"
+        ? "Emergency Repair at Your Property"
         : needsOk
-          ? "Your approval is needed"
-          : "Maintenance update: no action needed";
+          ? "Your Approval Is Needed"
+          : "Maintenance Update: No Action Needed";
     const { error } = await mail.emails.send({
       from: FROM,
       to: [owner.email.trim()],
@@ -142,7 +142,7 @@ export async function notifyLandlordAndTenants(sb, record) {
     ];
     const extra = `Unless it's an emergency, you'll get written notice at least 24 hours before anyone enters your unit. Questions? Reply to this email or call ${SITE.phone}. Emergencies: call ${SITE.emergency.name} at ${SITE.emergency.phone}.`;
     const link = { href: "https://ireppm.ca/account", label: "Open your tenant portal" };
-    const heading = "We're working on it";
+    const heading = "We're Working on It";
     const { error } = await mail.emails.send({
       from: FROM,
       to: [t.email.trim()],

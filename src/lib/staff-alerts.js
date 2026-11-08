@@ -113,7 +113,7 @@ export function maintenanceEmail(record, unit) {
     ["Access notes", record.access_notes],
   ];
   const link = { href: `${ADMIN_URL}/maintenance/${encodeURIComponent(record.id)}`, label: "Open the request" };
-  const heading = emergency ? "Emergency maintenance request" : "New maintenance request";
+  const heading = emergency ? "Emergency Maintenance Request" : "New Maintenance Request";
   return {
     subject: `${emergency ? "EMERGENCY: " : ""}New maintenance request: ${place}`,
     html: renderEmail({ heading, intro: "A maintenance request has come in.", rows, link }),
@@ -134,7 +134,7 @@ export function showingEmail(record, listing, renter, respondUrl, vacant, decide
     ["Notes", record.notes],
     ["Unit", vacant === undefined ? null : vacant ? "Vacant: same-day showings are fine" : "Occupied: tenants need 24 hours' written notice"],
   ];
-  const heading = "Showing request: decision needed";
+  const heading = "Showing Request: Decision Needed";
   const intro =
     "A renter wants to see this property and is waiting to hear back. Please approve it, decline it or suggest another time as soon as you can. " +
     "It takes one click, and renters who don't get a quick answer tend to book somewhere else. You'll get a reminder each day until it's decided.";
@@ -172,7 +172,7 @@ export function applicationEmail(record, listing) {
     <p style="margin:12px 0 0;font-size:13px;color:#6b6b6b;">Sign in to the staff inbox to view the files.</p>`;
 
   const docsText = `\nDocuments (${docLines.length}):\n${docLines.map((l) => `- ${l}`).join("\n") || "- None listed"}`;
-  const heading = "New application";
+  const heading = "New Application";
   return {
     subject: `New application – ${place}`,
     html: renderEmail({ heading, intro: "A renter has applied for a property.", rows, extraHtml: docsHtml }),
@@ -189,7 +189,7 @@ export function landlordEmail(record) {
     ["Interested in", record.interest],
     ["Message", record.message],
   ];
-  const heading = "New landlord inquiry";
+  const heading = "New Landlord Inquiry";
   return {
     subject: `New landlord inquiry – ${record.name || "Unknown"}`,
     html: renderEmail({ heading, intro: "A property owner has asked about our services.", rows }),

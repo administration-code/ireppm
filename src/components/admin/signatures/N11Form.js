@@ -80,7 +80,7 @@ export default function N11Form({ ctx }) {
       </section>
 
       <section className="boxed stack">
-        <h2 className="sub-title">Additional Terms (optional)</h2>
+        <h2 className="sub-title">Additional Terms (Optional)</h2>
         <p className="small" style={{ margin: 0 }}>
           The N11 form itself has no space for conditions. Anything you write here goes on an extra page, on IRep letterhead, that everyone
           signs with the N11: refunds, keys, cleaning, and so on. Leave it blank for the plain N11. Blank lines separate paragraphs; start a

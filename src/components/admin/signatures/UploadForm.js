@@ -83,7 +83,7 @@ export default function UploadForm({ ctx, mode = "upload" }) {
   async function submit() {
     setError("");
     if (drafting && draftBody.trim().length < 20) return setError("Write the document first.");
-    if (!drafting && !files.length) return setError("Choose the PDF to send.");
+    if (!drafting && !files.length) return setError("Choose the PDF to Send.");
     if (!title.trim()) return setError("Give it a title, like “Lease amendment: 1753 Benjamin Ave, Upper”.");
     const people = signers.filter((s) => s.name.trim() || s.email.trim());
     if (!people.length) return setError("Add at least one person to sign.");
@@ -164,7 +164,7 @@ export default function UploadForm({ ctx, mode = "upload" }) {
         ) : null}
         <div className="field" hidden={drafting}>
           <span className="label-text">
-            PDF to send <span className="small">(up to {MAX_MB} MB; several PDFs are sent as one envelope)</span>
+            PDF to Send <span className="small">(up to {MAX_MB} MB; several PDFs are sent as one envelope)</span>
           </span>
           {files.length ? (
             <ul className="plain-list">

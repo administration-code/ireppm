@@ -131,7 +131,7 @@ export default function InsuranceReview({ mode = "staff" }) {
     <div className="stack">
       {mode === "staff" && state.none.length ? (
         <section className="boxed stack">
-          <h2 className="sec-title">No proof yet ({state.none.length})</h2>
+          <h2 className="sec-title">No Proof Yet ({state.none.length})</h2>
           <ul className="plain-list">
             {state.none.map((t) => (
               <li key={t.id}>

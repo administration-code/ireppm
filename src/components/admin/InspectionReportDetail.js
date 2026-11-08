@@ -137,7 +137,7 @@ export default function InspectionReportDetail({ id }) {
         <Link className="back" href="/admin/inspection-reports">
           ← All inspection reports
         </Link>
-        <span className="eyebrow">Staff · Inspection report</span>
+        <span className="eyebrow">Staff · Inspection Report</span>
         <h1 className="admin-title">{r.property?.address}</h1>
         <p className="small" style={{ margin: 0 }}>
           {shortDate(r.inspected_on)} · by {r.inspected_by || "IRep staff"} · <span className="pill">{REPORT_STATUS[r.status]}</span> ·{" "}

@@ -76,7 +76,7 @@ export default function ContractorPay({ id }) {
         <Link className="back" href={`/admin/partners/${id}`}>
           ← {partner.name}
         </Link>
-        <span className="eyebrow">Staff · Contractor pay</span>
+        <span className="eyebrow">Staff · Contractor Pay</span>
         <h1 className="admin-title">{firstName}&apos;s Pay</h1>
         <p className="small">
           HST is always held back. Work orders count at {firstName}&apos;s price before HST and are paid in full.

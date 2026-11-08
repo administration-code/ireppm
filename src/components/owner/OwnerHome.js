@@ -171,7 +171,7 @@ export default function OwnerHome() {
       {state.applicants ? (
         <section className={`boxed stack${state.toReview ? " attention" : ""}`} aria-labelledby="sec-own-apps">
           <h2 id="sec-own-apps" className="sec-title">
-            Applicants to review ({state.toReview})
+            Applicants to Review ({state.toReview})
           </h2>
           <p className="small">
             {state.toReview

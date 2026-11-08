@@ -57,7 +57,7 @@ export default async function GuidePage({ params }) {
     <section className="block">
       <div className="wrap guide">
         <Link className="back" href="/guides">← All guides</Link>
-        <span className="eyebrow">Landlord guide · Updated {g.updated}</span>
+        <span className="eyebrow">Landlord Guide · Updated {g.updated}</span>
         <h1>{g.title}</h1>
         <p className="lead">{g.summary}</p>
         <div className="guide-body">

@@ -117,7 +117,7 @@ export default function DividendsBoard({ year: initialYear }) {
         <>
           <section className="boxed stack">
             <div className="admin-head">
-              <h2 className="sec-title">T5 totals for {year}</h2>
+              <h2 className="sec-title">T5 Totals for {year}</h2>
               <button type="button" className="btn ghost sm" onClick={exportT5} disabled={!data.t5.length}>
                 Download for the Accountant
               </button>
@@ -219,7 +219,7 @@ export default function DividendsBoard({ year: initialYear }) {
 
           {data.lines.length ? (
             <section className="boxed stack">
-              <h2 className="sec-title">Bank payments to Rishi or Chuck not recorded yet ({data.lines.length})</h2>
+              <h2 className="sec-title">Bank Payments to Rishi or Chuck Not Recorded Yet ({data.lines.length})</h2>
               <p className="small">
                 These were marked &quot;Paid to or from Rishi or Chuck&quot;. Record the ones that were dividends; commissions and loan repayments
                 belong on Commissions &amp; loans.
@@ -255,7 +255,7 @@ export default function DividendsBoard({ year: initialYear }) {
           ) : null}
 
           <section className="boxed stack">
-            <h2 className="sec-title">Dividends paid in {year}</h2>
+            <h2 className="sec-title">Dividends Paid in {year}</h2>
             {data.dividends.length ? (
               <div className="table-scroll">
                 <table className="data-table">

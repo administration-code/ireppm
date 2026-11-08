@@ -290,7 +290,7 @@ export default function RentLedger({ tenancy }) {
       )}
 
       <div className="range-receipt">
-        <span className="label-text">Receipt for a date range</span>
+        <span className="label-text">Receipt for a Date Range</span>
         <div className="row3">
           <div className="field">
             <label htmlFor={`rr-from-${tenancy.id}`}>From</label>
