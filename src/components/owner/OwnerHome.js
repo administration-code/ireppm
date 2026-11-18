@@ -17,6 +17,7 @@ import { GettingStarted } from "@/components/tenant/TenantCards";
 import OwnerImprovementsCard from "./OwnerImprovementsCard";
 import OwnerArrearsCard from "./OwnerArrearsCard";
 import OwnerRentMonthCard from "./OwnerRentMonthCard";
+import OwnerRequestsCard from "./OwnerRequestsCard";
 import EmailPrefs from "@/components/EmailPrefs";
 
 async function loadPortal() {
@@ -84,6 +85,18 @@ export default function OwnerHome() {
         <span className="eyebrow">Owner Portal</span>
         <h1 className="admin-title">Your Properties</h1>
         <p className="small">Signed in as {user?.email}.</p>
+        <div>
+          <button
+            type="button"
+            className="btn ghost"
+            onClick={() => {
+              window.dispatchEvent(new Event("owner-request-open"));
+              document.getElementById("requests")?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}
+          >
+            Request information
+          </button>
+        </div>
       </div>
 
       <GettingStarted role="owner" dismissedAt={state.tourDismissed} />
@@ -91,6 +104,7 @@ export default function OwnerHome() {
       <OwnerRentMonthCard />
       <OwnerArrearsCard />
       <OwnerImprovementsCard />
+      <OwnerRequestsCard properties={properties} />
 
       <section className="boxed stack" aria-labelledby="sec-own-props">
         <h2 id="sec-own-props" className="sec-title">
