@@ -27,6 +27,7 @@ export default function SignaturesList() {
   const [busy, setBusy] = useState({});
   const [reminded, setReminded] = useState({});
   const [openError, setOpenError] = useState("");
+  const [sort, setSort] = useState({ key: "created", dir: "desc" });
 
   // Pull the latest from DocuSign (statuses, and envelopes made directly in DocuSign) when the page opens.
   const sync = async () => {
@@ -103,6 +104,47 @@ export default function SignaturesList() {
     };
   }, [filter, kind, side, version]);
 
+  const STATUS_ORDER = { draft: 0, sent: 1, delivered: 2, completed: 3, declined: 4, voided: 5, error: 6 };
+  const sortValue = (r, key) => {
+    switch (key) {
+      case "title":
+        return String(r.title || "").toLowerCase();
+      case "kind":
+        return String(kindLabel(r) || "").toLowerCase();
+      case "out":
+        return String(outTo(r) || "").toLowerCase();
+      case "status":
+        return STATUS_ORDER[r.status] ?? 9;
+      case "sent":
+        return r.sent_at || "";
+      case "reminded":
+        return reminded[r.id] || "";
+      case "completed":
+        return r.completed_at || "";
+      default:
+        return r.created_at || "";
+    }
+  };
+  const sorted = (rows || []).slice().sort((a, b) => {
+    const x = sortValue(a, sort.key);
+    const y = sortValue(b, sort.key);
+    // Blanks (not sent yet, no reminder) always go last.
+    if (x === "" && y !== "") return 1;
+    if (y === "" && x !== "") return -1;
+    const c = typeof x === "number" ? x - y : String(x).localeCompare(String(y), "en-CA", { numeric: true });
+    return sort.dir === "asc" ? c : -c;
+  });
+  const sortBy = (key) =>
+    setSort((s) => (s.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: ["sent", "reminded", "completed", "created"].includes(key) ? "desc" : "asc" }));
+  const Th = ({ k, children }) => (
+    <th scope="col" aria-sort={sort.key === k ? (sort.dir === "asc" ? "ascending" : "descending") : "none"}>
+      <button type="button" className="th-sort" onClick={() => sortBy(k)}>
+        {children}
+        <span aria-hidden="true">{sort.key === k ? (sort.dir === "asc" ? " ▲" : " ▼") : ""}</span>
+      </button>
+    </th>
+  );
+
   return (
     <div className="stack" style={{ gap: 24 }}>
       <div>
@@ -178,6 +220,36 @@ export default function SignaturesList() {
             ))}
           </select>
         </div>
+        <div className="field" style={{ minWidth: 200 }}>
+          <label htmlFor="sig-sort" className="visually-hidden">
+            Sort by
+          </label>
+          <select
+            id="sig-sort"
+            value={`${sort.key}:${sort.dir}`}
+            onChange={(e) => {
+              const [key, dir] = e.target.value.split(":");
+              setSort({ key, dir });
+            }}
+          >
+            <option value="created:desc">Newest first</option>
+            <option value="created:asc">Oldest first</option>
+            <option value="title:asc">Title A to Z</option>
+            <option value="title:desc">Title Z to A</option>
+            <option value="kind:asc">Kind A to Z</option>
+            <option value="kind:desc">Kind Z to A</option>
+            <option value="out:asc">Out to, A to Z</option>
+            <option value="out:desc">Out to, Z to A</option>
+            <option value="status:asc">Status: drafts first</option>
+            <option value="status:desc">Status: completed first</option>
+            <option value="sent:desc">Sent, newest first</option>
+            <option value="sent:asc">Sent, oldest first</option>
+            <option value="reminded:desc">Reminder sent, newest first</option>
+            <option value="reminded:asc">Reminder sent, oldest first</option>
+            <option value="completed:desc">Completed, newest first</option>
+            <option value="completed:asc">Completed, oldest first</option>
+          </select>
+        </div>
       </div>
 
       {error ? <div className="warnbox">{error}</div> : null}
@@ -194,20 +266,20 @@ export default function SignaturesList() {
           <table className="admin-table">
             <thead>
               <tr>
-                <th scope="col">Title</th>
-                <th scope="col">Kind</th>
-                <th scope="col">Out to</th>
-                <th scope="col">Status</th>
-                <th scope="col">Sent</th>
-                <th scope="col">Reminder sent</th>
-                <th scope="col">Completed</th>
+                <Th k="title">Title</Th>
+                <Th k="kind">Kind</Th>
+                <Th k="out">Out to</Th>
+                <Th k="status">Status</Th>
+                <Th k="sent">Sent</Th>
+                <Th k="reminded">Reminder sent</Th>
+                <Th k="completed">Completed</Th>
                 <th scope="col" className="r">
                   <span className="visually-hidden">Actions</span>
                 </th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
+              {sorted.map((r) => (
                 <tr key={r.id}>
                   <td>
                     <Link className="addr" href={`/admin/signatures/${r.id}`}>
