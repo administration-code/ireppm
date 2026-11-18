@@ -16,6 +16,7 @@ import InsuranceReview from "@/components/InsuranceReview";
 import { GettingStarted } from "@/components/tenant/TenantCards";
 import OwnerImprovementsCard from "./OwnerImprovementsCard";
 import OwnerArrearsCard from "./OwnerArrearsCard";
+import OwnerRentMonthCard from "./OwnerRentMonthCard";
 import EmailPrefs from "@/components/EmailPrefs";
 
 async function loadPortal() {
@@ -87,6 +88,7 @@ export default function OwnerHome() {
 
       <GettingStarted role="owner" dismissedAt={state.tourDismissed} />
 
+      <OwnerRentMonthCard />
       <OwnerArrearsCard />
       <OwnerImprovementsCard />
 
