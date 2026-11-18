@@ -4,6 +4,7 @@ import { useEffect, useId, useState } from "react";
 import { getBrowserClient } from "@/lib/supabase";
 import { money } from "@/lib/format";
 import { monthLabel, shortDate, thisMonth, todayISO } from "@/lib/rent";
+import { EXPENSE_BUCKET, EXPENSE_FILE_TYPES, openExpenseInvoice, uploadExpenseInvoice } from "@/lib/expense-files";
 
 const METHODS = { etransfer: "e-Transfer", online_banking: "Online bill payment", cheque: "Cheque", card: "Card", other: "Other" };
 
@@ -37,6 +38,9 @@ export default function LandlordExpenses() {
   const [msg, setMsg] = useState({ kind: "", text: "" });
   const [marking, setMarking] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState("");
+  const [file, setFile] = useState(null);
+  const [fileKey, setFileKey] = useState(0);
+  const [uploading, setUploading] = useState("");
 
   async function load() {
     const sb = getBrowserClient();
@@ -70,7 +74,7 @@ export default function LandlordExpenses() {
     if (!/^\d+(\.\d{1,2})?$/.test(amount) || Number(amount) <= 0) return setMsg({ kind: "err", text: "Enter the amount in dollars, like 113 or 89.99." });
     if (!/^\d{4}-\d{2}$/.test(form.statement_month)) return setMsg({ kind: "err", text: "Choose the statement month." });
     setBusy(true);
-    const { error } = await getBrowserClient()
+    const { data: saved, error } = await getBrowserClient()
       .from("landlord_expenses")
       .insert({
         property_id: form.property_id,
@@ -85,12 +89,24 @@ export default function LandlordExpenses() {
         method: form.paid ? form.method : null,
         reference: form.paid ? form.reference.trim() || null : null,
         note: form.note.trim() || null,
-      });
+      })
+      .select("id")
+      .single();
+    if (error) {
+      setBusy(false);
+      return setMsg({ kind: "err", text: `That didn't save: ${error.message}` });
+    }
+    const fileProblem = file ? await uploadExpenseInvoice(saved, file) : null;
     setBusy(false);
-    if (error) return setMsg({ kind: "err", text: `That didn't save: ${error.message}` });
     const month = monthLabel(`${form.statement_month}-01`);
     setForm(blank());
-    setMsg({ kind: "ok", text: `Saved and deducted on the ${month} statement.` });
+    setFile(null);
+    setFileKey((k) => k + 1);
+    setMsg(
+      fileProblem
+        ? { kind: "err", text: `Saved and deducted on the ${month} statement, but ${fileProblem} Add the bill from the list below.` }
+        : { kind: "ok", text: `Saved and deducted on the ${month} statement.` }
+    );
     load();
   }
 
@@ -106,10 +122,27 @@ export default function LandlordExpenses() {
   }
 
   async function remove(r) {
-    const { error } = await getBrowserClient().from("landlord_expenses").delete().eq("id", r.id);
+    const sb = getBrowserClient();
+    const { error } = await sb.from("landlord_expenses").delete().eq("id", r.id);
     setConfirmDelete("");
     if (error) return setMsg({ kind: "err", text: `That didn't delete: ${error.message}` });
+    if (r.invoice_path) await sb.storage.from(EXPENSE_BUCKET).remove([r.invoice_path]);
     load();
+  }
+
+  async function attach(r, f) {
+    if (!f) return;
+    setUploading(r.id);
+    const problem = await uploadExpenseInvoice(r, f);
+    setUploading("");
+    if (problem) return setMsg({ kind: "err", text: problem });
+    setMsg({ kind: "ok", text: `Bill saved for ${r.payee}.` });
+    load();
+  }
+
+  async function view(r) {
+    const problem = await openExpenseInvoice(r.id);
+    if (problem) setMsg({ kind: "err", text: problem });
   }
 
   const toPay = (rows || []).filter((r) => r.status === "to_pay");
@@ -148,6 +181,28 @@ export default function LandlordExpenses() {
                       .join(" · ")}
                   </span>
                   {r.note ? <span className="sub-line small">{r.note}</span> : null}
+                  <span className="sub-line small req-actions" style={{ gap: 10 }}>
+                    {r.invoice_path ? (
+                      <button type="button" className="link-btn small" onClick={() => view(r)}>
+                        View Bill
+                      </button>
+                    ) : (
+                      <span>No bill attached</span>
+                    )}
+                    <label className="link-btn small" style={{ cursor: "pointer" }}>
+                      {uploading === r.id ? "Uploading…" : r.invoice_path ? "Replace" : "Attach Bill"}
+                      <input
+                        type="file"
+                        accept={EXPENSE_FILE_TYPES}
+                        className="visually-hidden"
+                        disabled={uploading === r.id}
+                        onChange={(e) => {
+                          attach(r, e.target.files?.[0]);
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
+                  </span>
                 </td>
                 <td className="r num">{money(r.amount)}</td>
                 <td>{monthLabel(r.statement_period)}</td>
@@ -228,7 +283,7 @@ export default function LandlordExpenses() {
         <h1 className="admin-title">Additional Expenses</h1>
         <p className="small">
           Bills a landlord asks IRep to pay for them, like pest control. Each one is deducted on their statement for the month you choose and
-          shows there as “Paid on your behalf”. In Reconciliation, mark the bank withdrawal as “Contractor or repair”.
+          shows there as “Paid on your behalf”. The landlord sees them, and can open the bill, in their owner portal. In Reconciliation, mark the bank withdrawal as “Contractor or repair”.
         </p>
       </div>
 
@@ -304,7 +359,12 @@ export default function LandlordExpenses() {
           </div>
         ) : null}
         <div className="field">
-          <label htmlFor={`${id}-note`}>Note for the records (optional)</label>
+          <label htmlFor={`${id}-file`}>Bill (PDF or photo, optional)</label>
+          <input key={fileKey} id={`${id}-file`} type="file" accept={EXPENSE_FILE_TYPES} onChange={(e) => setFile(e.target.files?.[0] || null)} />
+          <span className="small">The landlord can open it from their owner portal.</span>
+        </div>
+        <div className="field">
+          <label htmlFor={`${id}-note`}>Note for the records (staff only, optional)</label>
           <input id={`${id}-note`} value={form.note} onChange={set("note")} placeholder="Landlord asked us to pay it by email, Nov 17" />
         </div>
         {msg.text ? (
