@@ -96,7 +96,7 @@ export default function OwnerRequestsCard({ properties = [] }) {
               setSent(false);
             }}
           >
-            Request information
+            Request Information
           </button>
         </div>
       ) : (
@@ -145,7 +145,7 @@ export default function OwnerRequestsCard({ properties = [] }) {
           ) : null}
           <div className="req-actions">
             <button type="submit" className="btn primary" disabled={busy}>
-              {busy ? "Sending…" : "Send request"}
+              {busy ? "Sending…" : "Send Request"}
             </button>
             <button type="button" className="btn ghost" onClick={() => setOpen(false)} disabled={busy}>
               Cancel

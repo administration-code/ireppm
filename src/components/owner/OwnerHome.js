@@ -94,7 +94,7 @@ export default function OwnerHome() {
               document.getElementById("requests")?.scrollIntoView({ behavior: "smooth", block: "start" });
             }}
           >
-            Request information
+            Request Information
           </button>
         </div>
       </div>

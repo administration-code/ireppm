@@ -30,6 +30,7 @@ export async function loadNavCounts() {
     insuranceToReview: sb.from("tenant_insurance").select("id", head).eq("status", "submitted"),
     inspectionReportsToReview: sb.from("inspection_reports").select("id", head).eq("status", "submitted"),
     ownerRequestsOpen: sb.from("owner_requests").select("id", head).eq("status", "open"),
+    expensesToPay: sb.from("landlord_expenses").select("id", head).eq("status", "to_pay"),
     unmatchedBankLines: sb.from("bank_transactions").select("id", head).eq("status", "unmatched"),
   };
   const keys = Object.keys(queries);

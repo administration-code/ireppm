@@ -120,7 +120,7 @@ function RequestRow({ r, onSaved }) {
           </label>
           <div className="req-actions">
             <button type="button" className="btn primary sm" disabled={busy || (email && !reply.trim())} onClick={() => save("done")}>
-              {busy ? "Saving…" : email ? "Email reply and mark done" : "Mark done"}
+              {busy ? "Saving…" : email ? "Email Reply and Mark Done" : "Mark Done"}
             </button>
           </div>
         </>
