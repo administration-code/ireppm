@@ -28,6 +28,14 @@ export default function SignaturesList() {
   const [reminded, setReminded] = useState({});
   const [openError, setOpenError] = useState("");
   const [sort, setSort] = useState({ key: "created", dir: "desc" });
+  useEffect(() => {
+    const ok = {
+      status: ["awaiting", "closed"].includes(filter),
+      reminded: filter === "awaiting",
+      completed: filter === "completed",
+    };
+    setSort((cur) => (cur.key in ok && !ok[cur.key] ? { key: "created", dir: "desc" } : cur));
+  }, [filter]);
 
   // Pull the latest from DocuSign (statuses, and envelopes made directly in DocuSign) when the page opens.
   const sync = async () => {
@@ -105,6 +113,43 @@ export default function SignaturesList() {
   }, [filter, kind, side, version]);
 
   const STATUS_ORDER = { draft: 0, sent: 1, delivered: 2, completed: 3, declined: 4, voided: 5, error: 6 };
+  // Sort choices that make sense for the tab: no "completed" dates while awaiting signature, no
+  // reminders once signed, and status only where the tab holds more than one status.
+  const sortOptions = [
+    ["created:desc", "Newest first"],
+    ["created:asc", "Oldest first"],
+    ["title:asc", "Title A to Z"],
+    ["title:desc", "Title Z to A"],
+    ["kind:asc", "Kind A to Z"],
+    ["kind:desc", "Kind Z to A"],
+    ["out:asc", "Out to, A to Z"],
+    ["out:desc", "Out to, Z to A"],
+    ...(filter === "awaiting"
+      ? [
+          ["status:asc", "Status: drafts first"],
+          ["status:desc", "Status: viewed first"],
+        ]
+      : filter === "closed"
+        ? [
+            ["status:asc", "Status: declined first"],
+            ["status:desc", "Status: voided first"],
+          ]
+        : []),
+    ["sent:desc", "Sent, newest first"],
+    ["sent:asc", "Sent, oldest first"],
+    ...(filter === "awaiting"
+      ? [
+          ["reminded:desc", "Reminder sent, newest first"],
+          ["reminded:asc", "Reminder sent, oldest first"],
+        ]
+      : []),
+    ...(filter === "completed"
+      ? [
+          ["completed:desc", "Signed, newest first"],
+          ["completed:asc", "Signed, oldest first"],
+        ]
+      : []),
+  ];
   const sortValue = (r, key) => {
     switch (key) {
       case "title":
@@ -136,14 +181,17 @@ export default function SignaturesList() {
   });
   const sortBy = (key) =>
     setSort((s) => (s.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: ["sent", "reminded", "completed", "created"].includes(key) ? "desc" : "asc" }));
-  const Th = ({ k, children }) => (
+  const Th = ({ k, children }) =>
+    !sortOptions.some(([v]) => v.startsWith(`${k}:`)) ? (
+      <th scope="col">{children}</th>
+    ) : (
     <th scope="col" aria-sort={sort.key === k ? (sort.dir === "asc" ? "ascending" : "descending") : "none"}>
       <button type="button" className="th-sort" onClick={() => sortBy(k)}>
         {children}
         <span aria-hidden="true">{sort.key === k ? (sort.dir === "asc" ? " ▲" : " ▼") : ""}</span>
       </button>
     </th>
-  );
+    );
 
   return (
     <div className="stack" style={{ gap: 24 }}>
@@ -232,22 +280,11 @@ export default function SignaturesList() {
               setSort({ key, dir });
             }}
           >
-            <option value="created:desc">Newest first</option>
-            <option value="created:asc">Oldest first</option>
-            <option value="title:asc">Title A to Z</option>
-            <option value="title:desc">Title Z to A</option>
-            <option value="kind:asc">Kind A to Z</option>
-            <option value="kind:desc">Kind Z to A</option>
-            <option value="out:asc">Out to, A to Z</option>
-            <option value="out:desc">Out to, Z to A</option>
-            <option value="status:asc">Status: drafts first</option>
-            <option value="status:desc">Status: completed first</option>
-            <option value="sent:desc">Sent, newest first</option>
-            <option value="sent:asc">Sent, oldest first</option>
-            <option value="reminded:desc">Reminder sent, newest first</option>
-            <option value="reminded:asc">Reminder sent, oldest first</option>
-            <option value="completed:desc">Completed, newest first</option>
-            <option value="completed:asc">Completed, oldest first</option>
+            {sortOptions.map(([v, l]) => (
+              <option key={v} value={v}>
+                {l}
+              </option>
+            ))}
           </select>
         </div>
       </div>
