@@ -41,17 +41,23 @@ export default function LandlordExpenses() {
   const [file, setFile] = useState(null);
   const [fileKey, setFileKey] = useState(0);
   const [uploading, setUploading] = useState("");
+  const [monthly, setMonthly] = useState([]);
 
   async function load() {
     const sb = getBrowserClient();
-    const [r, p] = await Promise.all([
+    const [r, p, m] = await Promise.all([
       sb
         .from("landlord_expenses")
         .select("*, property:properties(address, owner:owners(name))")
         .order("created_at", { ascending: false })
         .limit(300),
       sb.from("properties").select("id, address, owner:owners(name)").eq("archived", false).order("address"),
+      sb
+        .from("recurring_expenses")
+        .select("*, property:properties(address, owner:owners(name))")
+        .order("created_at", { ascending: false }),
     ]);
+    setMonthly(m.data || []);
     setRows(r.data || []);
     setProperties(p.data || []);
     if (r.error) setMsg({ kind: "err", text: "We couldn't load the expenses. Refresh the page to try again." });
@@ -175,6 +181,7 @@ export default function LandlordExpenses() {
                 </td>
                 <td>
                   {r.payee}
+                  {r.recurring_id ? <span className="small"> · Monthly</span> : null}
                   <span className="sub-line small">
                     {[r.description, r.invoice_ref ? `Invoice ${r.invoice_ref}` : "", r.bill_date ? `Dated ${shortDate(r.bill_date)}` : ""]
                       .filter(Boolean)
@@ -379,6 +386,8 @@ export default function LandlordExpenses() {
         </div>
       </form>
 
+      <MonthlyExpenses rows={monthly} properties={properties} onChanged={load} />
+
       <section className="stack">
         <h2 className="sec-title">To Pay ({toPay.length})</h2>
         {rows === null ? <p className="small">Loading…</p> : toPay.length ? table(toPay, true) : <p className="small">Nothing waiting to be paid.</p>}
@@ -388,5 +397,192 @@ export default function LandlordExpenses() {
         {rows === null ? null : paid.length ? table(paid, false) : <p className="small">None yet.</p>}
       </section>
     </div>
+  );
+}
+
+const blankMonthly = () => ({ property_id: "", payee: "", description: "", amount: "", first_month: nextMonth(), last_month: "" });
+
+// Bills that repeat every month (internet, say). The daily job adds each month's expense on the 1st.
+function MonthlyExpenses({ rows, properties, onChanged }) {
+  const id = useId();
+  const [open, setOpen] = useState(false);
+  const [f, setF] = useState(blankMonthly);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState({ kind: "", text: "" });
+  const [confirmStop, setConfirmStop] = useState("");
+  const now = thisMonth();
+  const set = (k) => (e) => {
+    setF((s) => ({ ...s, [k]: e.target.value }));
+    setMsg({ kind: "", text: "" });
+  };
+  const running = (r) => !r.last_month || r.last_month.slice(0, 7) >= now;
+
+  async function save(e) {
+    e.preventDefault();
+    const amount = String(f.amount).trim();
+    if (!f.property_id) return setMsg({ kind: "err", text: "Choose the property." });
+    if (!f.payee.trim()) return setMsg({ kind: "err", text: "Who is the bill from?" });
+    if (!/^\d+(\.\d{1,2})?$/.test(amount) || Number(amount) <= 0) return setMsg({ kind: "err", text: "Enter the monthly amount, like 75." });
+    if (!/^\d{4}-\d{2}$/.test(f.first_month)) return setMsg({ kind: "err", text: "Choose the first month." });
+    if (f.last_month && f.last_month < f.first_month) return setMsg({ kind: "err", text: "The last month is before the first month." });
+    setBusy(true);
+    const sb = getBrowserClient();
+    const { error } = await sb.from("recurring_expenses").insert({
+      property_id: f.property_id,
+      payee: f.payee.trim(),
+      description: f.description.trim() || null,
+      amount: Number(amount),
+      first_month: `${f.first_month}-01`,
+      last_month: f.last_month ? `${f.last_month}-01` : null,
+    });
+    if (!error) await sb.rpc("ensure_recurring_expenses", { p_month: `${now}-01` });
+    setBusy(false);
+    if (error) return setMsg({ kind: "err", text: `That didn't save: ${error.message}` });
+    setF(blankMonthly());
+    setOpen(false);
+    setMsg({ kind: "ok", text: `Saved. It's added to the statement every month from ${monthLabel(`${f.first_month}-01`)}.` });
+    onChanged();
+  }
+
+  async function stop(r) {
+    setConfirmStop("");
+    const sb = getBrowserClient();
+    // Not started yet: remove it. Otherwise this month's is the last one.
+    const { error } =
+      r.first_month.slice(0, 7) > now
+        ? await sb.from("recurring_expenses").delete().eq("id", r.id)
+        : await sb.from("recurring_expenses").update({ last_month: `${now}-01` }).eq("id", r.id);
+    if (error) return setMsg({ kind: "err", text: `That didn't save: ${error.message}` });
+    onChanged();
+  }
+
+  return (
+    <section className="boxed stack">
+      <h2 className="sub-title">Monthly Expenses</h2>
+      <p className="small" style={{ margin: 0 }}>
+        Bills that repeat every month at the same amount. On the 1st of each month the expense is added to the list below and deducted on
+        that month&apos;s statement. Mark it paid and attach the bill as usual.
+      </p>
+      {rows.length ? (
+        <div className="table-scroll">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th scope="col">Property</th>
+                <th scope="col">Bill</th>
+                <th scope="col" className="r">
+                  Each month
+                </th>
+                <th scope="col">Months</th>
+                <th scope="col">
+                  <span className="visually-hidden">Actions</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.id}>
+                  <td className="addr">
+                    {r.property?.address}
+                    <span className="sub-line small">{r.property?.owner?.name}</span>
+                  </td>
+                  <td>
+                    {r.payee}
+                    {r.description ? <span className="sub-line small">{r.description}</span> : null}
+                  </td>
+                  <td className="r num">{money(r.amount)}</td>
+                  <td>
+                    {monthLabel(r.first_month)} to {r.last_month ? monthLabel(r.last_month) : "ongoing"}
+                  </td>
+                  <td className="r">
+                    {!running(r) ? (
+                      <span className="small">Ended</span>
+                    ) : confirmStop === r.id ? (
+                      <span className="req-actions" style={{ justifyContent: "flex-end" }}>
+                        <span className="small">
+                          {r.first_month.slice(0, 7) > now ? "Remove it?" : `Stop after ${monthLabel(`${now}-01`)}?`}
+                        </span>
+                        <button type="button" className="btn primary sm" onClick={() => stop(r)}>
+                          Yes, Stop
+                        </button>
+                        <button type="button" className="btn ghost sm" onClick={() => setConfirmStop("")}>
+                          Keep
+                        </button>
+                      </span>
+                    ) : (
+                      <button type="button" className="link-btn small" onClick={() => setConfirmStop(r.id)}>
+                        Stop
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
+      {msg.text ? (
+        <div className={msg.kind === "err" ? "warnbox" : "okbox"} role={msg.kind === "err" ? "alert" : "status"}>
+          {msg.text}
+        </div>
+      ) : null}
+      {!open ? (
+        <div>
+          <button type="button" className="btn ghost sm" onClick={() => setOpen(true)}>
+            Add Monthly Expense
+          </button>
+        </div>
+      ) : (
+        <form className="stack" onSubmit={save} noValidate>
+          <div className="row2">
+            <div className="field">
+              <label htmlFor={`${id}-mp`}>Property</label>
+              <select id={`${id}-mp`} value={f.property_id} onChange={set("property_id")}>
+                <option value="">Choose…</option>
+                {properties.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.address}
+                    {p.owner?.name ? ` (${p.owner.name})` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="field">
+              <label htmlFor={`${id}-mpay`}>Paid to</label>
+              <input id={`${id}-mpay`} value={f.payee} onChange={set("payee")} placeholder="Oxio" />
+            </div>
+          </div>
+          <div className="row2">
+            <div className="field">
+              <label htmlFor={`${id}-md`}>What for (optional)</label>
+              <input id={`${id}-md`} value={f.description} onChange={set("description")} placeholder="Internet" />
+            </div>
+            <div className="field">
+              <label htmlFor={`${id}-ma`}>Amount each month ($)</label>
+              <input id={`${id}-ma`} inputMode="decimal" value={f.amount} onChange={set("amount")} />
+            </div>
+          </div>
+          <div className="row2">
+            <div className="field">
+              <label htmlFor={`${id}-mf`}>First statement month</label>
+              <input id={`${id}-mf`} type="month" value={f.first_month} onChange={set("first_month")} />
+            </div>
+            <div className="field">
+              <label htmlFor={`${id}-ml`}>Last month (optional)</label>
+              <input id={`${id}-ml`} type="month" value={f.last_month} onChange={set("last_month")} />
+              <span className="small">Leave blank to keep going until you stop it.</span>
+            </div>
+          </div>
+          <div className="req-actions">
+            <button type="submit" className="btn primary sm" disabled={busy}>
+              {busy ? "Saving…" : "Save Monthly Expense"}
+            </button>
+            <button type="button" className="btn ghost sm" onClick={() => setOpen(false)} disabled={busy}>
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
+    </section>
   );
 }

@@ -173,6 +173,10 @@ export async function GET(request) {
   const partnerMonth = await sb.rpc("ensure_partner_month", { p_month: today });
   result.partnerMonth = partnerMonth.error ? `failed: ${partnerMonth.error.message}` : partnerMonth.data;
 
+  // Monthly expenses paid for landlords (e.g. internet): adds this month's line once.
+  const recurring = await sb.rpc("ensure_recurring_expenses", { p_month: today });
+  result.recurringExpenses = recurring.error ? `failed: ${recurring.error.message}` : recurring.data;
+
   if (Number(today.slice(8, 10)) === 1) {
     result.letters = await draftLastMonthsLetters(sb, today);
   }
