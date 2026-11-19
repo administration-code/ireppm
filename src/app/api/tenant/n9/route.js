@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { createEnvelope, resolveTemplates } from "@/lib/docusign";
 import { alertStaff } from "@/lib/signatures-server";
+import { notifyOwnerMoveOut } from "@/lib/owner-move-out";
 import { KIND_TEMPLATES, buildN9 } from "@/lib/docusign-templates";
 
 export const runtime = "nodejs";
@@ -91,8 +92,9 @@ export async function POST(request) {
       .eq("id", row.id);
     await alertStaff(`Tenant notice started: ${place}`, [
       `${user.email} started an N9 for ${place}, moving out on ${date}.`,
-      "DocuSign has emailed it to every tenant on the lease to sign. We'll let you know when it's signed.",
+      "DocuSign has emailed it to every tenant on the lease to sign. The landlord has been told. We'll let you know when it's signed.",
     ], row.id);
+    await notifyOwnerMoveOut(tenancyId, { stage: "n9_started", date });
     return NextResponse.json({ id: row.id, status: "sent", tenants: built.recipients.map((r) => r.name) });
   } catch (err) {
     await sb

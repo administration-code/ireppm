@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { alertStaff } from "@/lib/signatures-server";
+import { notifyOwnerMoveOut } from "@/lib/owner-move-out";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -73,8 +74,9 @@ export async function POST(request) {
   await alertStaff(`Early move-out request: ${place}`, [
     `${user.email} asked to end the tenancy at ${place} on ${date}, earlier than an N9 allows (earliest N9 date: ${prep.earliest}).`,
     body?.reason ? `Reason: ${String(body.reason).slice(0, 500)}` : "",
-    "Approve it to send the N11 Agreement to End the Tenancy to every tenant and then to the landlord to sign, or decline it with a note.",
+    "The landlord has been told. Approve it to send the N11 Agreement to End the Tenancy to every tenant and then to the landlord to sign, or decline it with a note.",
   ].filter(Boolean));
+  await notifyOwnerMoveOut(tenancyId, { stage: "early_request", date, reason: body?.reason });
 
   return NextResponse.json({ id: row.id, status: "requested" });
 }

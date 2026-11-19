@@ -20,6 +20,8 @@ export default function CurrentTenancy({ tenancy, onChanged }) {
   const [moveOut, setMoveOut] = useState(tenancy.move_out_date || "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [tellOwner, setTellOwner] = useState(true);
+  const [noticeNote, setNoticeNote] = useState("");
 
   const open = (next) => {
     setError("");
@@ -67,7 +69,20 @@ export default function CurrentTenancy({ tenancy, onChanged }) {
   function recordNotice(e) {
     e.preventDefault();
     if (!moveOut) return setError("Add the move-out date from the notice.");
-    return run(() => updateTenancy(tenancy.id, { status: "notice", move_out_date: moveOut }));
+    return run(async () => {
+      await updateTenancy(tenancy.id, { status: "notice", move_out_date: moveOut });
+      if (!tellOwner) return;
+      const { data } = await getBrowserClient().auth.getSession();
+      const res = await fetch(`/api/admin/tenancies/${tenancy.id}/notify-owner`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${data?.session?.access_token || ""}` },
+        body: JSON.stringify({ note: noticeNote }),
+      }).catch(() => null);
+      if (!res?.ok) {
+        const json = res ? await res.json().catch(() => ({})) : {};
+        throw new Error(`The notice is recorded, but ${json.error || "the landlord email didn't send."} Let the landlord know directly.`);
+      }
+    });
   }
 
   function endTenancy(e) {
@@ -160,9 +175,25 @@ export default function CurrentTenancy({ tenancy, onChanged }) {
             <label htmlFor="notice-date">Move-out date from the notice</label>
             <input id="notice-date" type="date" value={moveOut} onChange={(e) => setMoveOut(e.target.value)} />
           </div>
+          <label className="check-line">
+            <input type="checkbox" checked={tellOwner} onChange={(e) => setTellOwner(e.target.checked)} />
+            Email the landlord that the tenant is leaving
+          </label>
+          {tellOwner ? (
+            <div className="field">
+              <label htmlFor="notice-note">Note for the landlord (optional)</label>
+              <input
+                id="notice-note"
+                value={noticeNote}
+                onChange={(e) => setNoticeNote(e.target.value)}
+                maxLength={500}
+                placeholder="e.g. Tenant is buying a house"
+              />
+            </div>
+          ) : null}
           <div className="req-actions">
             <button type="submit" className="btn primary sm" disabled={busy}>
-              {busy ? "Saving…" : "Record notice"}
+              {busy ? "Saving…" : "Record Notice"}
             </button>
             <button type="button" className="btn ghost sm" onClick={() => open("")} disabled={busy}>
               Cancel

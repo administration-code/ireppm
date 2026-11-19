@@ -19,6 +19,7 @@ import OwnerArrearsCard from "./OwnerArrearsCard";
 import OwnerRentMonthCard from "./OwnerRentMonthCard";
 import OwnerRequestsCard from "./OwnerRequestsCard";
 import OwnerExpensesCard from "./OwnerExpensesCard";
+import OwnerFaqCard from "./OwnerFaqCard";
 import EmailPrefs from "@/components/EmailPrefs";
 
 async function loadPortal() {
@@ -218,6 +219,7 @@ export default function OwnerHome() {
         </div>
       </section>
 
+      <OwnerFaqCard />
       <ContactGuideCard audience="owner" />
 
       <EmailPrefs />

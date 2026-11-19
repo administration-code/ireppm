@@ -2,6 +2,7 @@ import "server-only";
 import { sendWelcome } from "@/lib/tenant-notices";
 import { mailer, mailConfigured } from "@/lib/mailer";
 import { escapeHtml } from "@/lib/staff-alerts";
+import { notifyOwnerMoveOut } from "@/lib/owner-move-out";
 import { ds, getDocument, getEnvelope, getRecipients, summarizeRecipients } from "@/lib/docusign";
 import { mfaSatisfied } from "@/lib/staff-mfa";
 
@@ -315,6 +316,10 @@ async function completedAlert(row, result) {
     lines.push("It's ready to serve. Open it to record how and when it was served.");
   } else if (row.terms?.type === "consent") {
     lines.push(result?.consent ? "The tenant agreed to email service." : "The tenant did not agree to email service.");
+  }
+  if (["N9", "N11"].includes(row.kind) && row.tenancy_id) {
+    const r = await notifyOwnerMoveOut(row.tenancy_id, { stage: "on_notice", date: row.terms?.termination_date });
+    lines.push(r.sent ? "The landlord has been emailed that the tenancy is ending." : "The landlord could not be emailed (no email on file?). Let them know the tenancy is ending.");
   }
   await alertStaff(`Signed: ${row.title}`, lines, row.id);
 }
