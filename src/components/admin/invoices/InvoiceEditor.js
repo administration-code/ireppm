@@ -159,12 +159,14 @@ export default function InvoiceEditor({ id }) {
       unit_price: fee.toFixed(2),
     });
     setLines((ls) => [...ls.filter((l) => l.description.trim() || Number(l.unit_price)), line]);
-    if (!f.description.trim()) {
-      setF((s) => ({
-        ...s,
-        description: `Tenant placement for the tenancy starting ${longDay(t.start_date)}${names ? ` (${names})` : ""}.`,
-      }));
-    }
+    // Leasing fees are due within one week of the move-in date.
+    const due = t.start_date ? plusDays(t.start_date, 7) : "";
+    setF((s) => ({
+      ...s,
+      description: s.description.trim() ? s.description : `Tenant placement for the tenancy starting ${longDay(t.start_date)}${names ? ` (${names})` : ""}.`,
+      due_date: due && due >= s.issue_date ? due : s.due_date,
+    }));
+    if (due) setMsg({ kind: "ok", text: `Due date set to ${longDay(due < f.issue_date ? f.issue_date : due)}, one week after the ${longDay(t.start_date)} move-in.` });
   }
 
   function check() {
@@ -410,7 +412,7 @@ export default function InvoiceEditor({ id }) {
             <input id={`${uid}-d`} type="date" value={f.issue_date} onChange={set("issue_date")} />
           </div>
           <div className="field">
-            <label htmlFor={`${uid}-due`}>Due date (blank = on receipt)</label>
+            <label htmlFor={`${uid}-due`}>Due date (leasing fees: 1 week after move-in)</label>
             <input id={`${uid}-due`} type="date" value={f.due_date} onChange={set("due_date")} />
           </div>
         </div>

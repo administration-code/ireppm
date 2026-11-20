@@ -13,7 +13,7 @@ export const SITE = {
   // Receives rent e-Transfers only (auto-deposit). Not monitored.
   paymentEmail: "payment@ireppm.ca",
   // IRep's HST registration number (e.g. "123456789 RT0001"), printed on invoices. null hides it.
-  hstNumber: null,
+  hstNumber: "72502 0143 RT0001",
   // Repairs over this amount need the landlord's OK; we ask for an answer within 48 hours.
   approvalThreshold: 250,
   primaryCity: "Windsor",
