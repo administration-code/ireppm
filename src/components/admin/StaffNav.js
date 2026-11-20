@@ -44,6 +44,7 @@ export const NAV_GROUPS = [
       { key: "invites", label: "Portal Invitations", href: "/admin/invites" },
       { key: "work-orders", label: "Work Orders", href: "/admin/work-orders" },
       { key: "payouts", label: "Landlord Payouts", href: "/admin/payouts" },
+      { key: "invoices", label: "Invoices", href: "/admin/invoices", count: "invoicesUnpaid", note: "unpaid" },
       { key: "expenses", label: "Additional Expenses", href: "/admin/expenses", count: "expensesToPay", note: "to pay" },
       { key: "owner-requests", label: "Owner Requests", href: "/admin/owner-requests", count: "ownerRequestsOpen", note: "open" },
       { key: "inspection-reports", label: "Inspection Reports", href: "/admin/inspection-reports", count: "inspectionReportsToReview", note: "to review" },

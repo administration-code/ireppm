@@ -12,6 +12,8 @@ export const SITE = {
   hours: "Monday to Friday, 9 a.m. to 5 p.m. (closed statutory holidays)",
   // Receives rent e-Transfers only (auto-deposit). Not monitored.
   paymentEmail: "payment@ireppm.ca",
+  // IRep's HST registration number (e.g. "123456789 RT0001"), printed on invoices. null hides it.
+  hstNumber: null,
   // Repairs over this amount need the landlord's OK; we ask for an answer within 48 hours.
   approvalThreshold: 250,
   primaryCity: "Windsor",

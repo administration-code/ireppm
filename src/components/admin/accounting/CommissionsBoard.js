@@ -437,7 +437,7 @@ function SplitsList({ splits }) {
             </thead>
             <tbody>
               {splits.map((s) => (
-                <tr key={s.statement_item_id}>
+                <tr key={s.statement_item_id || s.invoice_line_id}>
                   <td>{monthLabel(s.period)}</td>
                   <td>{s.address}</td>
                   <td>{s.description || "Leasing fee"}</td>

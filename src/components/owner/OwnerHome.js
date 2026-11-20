@@ -20,6 +20,7 @@ import OwnerRentMonthCard from "./OwnerRentMonthCard";
 import OwnerRequestsCard from "./OwnerRequestsCard";
 import OwnerExpensesCard from "./OwnerExpensesCard";
 import OwnerFaqCard from "./OwnerFaqCard";
+import OwnerInvoicesCard from "./OwnerInvoicesCard";
 import EmailPrefs from "@/components/EmailPrefs";
 
 async function loadPortal() {
@@ -107,6 +108,7 @@ export default function OwnerHome() {
       <OwnerArrearsCard />
       <OwnerImprovementsCard />
       <OwnerExpensesCard />
+      <OwnerInvoicesCard />
       <OwnerRequestsCard properties={properties} />
 
       <section className="boxed stack" aria-labelledby="sec-own-props">

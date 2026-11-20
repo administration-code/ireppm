@@ -1264,3 +1264,11 @@ a[href^="tel:"] { white-space: nowrap; }
 .faq-body p { margin: 0 0 10px; }
 .faq-body ul { margin: 0 0 10px; padding-left: 20px; display: grid; gap: 8px; }
 .faq-sub { font-family: var(--display); font-size: 1.125rem; margin: 14px 0 6px; }
+
+/* Invoices */
+.pill.inv-draft { background: var(--surface-2); color: var(--fg); }
+.pill.inv-sent { background: var(--warn-bg); color: var(--warn); }
+.pill.inv-paid { background: var(--ok-bg); color: var(--ok); }
+.pill.inv-void { background: var(--surface-2); color: var(--muted); text-decoration: line-through; }
+.invoice-edit input, .invoice-edit select { width: 100%; }
+fieldset.boxed:disabled input, fieldset.boxed:disabled select, fieldset.boxed:disabled textarea { background: transparent; color: var(--fg); opacity: 1; }
