@@ -1,26 +1,13 @@
 import "server-only";
+import { PDF_FONTS } from "@/lib/pdf-fonts";
 
-// A small PDF writer for invoices: US Letter pages, the built-in Helvetica and Times fonts,
-// text, lines and filled boxes. No images or embedded fonts. Text is encoded as WinAnsi.
+// A small PDF writer for invoices: US Letter pages, IRep's brand fonts (embedded),
+// text with letter-spacing, lines, boxes and filled paths. Text is encoded as WinAnsi.
 
 const PAGE_W = 612;
 const PAGE_H = 792;
-
-// Advance widths (per 1000 em) for characters 32–126.
-const HELV = [
-  278, 278, 355, 556, 556, 889, 667, 191, 333, 333, 389, 584, 278, 333, 278, 278, 556, 556, 556, 556, 556, 556, 556, 556, 556, 556,
-  278, 278, 584, 584, 584, 556, 1015, 667, 667, 722, 722, 667, 611, 778, 722, 278, 500, 667, 556, 833, 722, 778, 667, 778, 722, 667,
-  611, 722, 667, 944, 667, 667, 611, 278, 278, 278, 469, 556, 333, 556, 556, 500, 556, 556, 278, 556, 556, 222, 222, 500, 222, 833,
-  556, 556, 556, 556, 333, 500, 278, 556, 500, 722, 500, 500, 500, 334, 260, 334, 584,
-];
-const HELV_BOLD = [
-  278, 333, 474, 556, 556, 889, 722, 238, 333, 333, 389, 584, 278, 333, 278, 278, 556, 556, 556, 556, 556, 556, 556, 556, 556, 556,
-  333, 333, 584, 584, 584, 611, 975, 722, 722, 722, 722, 667, 611, 778, 722, 278, 556, 722, 611, 833, 722, 778, 667, 778, 722, 667,
-  611, 722, 667, 944, 667, 667, 611, 333, 278, 333, 584, 556, 333, 556, 611, 556, 611, 556, 333, 611, 611, 278, 278, 556, 278, 889,
-  611, 611, 611, 611, 389, 556, 333, 611, 556, 778, 556, 556, 500, 389, 280, 389, 584,
-];
-
-const FONTS = { regular: "Helvetica", bold: "Helvetica-Bold", serif: "Times-Bold" };
+const FONT_KEYS = Object.keys(PDF_FONTS); // body, bodySemi, display
+const fontRef = (font) => `F${Math.max(0, FONT_KEYS.indexOf(font)) + 1}`;
 
 // Unicode → WinAnsi byte for the few characters outside Latin-1 that invoices use.
 const WIN = { "–": 0x96, "—": 0x97, "‘": 0x91, "’": 0x92, "“": 0x93, "”": 0x94, "•": 0x95, "…": 0x85, "€": 0x80 };
@@ -37,27 +24,17 @@ function toWin(str) {
   return out;
 }
 
-function charWidth(byte, font) {
-  const table = font === "bold" ? HELV_BOLD : HELV;
-  if (byte >= 32 && byte <= 126) return table[byte - 32];
-  if (byte === 0x96) return 556;
-  if (byte === 0x97) return 1000;
-  if (byte === 0x91 || byte === 0x92) return font === "bold" ? 278 : 222;
-  if (byte === 0x93 || byte === 0x94) return font === "bold" ? 500 : 333;
-  if (byte === 0xb7 || byte === 0x95) return 350;
-  return 556;
-}
-
-export function textWidth(str, size, font = "regular") {
+// Width in points; spacing is extra space after each character, in points (CSS letter-spacing).
+export function textWidth(str, size, font = "body", spacing = 0) {
   const s = toWin(str);
+  const widths = (PDF_FONTS[font] || PDF_FONTS.body).widths;
   let w = 0;
-  for (let i = 0; i < s.length; i++) w += charWidth(s.charCodeAt(i), font);
-  // Times-Bold is used for titles only; Helvetica widths are close enough for placement.
-  return (w * size) / 1000;
+  for (let i = 0; i < s.length; i++) w += widths[s.charCodeAt(i) - 32] || 500;
+  return (w * size) / 1000 + spacing * Math.max(0, s.length - 1);
 }
 
 // Splits text into lines no wider than maxWidth. Blank lines in the input are kept.
-export function wrap(str, size, maxWidth, font = "regular") {
+export function wrap(str, size, maxWidth, font = "body") {
   const out = [];
   for (const para of String(str ?? "").split(/\r?\n/)) {
     if (!para.trim()) {
@@ -70,7 +47,6 @@ export function wrap(str, size, maxWidth, font = "regular") {
       if (textWidth(test, size, font) <= maxWidth) line = test;
       else {
         if (line) out.push(line);
-        // A single word wider than the column is cut.
         let w = word;
         while (textWidth(w, size, font) > maxWidth && w.length > 1) {
           let cut = w.length - 1;
@@ -105,12 +81,13 @@ export function createPdf({ title = "", author = "" } = {}) {
       pages.push(ops);
       return doc;
     },
-    // y is measured from the top of the page (baseline of the text).
-    text(str, x, y, { size = 10, font = "regular", color = "#161616", align = "left" } = {}) {
-      let left = x;
-      if (align === "right") left = x - textWidth(str, size, font);
-      else if (align === "center") left = x - textWidth(str, size, font) / 2;
-      ops.push(`BT /${font === "bold" ? "F2" : font === "serif" ? "F3" : "F1"} ${n(size)} Tf ${rgb(color)} rg ${n(left)} ${n(PAGE_H - y)} Td (${esc(str)}) Tj ET`);
+    // y is measured from the top of the page (the text baseline).
+    text(str, x, y, { size = 10, font = "body", color = "#161616", align = "left", spacing = 0 } = {}) {
+      const w = textWidth(str, size, font, spacing);
+      const left = align === "right" ? x - w : align === "center" ? x - w / 2 : x;
+      ops.push(
+        `BT /${fontRef(font)} ${n(size)} Tf ${n(spacing)} Tc ${rgb(color)} rg ${n(left)} ${n(PAGE_H - y)} Td (${esc(str)}) Tj ET`
+      );
       return doc;
     },
     line(x1, y1, x2, y2, { color = "#e3ded4", width = 0.75 } = {}) {
@@ -119,6 +96,17 @@ export function createPdf({ title = "", author = "" } = {}) {
     },
     rect(x, y, w, h, { fill = "#F7F4EE" } = {}) {
       ops.push(`${rgb(fill)} rg ${n(x)} ${n(PAGE_H - y - h)} ${n(w)} ${n(h)} re f`);
+      return doc;
+    },
+    // Fills a path given as [["M", x, y], ["L", x, y], ["C", x1, y1, x2, y2, x, y], ["Z"]] in page units from the top.
+    path(cmds, { fill = "#161616", evenOdd = false } = {}) {
+      const parts = cmds.map(([op, ...a]) => {
+        if (op === "M") return `${n(a[0])} ${n(PAGE_H - a[1])} m`;
+        if (op === "L") return `${n(a[0])} ${n(PAGE_H - a[1])} l`;
+        if (op === "C") return `${n(a[0])} ${n(PAGE_H - a[1])} ${n(a[2])} ${n(PAGE_H - a[3])} ${n(a[4])} ${n(PAGE_H - a[5])} c`;
+        return "h";
+      });
+      ops.push(`${rgb(fill)} rg ${parts.join(" ")} ${evenOdd ? "f*" : "f"}`);
       return doc;
     },
     // Returns the PDF as a Buffer.
@@ -130,17 +118,24 @@ export function createPdf({ title = "", author = "" } = {}) {
       };
       const catalog = add(null);
       const pagesObj = add(null);
-      const f1 = add(`<< /Type /Font /Subtype /Type1 /BaseFont /${FONTS.regular} /Encoding /WinAnsiEncoding >>`);
-      const f2 = add(`<< /Type /Font /Subtype /Type1 /BaseFont /${FONTS.bold} /Encoding /WinAnsiEncoding >>`);
-      const f3 = add(`<< /Type /Font /Subtype /Type1 /BaseFont /${FONTS.serif} /Encoding /WinAnsiEncoding >>`);
+      const fontObjs = FONT_KEYS.map((key) => {
+        const f = PDF_FONTS[key];
+        const bytes = Buffer.from(f.data, "base64");
+        const file = add(`<< /Length ${bytes.length} /Length1 ${bytes.length} >>\nstream\n${bytes.toString("latin1")}\nendstream`);
+        const desc = add(
+          `<< /Type /FontDescriptor /FontName /${f.name} /Flags 32 /FontBBox [${f.bbox.join(" ")}] /ItalicAngle 0 /Ascent ${f.ascent} /Descent ${f.descent} /CapHeight ${f.capHeight} /StemV 80 /FontFile2 ${file} 0 R >>`
+        );
+        return add(
+          `<< /Type /Font /Subtype /TrueType /BaseFont /${f.name} /FirstChar 32 /LastChar 255 /Widths [${f.widths.join(" ")}] /Encoding /WinAnsiEncoding /FontDescriptor ${desc} 0 R >>`
+        );
+      });
+      const fontDict = fontObjs.map((o, i) => `/F${i + 1} ${o} 0 R`).join(" ");
       const kids = [];
       for (const p of pages) {
         const stream = p.join("\n");
         const content = add(`<< /Length ${Buffer.byteLength(stream, "latin1")} >>\nstream\n${stream}\nendstream`);
         kids.push(
-          add(
-            `<< /Type /Page /Parent ${pagesObj} 0 R /MediaBox [0 0 ${PAGE_W} ${PAGE_H}] /Resources << /Font << /F1 ${f1} 0 R /F2 ${f2} 0 R /F3 ${f3} 0 R >> >> /Contents ${content} 0 R >>`
-          )
+          add(`<< /Type /Page /Parent ${pagesObj} 0 R /MediaBox [0 0 ${PAGE_W} ${PAGE_H}] /Resources << /Font << ${fontDict} >> >> /Contents ${content} 0 R >>`)
         );
       }
       objects[catalog - 1] = `<< /Type /Catalog /Pages ${pagesObj} 0 R >>`;
@@ -161,4 +156,41 @@ export function createPdf({ title = "", author = "" } = {}) {
     },
   };
   return doc;
+}
+
+// The IRep house mark (same shapes as components/Brand.js), drawn at (x, y) top-left, `size` points tall.
+export function drawIRepMark(pdf, x, y, size, color = "#B41710") {
+  // SVG viewBox: 2.31 10.31 115.38 144.38
+  const s = size / 144.38;
+  const X = (v) => x + (v - 2.31) * s;
+  const Y = (v) => y + (v - 10.31) * s;
+  const k = 0.5523;
+  // Semicircle over the top from (cx-r, cy) to (cx+r, cy), or back the other way.
+  const over = (cx, cy, r) => [
+    ["C", X(cx - r), Y(cy - k * r), X(cx - k * r), Y(cy - r), X(cx), Y(cy - r)],
+    ["C", X(cx + k * r), Y(cy - r), X(cx + r), Y(cy - k * r), X(cx + r), Y(cy)],
+  ];
+  const back = (cx, cy, r) => [
+    ["C", X(cx + r), Y(cy - k * r), X(cx + k * r), Y(cy - r), X(cx), Y(cy - r)],
+    ["C", X(cx - k * r), Y(cy - r), X(cx - r), Y(cy - k * r), X(cx - r), Y(cy)],
+  ];
+  const poly = (pts) => [["M", X(pts[0][0]), Y(pts[0][1])], ...pts.slice(1).map(([a, b]) => ["L", X(a), Y(b)]), ["Z"]];
+  // Outline ring
+  pdf.path(
+    [["M", X(10), Y(148)], ["L", X(10), Y(62)], ...over(60, 62, 50), ["L", X(110), Y(148)], ["L", X(106), Y(148)], ["L", X(106), Y(62)], ...back(60, 62, 46), ["L", X(14), Y(148)], ["Z"]],
+    { fill: color }
+  );
+  // Inner arch with the house and door cut out
+  pdf.path(
+    [
+      ["M", X(18), Y(148)], ["L", X(18), Y(62)], ...over(60, 62, 42), ["L", X(102), Y(148)], ["Z"],
+      ...poly([[60, 64], [71.7, 75], [69, 75], [69, 85.5], [51, 85.5], [51, 75], [48.3, 75]]),
+      ...poly([[55.5, 90], [64.5, 90], [68.5, 124], [51.5, 124]]),
+    ],
+    { fill: color, evenOdd: true }
+  );
+  // The house, in IRep Red
+  pdf.path(poly([[60, 64], [71.7, 75], [69, 75], [69, 85.5], [51, 85.5], [51, 75], [48.3, 75]]), { fill: "#B41710" });
+  // Base
+  pdf.path(poly([[4, 148], [116, 148], [116, 153], [4, 153]]), { fill: color });
 }
