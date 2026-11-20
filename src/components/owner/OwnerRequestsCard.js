@@ -16,10 +16,12 @@ const lastMonth = () => {
   d.setMonth(d.getMonth() - 1);
   return d.toISOString().slice(0, 7);
 };
+// Rent and statements aren't handled by IRep for leasing-only landlords.
+const LEASING_KINDS = ["tenancy_list", "documents", "other"];
 const blank = () => ({ kind: "", property_id: "", period: lastMonth(), message: "" });
 
 // Landlord portal: ask IRep for information, and see past requests and our replies.
-export default function OwnerRequestsCard({ properties = [] }) {
+export default function OwnerRequestsCard({ properties = [], leasingOnly = false }) {
   const [open, setOpen] = useState(false);
   const [f, setF] = useState(blank);
   const [busy, setBusy] = useState(false);
@@ -78,8 +80,9 @@ export default function OwnerRequestsCard({ properties = [] }) {
         Request Information
       </h2>
       <p className="small" style={{ margin: 0 }}>
-        Need a list of your tenancies, a statement, copies of documents or anything else? Send us a request and we&apos;ll reply by email. You
-        can also see who has paid rent this month, your statements and your year-end summary on this page any time.
+        {leasingOnly
+          ? "Need a copy of a lease, tenant details or anything else? Send us a request and we'll reply by email."
+          : "Need a list of your tenancies, a statement, copies of documents or anything else? Send us a request and we'll reply by email. You can also see who has paid rent this month, your statements and your year-end summary on this page any time."}
       </p>
       {sent && !open ? (
         <div className="okbox" role="status">
@@ -105,7 +108,7 @@ export default function OwnerRequestsCard({ properties = [] }) {
             <label htmlFor="req-kind">What would you like?</label>
             <select id="req-kind" value={f.kind} onChange={set("kind")}>
               <option value="">Choose…</option>
-              {REQUEST_KINDS.map((k) => (
+              {REQUEST_KINDS.filter((k) => !leasingOnly || LEASING_KINDS.includes(k.value)).map((k) => (
                 <option key={k.value} value={k.value}>
                   {k.label}
                 </option>

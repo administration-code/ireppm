@@ -67,6 +67,10 @@ export default function OwnerHome() {
   }, [user?.id]);
 
   const { loading, properties, letters, error } = state;
+  // my_owned_properties counts managed units only: a property with none is leasing only
+  // (IRep found the tenant; rent goes to the landlord directly).
+  const managed = properties.filter((p) => Number(p.units) > 0);
+  const leasingOnly = properties.length > 0 && managed.length === 0;
   if (loading) return <p className="small">Loading your properties…</p>;
   if (error) return <div className="warnbox">{error}</div>;
 
@@ -102,28 +106,38 @@ export default function OwnerHome() {
         </div>
       </div>
 
-      <GettingStarted role="owner" dismissedAt={state.tourDismissed} />
-
-      <OwnerRentMonthCard />
-      <OwnerArrearsCard />
-      <OwnerImprovementsCard />
+      {leasingOnly ? (
+        <p className="small" style={{ margin: 0 }}>
+          IRep leases your property for you: we find and screen the tenants and prepare the lease. Rent is paid to you directly, so
+          rent tracking and monthly statements aren&apos;t part of this portal. Your invoices and any requests are below.
+        </p>
+      ) : (
+        <>
+          <GettingStarted role="owner" dismissedAt={state.tourDismissed} />
+          <OwnerRentMonthCard />
+          <OwnerArrearsCard />
+          <OwnerImprovementsCard />
+        </>
+      )}
       <OwnerExpensesCard />
       <OwnerInvoicesCard />
-      <OwnerRequestsCard properties={properties} />
+      <OwnerRequestsCard properties={properties} leasingOnly={leasingOnly} />
 
       <section className="boxed stack" aria-labelledby="sec-own-props">
         <h2 id="sec-own-props" className="sec-title">
-          Properties We Manage for You
+          {leasingOnly ? "Properties We Lease for You" : "Properties We Manage for You"}
         </h2>
         <div className="table-scroll">
           <table className="admin-table">
             <thead>
               <tr>
                 <th scope="col">Address</th>
-                <th scope="col" className="r">
-                  Units occupied
-                </th>
-                <th scope="col">Agreement</th>
+                {leasingOnly ? null : (
+                  <th scope="col" className="r">
+                    Units occupied
+                  </th>
+                )}
+                <th scope="col">{leasingOnly ? "Service" : "Agreement"}</th>
               </tr>
             </thead>
             <tbody>
@@ -133,11 +147,11 @@ export default function OwnerHome() {
                     {p.address}
                     <span className="sub-line small">{[p.city, p.postal_code].filter(Boolean).join(" ")}</span>
                   </td>
-                  <td className="r num">
-                    {p.occupied ?? 0} of {p.units ?? 0}
-                  </td>
+                  {leasingOnly ? null : <td className="r num">{Number(p.units) > 0 ? `${p.occupied ?? 0} of ${p.units}` : "—"}</td>}
                   <td>
-                    {!p.agreement_renewal
+                    {Number(p.units) === 0
+                      ? "Leasing only"
+                      : !p.agreement_renewal
                       ? "—"
                       : p.agreement_renewal < new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" })
                         ? "Month to month"
@@ -150,6 +164,8 @@ export default function OwnerHome() {
         </div>
       </section>
 
+      {leasingOnly ? null : (
+        <>
       <section className="boxed stack" aria-labelledby="sec-own-monthly">
         <h2 id="sec-own-monthly" className="sec-title">
           Monthly Rental Summary
@@ -190,6 +206,8 @@ export default function OwnerHome() {
           </ul>
         )}
       </section>
+        </>
+      )}
 
       {state.applicants ? (
         <section className={`boxed stack${state.toReview ? " attention" : ""}`} aria-labelledby="sec-own-apps">
@@ -209,6 +227,8 @@ export default function OwnerHome() {
         </section>
       ) : null}
 
+      {leasingOnly ? null : (
+        <>
       <section className="boxed stack" aria-labelledby="sec-own-year">
         <h2 id="sec-own-year" className="sec-title">
           Year-End Summary
@@ -222,6 +242,8 @@ export default function OwnerHome() {
       </section>
 
       <OwnerFaqCard />
+        </>
+      )}
       <ContactGuideCard audience="owner" />
 
       <EmailPrefs />
