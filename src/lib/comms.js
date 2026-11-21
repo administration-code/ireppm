@@ -28,7 +28,8 @@ export const isAutoReply = (subject) => /^\s*we[’']ve received your message/i.
 export async function matchParty(sb, address) {
   const e = String(address || "").trim().toLowerCase();
   const none = { party_kind: "unmatched", party_email: e || null };
-  if (!e) return none;
+  // Only IRep addresses on it (sent to ourselves, or between staff): nobody to match.
+  if (!e) return { party_kind: "ignored", party_email: null, party_name: "IRep (internal)" };
   const unitOf = async (tenancyId) => {
     const { data } = await sb.from("tenancies").select("id, unit_id, unit:units(property_id, property:properties(owner_id))").eq("id", tenancyId).maybeSingle();
     return data ? { tenancy_id: data.id, unit_id: data.unit_id, property_id: data.unit?.property_id || null } : {};
