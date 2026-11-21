@@ -3,6 +3,8 @@ import { insuranceReminders, leaseEndPrompts } from "@/lib/tenant-notices";
 import { showingReminders } from "@/lib/showings";
 import { ensureAutoReminders, syncOutstanding } from "@/lib/signatures-sync";
 import { oldAddressReminders } from "@/lib/etransfer-reminders";
+import { buildToday } from "@/lib/today";
+import { SITE } from "@/lib/site";
 import { activateMoveIns } from "@/lib/move-ins";
 import { drawDigest } from "@/lib/payprop-draw";
 import { mailer, mailConfigured } from "@/lib/mailer";
@@ -196,6 +198,7 @@ export async function GET(request) {
     ["signatures", syncOutstanding],
     ["autoReminders", ensureAutoReminders],
     ["oldAddressReminders", oldAddressReminders],
+    ["todayEmail", sendTodayEmail],
     ["tenancyChanges", async (db) => {
       const { data, error } = await db.rpc("apply_tenancy_changes");
       if (error) throw new Error(error.message);
@@ -414,4 +417,24 @@ async function deleteExpiredDocuments(sb) {
   }
 
   return summary;
+}
+
+// Weekdays: the start-of-day list to administration@ (about 8 am Toronto in winter, 9 am in summer).
+async function sendTodayEmail(sb) {
+  const day = new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto", weekday: "short" });
+  if (["Sat", "Sun"].includes(day)) return "skipped (weekend)";
+  if (!mailConfigured()) return "skipped (email not set up)";
+  const today = await buildToday(sb);
+  let summary = null;
+  try {
+    const { todaySummary } = await import("@/lib/ai");
+    summary = await todaySummary(sb, today.text);
+  } catch {
+    summary = null;
+  }
+  const text = [summary ? `${summary}\n` : "", today.text, "", "Open: https://ireppm.ca/admin/today"].join("\n").trim();
+  const html = `<pre style="font-family:Menlo,Consolas,monospace;font-size:13px;line-height:1.45;white-space:pre-wrap;color:#161616">${escapeHtml(text)}</pre>`;
+  const { error } = await mailer().emails.send({ from: FROM, to: [SITE.email], subject: today.head, html, text });
+  if (error) throw new Error(error.message);
+  return { sent: true };
 }

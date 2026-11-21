@@ -1275,3 +1275,9 @@ fieldset.boxed:disabled input, fieldset.boxed:disabled select, fieldset.boxed:di
 
 /* Maintenance-only tenancies: IRep handles repairs, the landlord collects rent */
 .pill.maint-only { background: var(--surface-2); color: var(--fg); border: 1px solid var(--line); letter-spacing: 0.04em; text-transform: uppercase; font-size: 0.72rem; }
+
+/* Today page: compact, plain lines */
+.today-sec h2 { font-family: var(--body, inherit); font-size: 0.95rem; font-weight: 700; margin: 6px 0 2px; text-transform: none; }
+.today-sec ul { margin: 0; padding-left: 18px; font-size: 0.9rem; line-height: 1.45; }
+.today-sec li { margin: 0; }
+.today-summary { margin: 0; padding: 10px 12px; background: var(--surface-2); border-left: 3px solid var(--red); font-size: 0.95rem; }

@@ -5,6 +5,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { applicationEmail, landlordEmail, maintenanceEmail, showingEmail } from "@/lib/staff-alerts";
 import { decideBy, respondLink, showingAgents } from "@/lib/showings";
 import { notifyLandlordAndTenants } from "@/lib/maintenance-notify";
+import { DEFAULT_DELIVERER } from "@/lib/lease-defaults";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -95,7 +96,9 @@ export async function POST(request) {
   try {
     // Showing requests go to the property's showing agent(s) (or the default contact) and staff.
     const agents = table === "showing_requests" ? await showingAgents(getSupabaseAdmin(), record.listing_id) : null;
-    const to = agents ? [...new Set([...agents.emails, ...staffRecipients()])] : staffRecipients();
+    // New maintenance requests also go to Chuck (maintenance lead), whoever logged them.
+    const chuck = table === "maintenance_requests" && DEFAULT_DELIVERER.email ? [DEFAULT_DELIVERER.email] : [];
+    const to = agents ? [...new Set([...agents.emails, ...staffRecipients()])] : [...new Set([...staffRecipients(), ...chuck])];
     if (!to.length) throw new Error("STAFF_ALERT_EMAIL is not set");
     if (!mailConfigured()) throw new Error("Email is not set up (GMAIL_USER / GMAIL_APP_PASSWORD)");
 
