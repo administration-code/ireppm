@@ -56,7 +56,7 @@ export const PROPERTY_SELECT = `${PROPERTY_FIELDS}, owner:owners(id, name, entit
 export const UNIT_FIELDS =
   "id, property_id, label, unit_type, beds, baths, market_rent, status, management_type, listing_id, notes";
 export const TENANCY_FIELDS =
-  "id, unit_id, status, start_date, start_date_estimated, end_date, move_out_date, rent, rent_due_day, last_month_deposit, key_deposit, payprop_reference, email_service_consent, application_id, notes, created_at";
+  "id, unit_id, status, start_date, start_date_estimated, end_date, move_out_date, rent, rent_due_day, last_month_deposit, key_deposit, payprop_reference, email_service_consent, application_id, notes, created_at, collects_rent, rent_from";
 
 export const RATE_CATEGORIES = {
   management: "Management",
@@ -225,7 +225,12 @@ export async function createTenancy({ unitId, tenancy, tenants }) {
 export function validateTenancy(f) {
   if (!f.start_date) return "Add the start date.";
   if (f.end_date && f.end_date < f.start_date) return "The end date must be after the start date.";
+  // Maintenance only: the landlord collects rent, so IRep needs no rent details.
+  if (f.maintenance_only) return f.rent ? checkDollars(f.rent, "monthly rent") : "";
   const rent = checkDollars(f.rent, "monthly rent", { required: true });
+  if (rent) return rent;
+  if (!(Number(f.rent) > 0)) return "Add the monthly rent, or tick Maintenance only.";
+  if (f.rent_from && !/^\d{4}-\d{2}$/.test(f.rent_from)) return "Choose the first month IRep collects rent.";
   if (rent) return rent;
   const day = Number(f.rent_due_day);
   if (!Number.isInteger(day) || day < 1 || day > 28) return "Rent due day must be a number from 1 to 28.";
@@ -237,8 +242,11 @@ export function tenancyRow(f) {
     start_date: f.start_date,
     start_date_estimated: Boolean(f.start_date_estimated),
     end_date: f.end_date || null,
-    rent: dollars(f.rent),
-    rent_due_day: Number(f.rent_due_day),
+    rent: f.maintenance_only ? dollarsOrNull(f.rent) || 0 : dollars(f.rent),
+    rent_due_day: Number(f.rent_due_day) || 1,
+    collects_rent: !f.maintenance_only,
+    // When a maintenance-only tenancy starts rent collection, rent is charged from this month on.
+    rent_from: f.maintenance_only ? null : f.rent_from ? `${f.rent_from}-01` : null,
     last_month_deposit: dollarsOrNull(f.last_month_deposit),
     key_deposit: dollarsOrNull(f.key_deposit),
     payprop_reference: orNull(f.payprop_reference),
@@ -259,8 +267,13 @@ export function tenancyForm(t) {
     key_deposit: text(t?.key_deposit),
     payprop_reference: text(t?.payprop_reference),
     notes: text(t?.notes),
+    maintenance_only: t ? t.collects_rent === false : false,
+    rent_from: t?.rent_from ? String(t.rent_from).slice(0, 7) : "",
   };
 }
+
+// Maintenance only: IRep handles repairs but the landlord collects the rent.
+export const isMaintenanceOnly = (t) => t?.collects_rent === false;
 
 export function validateTenant(p) {
   if (!p.full_name.trim()) return "Add the tenant's full name.";

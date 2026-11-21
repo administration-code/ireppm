@@ -217,7 +217,7 @@ function PropertyBlock({ p, invoiceHref }) {
                 t.unit,
                 list(t.tenants).join(", ") || "—",
                 t.end_date ? `${shortDate(t.start_date)} to ${shortDate(t.end_date)}` : `From ${shortDate(t.start_date)}`,
-                money(t.rent),
+                t.collects_rent === false ? "Paid to you (maintenance only)" : money(t.rent),
               ],
             }))}
           />

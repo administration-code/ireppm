@@ -21,7 +21,7 @@ export default function PayerRules() {
     const sb = getBrowserClient();
     const [r, t] = await Promise.all([
       sb.from("payer_rules").select("*").order("created_at", { ascending: false }),
-      loadTenancyOptions({ includePast: false }),
+      loadTenancyOptions({ includePast: false, rentOnly: true }),
     ]);
     setRules(r.data || []);
     setTenancies(t || []);

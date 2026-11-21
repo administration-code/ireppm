@@ -48,7 +48,20 @@ function PaypropLetterLink({ tenancyId, label }) {
   );
 }
 
-export function PayRentCard({ homes = [] }) {
+export function PayRentCard({ homes: all = [] }) {
+  // Maintenance only: the landlord collects the rent, so there's nothing to pay IRep.
+  const homes = all.filter((h) => h.collects_rent !== false);
+  if (!homes.length) {
+    return (
+      <div className="stack" style={{ gap: 8 }}>
+        <h3>Paying Rent</h3>
+        <p className="small" style={{ margin: 0 }}>
+          Your rent is paid to your landlord directly, as arranged with them. IRep looks after repairs: use Report a problem above for anything
+          that needs fixing.
+        </p>
+      </div>
+    );
+  }
   return (
     <div className="stack" style={{ gap: 8 }}>
       <h3>Paying Rent</h3>

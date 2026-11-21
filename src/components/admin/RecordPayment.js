@@ -47,7 +47,7 @@ export default function RecordPayment({ tenancyId = "" }) {
 
   useEffect(() => {
     let alive = true;
-    Promise.all([loadTenancyOptions(), countUnmatched()]).then(
+    Promise.all([loadTenancyOptions({ rentOnly: true }), countUnmatched()]).then(
       ([list, count]) => {
         if (!alive) return;
         setTenancies(list);

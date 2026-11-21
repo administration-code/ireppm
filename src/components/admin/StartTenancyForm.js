@@ -108,7 +108,7 @@ export default function StartTenancyForm({ unit, onCreated, onCancel }) {
       validateTenancy(form) ||
       (filled.length ? filled.map(validateTenant).find(Boolean) : "Add at least one tenant.");
     if (problem) return setError(problem);
-    if (fl.on) {
+    if (fl.on && !form.maintenance_only) {
       if (!flShown.date) return setError("Add the date first and last was received.");
       const bad = ["first", "last", "key"].map((k) => (flShown[k] ? checkAmount(flShown[k]) : "")).find(Boolean);
       if (bad) return setError(bad);
@@ -123,7 +123,7 @@ export default function StartTenancyForm({ unit, onCreated, onCancel }) {
         tenants: filled.map((p, i) => ({ ...tenantRow(p), ...(p.id ? { id: p.id } : {}), is_primary: i === 0 })),
       });
       // Link the lease, so when it's signed DocuSign doesn't make a second tenancy.
-      if (fl.on && created?.id) {
+      if (fl.on && !form.maintenance_only && created?.id) {
         try {
           await recordFirstAndLast({
             tenancyId: created.id, date: flShown.date, method: flShown.method, firstAmount: flShown.first, firstPeriod: flShown.firstMonth,
@@ -212,6 +212,7 @@ export default function StartTenancyForm({ unit, onCreated, onCancel }) {
         </div>
       </div>
 
+      {form.maintenance_only ? null : (
       <div className="stack" style={{ gap: 10 }}>
         <label className="check-line">
           <input type="checkbox" checked={fl.on} onChange={(e) => setFl((x) => ({ ...x, on: e.target.checked }))} />
@@ -263,6 +264,7 @@ export default function StartTenancyForm({ unit, onCreated, onCancel }) {
           </div>
         ) : null}
       </div>
+      )}
 
       {error ? (
         <div className="warnbox" role="alert">

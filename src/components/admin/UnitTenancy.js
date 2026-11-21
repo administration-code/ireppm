@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { getBrowserClient } from "@/lib/supabase";
 import { money } from "@/lib/format";
-import { TENANCY_FIELDS, TENANT_FIELDS, UNIT_FIELDS, UNIT_STATUS, bedsBaths, currentTenancy, prettyDate, sortTenants, unitPill } from "@/lib/admin-properties";
+import { TENANCY_FIELDS, TENANT_FIELDS, UNIT_FIELDS, UNIT_STATUS, bedsBaths, currentTenancy, isMaintenanceOnly, prettyDate, sortTenants, unitPill } from "@/lib/admin-properties";
 import CurrentTenancy from "./CurrentTenancy";
 import RentLedger from "./RentLedger";
 import RecordSignatures from "./signatures/RecordSignatures";
@@ -14,7 +14,7 @@ function PastLedger({ tenancy }) {
   const [open, setOpen] = useState(false);
   return open ? (
     <div className="stack" style={{ marginTop: 12 }}>
-      <RentLedger tenancy={tenancy} />
+      {isMaintenanceOnly(tenancy) ? null : <RentLedger tenancy={tenancy} />}
       <NoticesPanel tenancyId={tenancy.id} />
       <InspectionsList unitId={tenancy.unit_id} tenancyId={tenancy.id} title="Inspections for This Tenancy" />
     </div>
@@ -99,7 +99,10 @@ export default function UnitTenancy({ id }) {
                 .join(" · ")}
             </p>
           </div>
-          {(() => { const p = unitPill(unit, current); return <span className={`pill ${p.cls}`}>{p.text}</span>; })()}
+          <span className="req-actions" style={{ gap: 6 }}>
+            {isMaintenanceOnly(current) ? <span className="pill maint-only">Maintenance Only</span> : null}
+            {(() => { const p = unitPill(unit, current); return <span className={`pill ${p.cls}`}>{p.text}</span>; })()}
+          </span>
         </div>
       </div>
 
@@ -110,7 +113,18 @@ export default function UnitTenancy({ id }) {
       {current ? (
         <>
           <CurrentTenancy key={`${current.id}-${current.status}`} tenancy={current} onChanged={reload} />
-          <RentLedger tenancy={current} />
+          {isMaintenanceOnly(current) ? (
+            <section className="boxed stack" aria-label="Rent">
+              <h2 className="sec-title">Rent Ledger</h2>
+              <p className="small" style={{ margin: 0 }}>
+                Rent not collected by IRep. The landlord collects the rent for this tenancy, so there are no rent charges, arrears or PayProp
+                payments here. Repairs and work orders still go on the landlord&apos;s statement. Use Start Collecting Rent above if IRep takes over
+                rent collection.
+              </p>
+            </section>
+          ) : (
+            <RentLedger tenancy={current} />
+          )}
           <NoticesPanel tenancyId={current.id} />
           <RecordSignatures type="tenancy" id={current.id} />
         </>
@@ -126,7 +140,10 @@ export default function UnitTenancy({ id }) {
       ) : (
         <div className="empty">
           <h2>No Current Tenancy</h2>
-          <p>Start a tenancy when a renter signs the lease. You&apos;ll add the dates, rent and at least one tenant.</p>
+          <p>
+            Start a tenancy when a renter signs the lease. You&apos;ll add the dates, rent and at least one tenant. If the landlord collects the
+            rent and IRep only handles repairs, tick Maintenance only.
+          </p>
           <div className="req-actions" style={{ justifyContent: "center" }}>
             <button type="button" className="btn primary" onClick={() => setStarting(true)}>
               Start tenancy
@@ -154,7 +171,10 @@ export default function UnitTenancy({ id }) {
               <li key={t.id} id={`tenancy-${t.id}`} className="req">
                 <div className="req-top">
                   <b>{sortTenants(t.tenancy_tenants || []).map((p) => p.full_name).join(", ") || "No tenants recorded"}</b>
-                  <span className="pill ts-ended">Ended</span>
+                  <span className="req-actions" style={{ gap: 6 }}>
+                    {isMaintenanceOnly(t) ? <span className="pill maint-only">Maintenance Only</span> : null}
+                    <span className="pill ts-ended">Ended</span>
+                  </span>
                 </div>
                 <dl className="req-facts">
                   <div>
@@ -165,7 +185,7 @@ export default function UnitTenancy({ id }) {
                   </div>
                   <div>
                     <dt>Rent</dt>
-                    <dd className="num">{money(t.rent)} / month</dd>
+                    <dd className="num">{isMaintenanceOnly(t) ? "Not collected by IRep" : `${money(t.rent)} / month`}</dd>
                   </div>
                   {t.payprop_reference ? (
                     <div>

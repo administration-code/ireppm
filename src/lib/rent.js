@@ -33,7 +33,7 @@ export const MANUAL_CHARGE_KINDS = ["opening_balance", "chargeback", "fee", "oth
 export const CURRENT_STATUSES = ["upcoming", "active", "notice"];
 
 export const RENT_TENANCY_SELECT =
-  "id, status, rent, start_date, move_out_date, payprop_reference, last_month_deposit, key_deposit, unit:units(id, label, property:properties(id, address, city)), tenancy_tenants(full_name, email, phone, is_primary, created_at)";
+  "id, status, rent, start_date, move_out_date, collects_rent, payprop_reference, last_month_deposit, key_deposit, unit:units(id, label, property:properties(id, address, city)), tenancy_tenants(full_name, email, phone, is_primary, created_at)";
 
 export function todayISO() {
   return new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" });
@@ -96,9 +96,11 @@ export function checkAmount(value, label = "amount", { allowNegative = false } =
 }
 
 // Staff list of tenancies to match payments against. Current ones first, then past ones.
-export async function loadTenancyOptions({ includePast = true } = {}) {
+// rentOnly leaves out maintenance-only tenancies (the landlord collects their rent).
+export async function loadTenancyOptions({ includePast = true, rentOnly = false } = {}) {
   let q = getBrowserClient().from("tenancies").select(RENT_TENANCY_SELECT);
   if (!includePast) q = q.in("status", CURRENT_STATUSES);
+  if (rentOnly) q = q.eq("collects_rent", true);
   const { data, error } = await q;
   if (error) throw new Error("We couldn't load tenancies. Refresh the page to try again.");
   return (data || []).sort(

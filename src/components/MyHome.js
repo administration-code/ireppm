@@ -32,7 +32,7 @@ export default function MyHome({ user }) {
   const load = useCallback(async () => {
     const sb = getBrowserClient();
     const [h, r] = await Promise.all([
-      sb.from("my_homes").select("tenancy_id, unit_id, unit_label, address, city, postal_code, status, start_date, end_date, insurance_due, renewal_choice"),
+      sb.from("my_homes").select("tenancy_id, unit_id, unit_label, address, city, postal_code, status, start_date, end_date, insurance_due, renewal_choice, collects_rent"),
       sb.from("my_maintenance").select(MY_FIELDS).order("created_at", { ascending: false }),
     ]);
     const { data: prof } = await sb.from("profiles").select("tour_dismissed_at").eq("id", user.id).maybeSingle();

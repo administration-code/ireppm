@@ -1272,3 +1272,6 @@ a[href^="tel:"] { white-space: nowrap; }
 .pill.inv-void { background: var(--surface-2); color: var(--muted); text-decoration: line-through; }
 .invoice-edit input, .invoice-edit select { width: 100%; }
 fieldset.boxed:disabled input, fieldset.boxed:disabled select, fieldset.boxed:disabled textarea { background: transparent; color: var(--fg); opacity: 1; }
+
+/* Maintenance-only tenancies: IRep handles repairs, the landlord collects rent */
+.pill.maint-only { background: var(--surface-2); color: var(--fg); border: 1px solid var(--line); letter-spacing: 0.04em; text-transform: uppercase; font-size: 0.72rem; }

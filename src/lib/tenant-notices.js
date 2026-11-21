@@ -17,7 +17,7 @@ const money = (n) => `$${Number(n || 0).toLocaleString("en-CA", { minimumFractio
 const today = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" });
 
 const TENANCY_SELECT =
-  "id, status, start_date, end_date, rent, rent_due_day, insurance_due, insurance_reminded_at, insurance_overdue_alerted_at, renewal_choice, renewal_prompted_at, renewal_reminded_at, unit:units(label, property:properties(address, city, owner:owners(name, email))), tenancy_tenants(full_name, email)";
+  "id, status, start_date, end_date, rent, rent_due_day, collects_rent, insurance_due, insurance_reminded_at, insurance_overdue_alerted_at, renewal_choice, renewal_prompted_at, renewal_reminded_at, unit:units(label, property:properties(address, city, owner:owners(name, email))), tenancy_tenants(full_name, email)";
 
 const placeOf = (t) => [t.unit?.property?.address, t.unit?.label].filter(Boolean).join(", ");
 const tenantEmails = (t) => (t.tenancy_tenants || []).map((p) => p.email).filter(Boolean);
@@ -48,11 +48,17 @@ export async function sendWelcome(sb, tenancyId, { remindStaff = true } = {}) {
     subject: `Welcome to ${placeOf(t)}`,
     lines: [
       `Hi ${firstNames(t)},`,
-      `Welcome home! Your lease for ${placeOf(t)} is signed. We're IRep Property Management, and we look after the property for your landlord. Here's what to know before you move in on ${longDay(t.start_date)}.`,
-      `Rent: ${money(t.rent)} a month, due on day ${t.rent_due_day || 1} of each month.`,
-      attachments ? "Your PayProp welcome letter is attached: follow it to set up your rent payments. It's also saved in your account." : "",
-      `How to pay: ${PAYMENT_INFO.preferred} is our preferred way.\n• ${PAYMENT_INFO.preferredSteps.join("\n• ")}\nIf you can't use PayProp, ask us and we'll set you up for ${PAYMENT_INFO.fallback.replace(", on request", "")}.`,
-      `Monthly draw: ${PAYMENT_INFO.draw}`,
+      t.collects_rent === false
+        ? `We're IRep Property Management, and we look after repairs and maintenance at ${placeOf(t)} for your landlord. Here's what to know.`
+        : `Welcome home! Your lease for ${placeOf(t)} is signed. We're IRep Property Management, and we look after the property for your landlord. Here's what to know before you move in on ${longDay(t.start_date)}.`,
+      ...(t.collects_rent === false
+        ? ["Rent: keep paying your rent to your landlord as you do now. IRep looks after repairs and maintenance for your home."]
+        : [
+            `Rent: ${money(t.rent)} a month, due on day ${t.rent_due_day || 1} of each month.`,
+            attachments ? "Your PayProp welcome letter is attached: follow it to set up your rent payments. It's also saved in your account." : "",
+            `How to pay: ${PAYMENT_INFO.preferred} is our preferred way.\n• ${PAYMENT_INFO.preferredSteps.join("\n• ")}\nIf you can't use PayProp, ask us and we'll set you up for ${PAYMENT_INFO.fallback.replace(", on request", "")}.`,
+            `Monthly draw: ${PAYMENT_INFO.draw}`,
+          ]),
       `Tenant insurance: please upload proof of your tenant insurance by ${longDay(due)} (within a week of moving in). You can upload it in your account.`,
       `Repairs: report anything that needs fixing from your account, with photos. For emergencies (flooding, no heat in winter, no power, a sewer backup), call ${SITE.emergency.name} right away at ${SITE.emergency.phone}. If you smell gas, there's a fire or anyone is in danger, call 911 first.`,
       `Your account: sign in with this email address to see your home, report problems and keep your documents in one place.`,
@@ -63,7 +69,7 @@ export async function sendWelcome(sb, tenancyId, { remindStaff = true } = {}) {
   });
   if (attachments && r.sent) await sb.from("tenancies").update({ payprop_letter_sent_at: new Date().toISOString() }).eq("id", t.id);
   // PayProp's welcome letter needs the tenant set up there first: remind staff (unless it's already attached).
-  if (!attachments && remindStaff) await sendMail({
+  if (!attachments && remindStaff && t.collects_rent !== false) await sendMail({
     to: staffEmails(),
     subject: `Set up in PayProp: ${placeOf(t)}`,
     lines: [

@@ -28,6 +28,13 @@ export default function SignaturesList() {
   const [reminded, setReminded] = useState({});
   const [openError, setOpenError] = useState("");
   const [sort, setSort] = useState({ key: "created", dir: "desc" });
+  // Rows ticked for a bulk reminder (out for signature only).
+  const [picked, setPicked] = useState(() => new Set());
+  const [bulk, setBulk] = useState("");
+  useEffect(() => {
+    setPicked(new Set());
+    setBulk("");
+  }, [filter]);
   useEffect(() => {
     const ok = {
       status: ["awaiting", "closed"].includes(filter),
@@ -63,10 +70,38 @@ export default function SignaturesList() {
       const res = await docusignApi(`/requests/${r.id}`, { body: { action: "remind" } });
       setBusy((b) => ({ ...b, [r.id]: res?.error ? `Couldn't resend: ${res.error}` : "Resent" }));
       if (!res?.error) setReminded((m) => ({ ...m, [r.id]: res?.reminded_at || new Date().toISOString() }));
+      return !res?.error;
     } catch (err) {
       setBusy((b) => ({ ...b, [r.id]: `Couldn't resend: ${err.message}` }));
+      return false;
     }
   };
+
+  // Sends reminders one after another (DocuSign rate-limits bursts) and reports how many went out.
+  const remindPicked = async () => {
+    const list = (rows || []).filter((r) => picked.has(r.id) && ["sent", "delivered"].includes(r.status));
+    if (!list.length) return;
+    if (!window.confirm(`Send a DocuSign reminder for ${list.length} ${list.length === 1 ? "document" : "documents"}? Everyone who hasn't signed yet gets the email again.`)) return;
+    let ok = 0;
+    for (const [i, r] of list.entries()) {
+      setBulk(`Sending ${i + 1} of ${list.length}…`);
+      if (await resend(r)) ok += 1;
+    }
+    setPicked(new Set());
+    setBulk(
+      ok === list.length
+        ? `Reminders sent for ${ok} ${ok === 1 ? "document" : "documents"}.`
+        : `Reminders sent for ${ok} of ${list.length}. The rows marked "Couldn't resend" didn't go.`
+    );
+  };
+  const remindable = (r) => ["sent", "delivered"].includes(r.status) && Boolean(r.envelope_id);
+  const togglePick = (id) =>
+    setPicked((s0) => {
+      const s1 = new Set(s0);
+      if (s1.has(id)) s1.delete(id);
+      else s1.add(id);
+      return s1;
+    });
 
   const openDocusign = async (r) => {
     setOpenError("");
@@ -292,6 +327,26 @@ export default function SignaturesList() {
       {error ? <div className="warnbox">{error}</div> : null}
       {syncNote ? <p className="small" role="status">{syncNote}</p> : null}
       {openError ? <div className="warnbox" role="alert">{openError}</div> : null}
+      {(rows || []).some(remindable) ? (
+        <div className="req-actions" style={{ alignItems: "center" }}>
+          <button type="button" className="btn primary sm" onClick={remindPicked} disabled={!picked.size || bulk.startsWith("Sending")}>
+            {picked.size ? `Send ${picked.size} ${picked.size === 1 ? "Reminder" : "Reminders"}` : "Send Reminders"}
+          </button>
+          <button
+            type="button"
+            className="link-btn small"
+            onClick={() => setPicked(new Set((sorted || []).filter(remindable).map((r) => r.id)))}
+          >
+            Select all out for signature
+          </button>
+          {picked.size ? (
+            <button type="button" className="link-btn small" onClick={() => setPicked(new Set())}>
+              Clear
+            </button>
+          ) : null}
+          {bulk ? <span className="small" role="status">{bulk}</span> : <span className="small">Tick the documents to remind, then send them all at once.</span>}
+        </div>
+      ) : null}
       {rows === null ? (
         <p className="small">Loading…</p>
       ) : rows.length === 0 ? (
@@ -303,6 +358,9 @@ export default function SignaturesList() {
           <table className="admin-table">
             <thead>
               <tr>
+                <th scope="col" style={{ width: 28 }}>
+                  <span className="visually-hidden">Select for reminder</span>
+                </th>
                 <Th k="title">Title</Th>
                 <Th k="kind">Kind</Th>
                 <Th k="out">Out to</Th>
@@ -318,6 +376,16 @@ export default function SignaturesList() {
             <tbody>
               {sorted.map((r) => (
                 <tr key={r.id}>
+                  <td>
+                    {remindable(r) ? (
+                      <input
+                        type="checkbox"
+                        checked={picked.has(r.id)}
+                        onChange={() => togglePick(r.id)}
+                        aria-label={`Select ${r.title} for a reminder`}
+                      />
+                    ) : null}
+                  </td>
                   <td>
                     <Link className="addr" href={`/admin/signatures/${r.id}`}>
                       {r.title}

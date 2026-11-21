@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { getBrowserClient } from "@/lib/supabase";
 import { money } from "@/lib/format";
-import { ONE_CURRENT_MESSAGE, TENANCY_STATUS, prettyDate, tenancyForm, tenancyRow, todayISO, validateTenancy } from "@/lib/admin-properties";
+import { ONE_CURRENT_MESSAGE, TENANCY_STATUS, isMaintenanceOnly, prettyDate, tenancyForm, tenancyRow, todayISO, validateTenancy } from "@/lib/admin-properties";
 import TenancyFields from "./TenancyFields";
 import TenantsEditor from "./TenantsEditor";
 import PaypropLetter from "./PaypropLetter";
@@ -50,9 +50,17 @@ export default function CurrentTenancy({ tenancy, onChanged }) {
     // An upcoming tenancy whose start date is now today or earlier starts right away.
     const row = tenancyRow(form);
     const startsNow = tenancy.status === "upcoming" && row.start_date && row.start_date <= todayISO();
-    const rentChanged = row.rent != null && Math.round(Number(row.rent) * 100) !== Math.round(Number(tenancy.rent) * 100);
+    const rentChanged =
+      row.collects_rent && row.rent != null && Math.round(Number(row.rent) * 100) !== Math.round(Number(tenancy.rent) * 100);
+    const converting = isMaintenanceOnly(tenancy) && row.collects_rent;
+    if (!isMaintenanceOnly(tenancy) && !row.collects_rent &&
+        !window.confirm("Make this tenancy maintenance only? IRep stops charging rent for months not yet charged. Rent already charged stays on the ledger.")) return;
     return run(async () => {
       await updateTenancy(tenancy.id, startsNow ? { ...row, status: "active" } : row);
+      // Starting rent collection: charge this month now if it's the first month (later months open as usual).
+      if (converting && row.rent_from && row.rent_from <= `${todayISO().slice(0, 7)}-01`) {
+        await getBrowserClient().rpc("generate_rent_charges", { p_month: `${todayISO().slice(0, 7)}-01` });
+      }
       // A new rent applies from this month on: update the rent already charged for this month and later.
       if (rentChanged) {
         const { error: chErr } = await getBrowserClient()
@@ -104,12 +112,15 @@ export default function CurrentTenancy({ tenancy, onChanged }) {
         <h2 id="sec-current" className="sec-title">
           Current Tenancy
         </h2>
-        <span className={`pill ts-${tenancy.status}`}>{TENANCY_STATUS[tenancy.status]}</span>
+        <span className="req-actions" style={{ gap: 6 }}>
+          {isMaintenanceOnly(tenancy) ? <span className="pill maint-only">Maintenance Only</span> : null}
+          <span className={`pill ts-${tenancy.status}`}>{TENANCY_STATUS[tenancy.status]}</span>
+        </span>
       </div>
 
       {mode === "edit" ? (
         <form className="stack" onSubmit={saveDetails} noValidate aria-label="Edit tenancy details">
-          <TenancyFields form={form} setForm={setForm} idPrefix="edit" />
+          <TenancyFields form={form} setForm={setForm} idPrefix="edit" wasMaintenanceOnly={isMaintenanceOnly(tenancy)} />
           <div className="req-actions">
             <button type="submit" className="btn primary sm" disabled={busy}>
               {busy ? "Saving…" : "Save details"}
@@ -139,10 +150,18 @@ export default function CurrentTenancy({ tenancy, onChanged }) {
                 <dd>{prettyDate(tenancy.move_out_date)}</dd>
               </div>
             ) : null}
+            {isMaintenanceOnly(tenancy) ? (
+              <div>
+                <dt>Rent</dt>
+                <dd>Not collected by IRep (the landlord collects it)</dd>
+              </div>
+            ) : (
+              <>
             <div>
               <dt>Rent</dt>
               <dd className="num">
                 {money(tenancy.rent)} / month, due on day {tenancy.rent_due_day}
+                {tenancy.rent_from ? <span className="sub-line small">Collected by IRep from {prettyDate(tenancy.rent_from)}</span> : null}
               </dd>
             </div>
             <div>
@@ -157,6 +176,8 @@ export default function CurrentTenancy({ tenancy, onChanged }) {
               <dt>PayProp reference</dt>
               <dd>{tenancy.payprop_reference || "Not set"}</dd>
             </div>
+              </>
+            )}
             <div>
               <dt>Email service consent</dt>
               <dd>{tenancy.email_service_consent || "Not recorded"}</dd>
@@ -167,7 +188,7 @@ export default function CurrentTenancy({ tenancy, onChanged }) {
       )}
 
       <TenantsEditor tenancyId={tenancy.id} tenants={tenancy.tenancy_tenants || []} onChanged={onChanged} />
-      <PaypropLetter tenancyId={tenancy.id} />
+      {isMaintenanceOnly(tenancy) ? null : <PaypropLetter tenancyId={tenancy.id} />}
 
       {mode === "notice" ? (
         <form className="confirm-box stack" onSubmit={recordNotice} noValidate aria-label="Record notice">
@@ -238,6 +259,23 @@ export default function CurrentTenancy({ tenancy, onChanged }) {
           <button type="button" className="btn ghost sm" onClick={() => open("edit")}>
             Edit details
           </button>
+          {isMaintenanceOnly(tenancy) ? (
+            <button
+              type="button"
+              className="btn ghost sm"
+              onClick={() => {
+                open("edit");
+                setForm((f) => ({
+                  ...f,
+                  maintenance_only: false,
+                  rent_from: f.rent_from || todayISO().slice(0, 7),
+                  rent: f.rent && Number(f.rent) > 0 ? f.rent : "",
+                }));
+              }}
+            >
+              Start Collecting Rent
+            </button>
+          ) : null}
           {tenancy.status === "upcoming" ? (
             <>
               <button type="button" className="btn primary sm" onClick={markMovedIn} disabled={busy}>

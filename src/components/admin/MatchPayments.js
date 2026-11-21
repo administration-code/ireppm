@@ -32,7 +32,7 @@ async function loadToMatch() {
       .eq("status", "unmatched")
       .order("received_on", { ascending: false })
       .order("created_at", { ascending: false }),
-    loadTenancyOptions(),
+    loadTenancyOptions({ rentOnly: true }),
   ]);
   if (payments.error) throw new Error("load failed");
   return { payments: payments.data || [], tenancies };

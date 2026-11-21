@@ -314,6 +314,9 @@ async function completedAlert(row, result) {
     );
   } else if (["N1", "N4", "N5"].includes(row.kind)) {
     lines.push("It's ready to serve. Open it to record how and when it was served.");
+    const { notifyNoticeReady } = await import("@/lib/serve-notice-alert");
+    const r = await notifyNoticeReady(row.id);
+    lines.push(r.sent ? `${r.to} (Chuck) has been emailed the signed ${row.kind} to serve.` : `Chuck could not be emailed. Send him the signed ${row.kind} to serve.`);
   } else if (row.terms?.type === "consent") {
     lines.push(result?.consent ? "The tenant agreed to email service." : "The tenant did not agree to email service.");
   }

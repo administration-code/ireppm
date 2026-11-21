@@ -12,7 +12,7 @@ async function loadBatch(month) {
   const period = `${month}-01`;
   await sb.rpc("generate_rent_charges", { p_month: period });
   const [tenancies, existing, unmatched] = await Promise.all([
-    loadTenancyOptions({ includePast: false }),
+    loadTenancyOptions({ includePast: false, rentOnly: true }),
     sb.from("payments").select("tenancy_id, amount").eq("method", "payprop").eq("period", period).eq("status", "matched"),
     countUnmatched(),
   ]);

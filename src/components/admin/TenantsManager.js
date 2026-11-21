@@ -13,7 +13,7 @@ import { useLiveRefresh } from "@/lib/useLiveRefresh";
 // Every tenant in one place: edit details, move between tenancies, unassign (kept on file,
 // migration 0047), and send the portal invitation, move-in welcome email or PayProp letter.
 const SELECT =
-  "id, full_name, email, phone, is_primary, profile_id, portal_invited_at, created_at, tenancy_id, tenancy:tenancies(id, status, start_date, end_date, renewal_choice, renewal_prompted_at, rent, payprop_letter_path, unit:units(id, label, property:properties(id, address, city)))";
+  "id, full_name, email, phone, is_primary, profile_id, portal_invited_at, created_at, tenancy_id, tenancy:tenancies(id, status, start_date, end_date, renewal_choice, renewal_prompted_at, rent, collects_rent, payprop_letter_path, unit:units(id, label, property:properties(id, address, city)))";
 
 const FILTERS = [
   { key: "current", label: "Current", test: (p) => p.tenancy && ["active", "notice"].includes(p.tenancy.status) },
@@ -246,6 +246,7 @@ export default function TenantsManager() {
                           {tenancyAddress(p.tenancy)}
                           <span className="sub-line">
                             <span className={`pill ts-${p.tenancy.status}`}>{TENANCY_STATUS[p.tenancy.status] || p.tenancy.status}</span>
+                            {p.tenancy.collects_rent === false ? <span className="pill maint-only" style={{ marginLeft: 6 }}>Maintenance Only</span> : null}
                           </span>
                         </>
                       ) : (
