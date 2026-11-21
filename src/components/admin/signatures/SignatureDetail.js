@@ -23,7 +23,7 @@ async function load(id) {
     sb.from("signature_events").select("id, event, recipient_email, occurred_at").eq("signature_request_id", id).order("occurred_at", { ascending: false }),
     row.tenancy_id ? sb.from("tenancies").select(TENANCY_SELECT).eq("id", row.tenancy_id).maybeSingle() : { data: null },
     row.notice_id ? sb.from("notices").select("*").eq("id", row.notice_id).maybeSingle() : { data: null },
-    sb.from("signature_requests").select("id, title, status").eq("related_request_id", id).order("created_at", { ascending: false }),
+    sb.from("signature_requests").select("id, title, status, terms").eq("related_request_id", id).order("created_at", { ascending: false }),
     row.related_request_id ? sb.from("signature_requests").select("id, title").eq("id", row.related_request_id).maybeSingle() : { data: null },
   ]);
   return { row, events: events.data || [], tenancy: tenancy.data, notice: notice.data, certs: certs.data || [], parent: parent.data, error: "" };

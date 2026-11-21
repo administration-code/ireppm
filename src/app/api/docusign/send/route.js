@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { addTabsByRole, createEnvelope, lockRoleTabs, removeEmptyRecipients, resolveTemplates, sendDraftEnvelope, senderViewUrl } from "@/lib/docusign";
 import { staffUser } from "@/lib/signatures-server";
+import { DEFAULT_DELIVERER } from "@/lib/lease-defaults";
+import { SITE } from "@/lib/site";
 import { fillLeaseSchedule, pmLeaseRows } from "@/lib/pm-lease-schedule";
 import {
   KIND_TEMPLATES,
@@ -159,7 +161,8 @@ export async function POST(request) {
     const env = await createEnvelope({ ...built.definition, emailSubject, status: "created" });
     await removeEmptyRecipients(env.envelopeId);
     // The landlord only signs these: every field on their side was filled by IRep, so lock it all.
-    if (["lease", "consent", "N1", "N4", "N5", "certificate_of_service"].includes(kind)) {
+    // Leasing-only leases: the landlord fills in their own notice address, so their fields stay editable.
+    if (["lease", "consent", "N1", "N4", "N5", "certificate_of_service"].includes(kind) && !(kind === "lease" && f.leasing_only)) {
       await lockRoleTabs(env.envelopeId, /^(Landlord|Delivery By)$/).catch(() => 0);
     }
     // Management contracts: initials, boxes, phones and the contract's details (dates, addresses, fees)
@@ -182,17 +185,102 @@ export async function POST(request) {
       })
       .eq("id", row.id);
 
+    // N4, N5: draft the Certificate of Service for Chuck at the same time (left as a draft for staff).
+    let certificate = null;
+    if (["N4", "N5"].includes(kind)) certificate = await draftCertificate(sb, kind, f, row.id, title, staff.id);
+
     let url = null;
     if (mode === "review") {
       const origin = new URL(request.url).origin;
       url = await senderViewUrl(env.envelopeId, `${origin}/admin/signatures/${row.id}`);
     }
-    return NextResponse.json({ id: row.id, url });
+    return NextResponse.json({ id: row.id, url, certificate });
   } catch (err) {
     await sb
       .from("signature_requests")
       .update({ status: "error", error: err.message, status_changed_at: new Date().toISOString() })
       .eq("id", row.id);
     return NextResponse.json({ id: row.id, error: err.message, consentRequired: err.consentRequired }, { status: 502 });
+  }
+}
+
+// The Certificate of Service for a notice Chuck will serve, prepared with the notice: the unit's
+// address and the tenants filled in, date served and method left blank for Chuck, signed as the
+// landlord's representative, his phone number. Never sent from here. Returns its id, or null.
+async function draftCertificate(sb, kind, f, noticeId, noticeTitle, staffId) {
+  let row = null;
+  try {
+    const ids = await resolveTemplates(["certificate_of_service"]);
+    if (!ids.certificate_of_service) throw new Error("DocuSign template not found: certificate_of_service.");
+    let tenancy = null;
+    if (f.tenancy_id) {
+      const { data } = await sb
+        .from("tenancies")
+        .select("id, unit:units(id, label, property:properties(id, address, city, postal_code)), tenancy_tenants(full_name, is_primary, created_at)")
+        .eq("id", f.tenancy_id)
+        .maybeSingle();
+      tenancy = data;
+    }
+    const property = tenancy?.unit?.property;
+    const tenants = (tenancy?.tenancy_tenants || [])
+      .slice()
+      .sort((a, b) => Number(b.is_primary) - Number(a.is_primary))
+      .map((t) => t.full_name)
+      .filter(Boolean);
+    const cf = {
+      related_request_id: noticeId,
+      tenancy_id: f.tenancy_id || null,
+      unit_id: f.unit_id || tenancy?.unit?.id || null,
+      property_id: f.property_id || property?.id || null,
+      owner_id: f.owner_id || null,
+      notice_form: kind,
+      street_address: property?.address || [f.street_number, f.street_name].filter(Boolean).join(" "),
+      unit_label: tenancy?.unit?.label || f.unit_label || "",
+      city: property?.city || f.city || "",
+      postal_code: property?.postal_code || f.postal_code || "",
+      served_to: tenants.length ? tenants : String(f.tenant_names || "").split(/,\s*|\s+and\s+/).filter(Boolean),
+      deliverer_name: DEFAULT_DELIVERER.name,
+      deliverer_email: DEFAULT_DELIVERER.email,
+      deliverer_phone: SITE.emergency.phone,
+      served_by_name: DEFAULT_DELIVERER.name,
+      blank_service: true,
+    };
+    const built = buildCertificate(cf, ids);
+    const place = noticeTitle.replace(/^[^:]*:\s*/, "");
+    const title = `Certificate of Service (${kind}): ${place}`;
+    const { data: inserted, error } = await sb
+      .from("signature_requests")
+      .insert({
+        kind: "certificate_of_service",
+        title,
+        template_id: ids.certificate_of_service,
+        status: "draft",
+        tenancy_id: cf.tenancy_id,
+        unit_id: cf.unit_id,
+        property_id: cf.property_id,
+        owner_id: cf.owner_id,
+        related_request_id: noticeId,
+        recipients: built.recipients,
+        prefill: built.prefill,
+        terms: built.terms,
+        email_subject: `Please complete and sign: ${title}`.slice(0, 100),
+        sent_by: staffId,
+      })
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+    row = inserted;
+    // Chuck fills in the date served and the method, so his fields stay editable (not locked).
+    const env = await createEnvelope({ ...built.definition, emailSubject: `Please complete and sign: ${title}`.slice(0, 100), status: "created" });
+    await removeEmptyRecipients(env.envelopeId);
+    await sb
+      .from("signature_requests")
+      .update({ envelope_id: env.envelopeId, status: "draft", status_changed_at: new Date().toISOString(), error: null })
+      .eq("id", row.id);
+    return row.id;
+  } catch (err) {
+    console.error("[docusign] certificate draft failed:", err?.message || err);
+    if (row?.id) await sb.from("signature_requests").update({ status: "error", error: err.message }).eq("id", row.id);
+    return null;
   }
 }

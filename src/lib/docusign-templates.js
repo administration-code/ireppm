@@ -517,15 +517,23 @@ export function buildLease(f, ids, owner) {
     City: f.city,
     "Postal Code": f.postal_code,
     Parking: f.parking,
-    "Notice Unit": LEASE_DEFAULTS.noticeAddress.unit,
-    "Notice Street Number": LEASE_DEFAULTS.noticeAddress.streetNumber,
-    "Notice Street Name": LEASE_DEFAULTS.noticeAddress.streetName,
-    "Notice PO Box": LEASE_DEFAULTS.noticeAddress.poBox,
-    "Notice City": LEASE_DEFAULTS.noticeAddress.city,
-    "Notice Province": LEASE_DEFAULTS.noticeAddress.province,
-    "Notice Postal Code": LEASE_DEFAULTS.noticeAddress.postalCode,
-    "Notice Emails": `Landlord's Representative: ${LEASE_DEFAULTS.landlordEmail}; Tenant(s): ${tenants.map((t) => t.email).filter(Boolean).join(", ")}`,
-    "Emergency Contact": LEASE_DEFAULTS.emergencyContact,
+    // Leasing only: the landlord's own notice address (left for them to fill in), email and contact.
+    ...(f.leasing_only
+      ? {
+          "Notice Emails": `Landlord: ${str(owner?.email)}; Tenant(s): ${tenants.map((t) => t.email).filter(Boolean).join(", ")}`,
+          "Emergency Contact": [landlordName, str(owner?.phone)].filter(Boolean).join(": "),
+        }
+      : {
+          "Notice Unit": LEASE_DEFAULTS.noticeAddress.unit,
+          "Notice Street Number": LEASE_DEFAULTS.noticeAddress.streetNumber,
+          "Notice Street Name": LEASE_DEFAULTS.noticeAddress.streetName,
+          "Notice PO Box": LEASE_DEFAULTS.noticeAddress.poBox,
+          "Notice City": LEASE_DEFAULTS.noticeAddress.city,
+          "Notice Province": LEASE_DEFAULTS.noticeAddress.province,
+          "Notice Postal Code": LEASE_DEFAULTS.noticeAddress.postalCode,
+          "Notice Emails": `Landlord's Representative: ${LEASE_DEFAULTS.landlordEmail}; Tenant(s): ${tenants.map((t) => t.email).filter(Boolean).join(", ")}`,
+          "Emergency Contact": LEASE_DEFAULTS.emergencyContact,
+        }),
     "Start Date": ymd(f.start_date),
     "End Date": monthly ? "" : ymd(f.end_date),
     "Other Term Details": f.other_term_details,
@@ -533,8 +541,8 @@ export function buildLease(f, ids, owner) {
     "Base Rent": amount(f.base_rent),
     "Parking Rent": amount(f.parking_rent),
     "Total Rent": amount(total),
-    "Rent Payable To": f.rent_payable_to || LEASE_DEFAULTS.rentPayableTo,
-    "Payment Methods": f.payment_methods || LEASE_DEFAULTS.paymentMethods,
+    "Rent Payable To": f.rent_payable_to || (f.leasing_only ? landlordName : LEASE_DEFAULTS.rentPayableTo),
+    "Payment Methods": f.payment_methods || (f.leasing_only ? "As directed by the landlord" : LEASE_DEFAULTS.paymentMethods),
     "NSF Charge": LEASE_DEFAULTS.nsfCharge,
     "Services Details": f.services_details,
     "Utilities Details": f.utilities_details,
@@ -596,8 +604,8 @@ export function buildLease(f, ids, owner) {
   // Consent to Service by Email, landlord part (locked on the form).
   const cs = splitName(signer.name);
   Object.assign(text, {
-    "Consent Landlord Name": `${landlordName || "The landlord"} c/o ${REP.company}`,
-    "Consent Landlord Email": LEASE_DEFAULTS.landlordEmail,
+    "Consent Landlord Name": f.leasing_only ? landlordName || "The landlord" : `${landlordName || "The landlord"} c/o ${REP.company}`,
+    "Consent Landlord Email": f.leasing_only ? str(owner?.email) : LEASE_DEFAULTS.landlordEmail,
     "Consent Rental Unit Address": unitAddress,
     "Consent Landlord First Name": cs.first,
     "Consent Landlord Last Name": cs.last,
@@ -1010,7 +1018,9 @@ export function buildNForm(kind, f, ids, owner) {
 export function buildCertificate(f, ids) {
   const deliverer = { name: str(f.deliverer_name), email: str(f.deliverer_email).toLowerCase(), phone: str(f.deliverer_phone) };
   const d = splitName(deliverer.name);
-  const method = CERT_METHODS[f.method] || CERT_METHODS.handed;
+  // Prepared with the notice (before it's served): date served and method stay blank for Chuck to fill in.
+  const blank = Boolean(f.blank_service);
+  const method = blank ? null : CERT_METHODS[f.method] || CERT_METHODS.handed;
   const isN1 = f.notice_form === "N1";
   const names = (f.served_to || []).map(str).filter(Boolean);
   const text = {
@@ -1020,11 +1030,11 @@ export function buildCertificate(f, ids) {
     City: f.city,
     "Postal Code": f.postal_code,
     "Served By Name": str(f.served_by_name) || deliverer.name,
-    "Date Served": dmy(f.date_served),
+    "Date Served": blank ? "" : dmy(f.date_served),
     "Notice Form Number": isN1 ? "" : f.notice_form,
     "Other Document Name": isN1 ? "N1 Notice of Rent Increase" : "",
     "Served To Names": joinNames(names),
-    "Other Method Details": f.method === "other" ? f.method_details : "",
+    "Other Method Details": !blank && f.method === "other" ? f.method_details : "",
     "Signer First Name": d.first,
     "Signer Last Name": d.last,
     "Signer Phone": deliverer.phone,
@@ -1033,10 +1043,10 @@ export function buildCertificate(f, ids) {
     isN1 ? "Other Document" : "Notice of Termination",
     "Served To Tenant",
     names.length > 1 ? "More Than One Tenant" : "",
-    method.tab,
-    // The person who delivered it signs as "Other": IRep is never the landlord's representative.
-    "Signed As Other",
-  ];
+    method ? method.tab : "",
+    // IRep's standing rule: the person who served it signs as the landlord's representative.
+    "Signed As Representative",
+  ].filter(Boolean);
   return {
     definition: {
       templateId: ids.certificate_of_service,
@@ -1044,7 +1054,9 @@ export function buildCertificate(f, ids) {
     },
     prefill: prefillOf("Delivery By", text, checks),
     recipients: [{ role: "Delivery By", name: deliverer.name, email: deliverer.email, status: "created" }],
-    terms: { served_on: str(f.date_served), method: f.method, notice_form: f.notice_form },
+    terms: blank
+      ? { notice_form: f.notice_form, prepared_with_notice: true }
+      : { served_on: str(f.date_served), method: f.method, notice_form: f.notice_form },
   };
 }
 

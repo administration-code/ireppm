@@ -6,8 +6,13 @@ import { MAX_TENANTS, leaseTotal } from "@/lib/docusign-templates";
 import { LEASE_DEFAULTS } from "@/lib/lease-defaults";
 import { baseFields, tenantsOf } from "@/lib/signature-context";
 
+// Rooms in a rooming house are usually rented with utilities included.
+const isRoom = (unit) => /room/i.test(`${unit?.unit_type || ""} ${unit?.label || ""}`);
+
 export default function LeaseForm({ ctx }) {
   const t = ctx.tenancy;
+  // Leasing only: IRep found the tenant; the landlord manages and collects rent. No IRep references.
+  const leasingOnly = ctx.unit?.management_type === "leasing_only";
   const [f, setF] = useState(() => ({
     ...baseFields(ctx),
     tenants: tenantsOf(ctx),
@@ -24,8 +29,12 @@ export default function LeaseForm({ ctx }) {
     guarantor_needed: false,
     guarantor_name: "",
     guarantor_email: "",
-    rent_payable_to: LEASE_DEFAULTS.rentPayableTo,
-    payment_methods: LEASE_DEFAULTS.paymentMethods,
+    rent_payable_to: leasingOnly ? baseFields(ctx).landlord_name || "" : LEASE_DEFAULTS.rentPayableTo,
+    payment_methods: leasingOnly ? "As directed by the landlord" : LEASE_DEFAULTS.paymentMethods,
+    leasing_only: leasingOnly,
+    utilities: isRoom(ctx.unit)
+      ? { electricity: "landlord", heat: "landlord", water: "landlord" }
+      : { electricity: "tenant", heat: "tenant", water: "tenant" },
     signer: { mode: "owner", name: "", email: "" },
   }));
   const set = (k) => (e) => setF((s) => ({ ...s, [k]: e.target.type === "checkbox" ? e.target.checked : e.target.value }));
@@ -41,8 +50,30 @@ export default function LeaseForm({ ctx }) {
     return { ...f, ...g, tenants: f.tenants.filter((x) => x.full_name.trim() || x.email.trim()) };
   };
 
+  const setUtil = (k) => (e) => setF((s) => ({ ...s, utilities: { ...s.utilities, [k]: e.target.checked ? "landlord" : "tenant" } }));
+
   return (
     <form className="stack" style={{ gap: 20 }} onSubmit={(e) => e.preventDefault()}>
+      {leasingOnly ? (
+        <div className="okbox">
+          Leasing-only property: the lease leaves IRep out. Rent is payable to the landlord, notices and the emergency contact are the
+          landlord&apos;s, and the landlord&apos;s fields stay editable so they can fill in their notice address.
+        </div>
+      ) : null}
+      <fieldset className="boxed stack">
+        <legend className="sub-title">Utilities</legend>
+        <p className="small" style={{ margin: 0 }}>
+          Tick the utilities the landlord pays. {isRoom(ctx.unit) ? "Rooms default to utilities included." : ""}
+        </p>
+        <div className="req-actions">
+          {["electricity", "heat", "water"].map((k) => (
+            <label key={k} className="check-line">
+              <input type="checkbox" checked={f.utilities?.[k] === "landlord"} onChange={setUtil(k)} />
+              {k[0].toUpperCase() + k.slice(1)} included
+            </label>
+          ))}
+        </div>
+      </fieldset>
       <fieldset className="boxed stack">
         <legend className="sub-title">Tenants</legend>
         {f.tenants.map((x, i) => (
