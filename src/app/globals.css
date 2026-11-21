@@ -1154,9 +1154,10 @@ a[href^="tel:"] { white-space: nowrap; }
 .reporter-pick .small { overflow-wrap: anywhere; }
 
 /* Staff nav: spread the sections evenly across the full width. */
-.staff-nav-row { gap: 0; }
-.staff-nav-row > .staff-nav-group { flex: 1 1 0; min-width: 0; }
-.staff-nav-row .staff-nav-top { width: 100%; justify-content: center; padding-inline: 8px; }
+.staff-nav-row { gap: 0; justify-content: space-between; flex-wrap: wrap; }
+.staff-nav-row > .staff-nav-group { flex: 0 1 auto; }
+.staff-nav-row .staff-nav-top { justify-content: center; padding-inline: 10px; gap: 6px; }
+.staff-nav-row > .staff-nav-group:nth-last-child(-n+2) > .staff-nav-panel { left: auto; right: 0; }
 .staff-nav-row > .staff-nav-group:nth-last-child(-n+2) .staff-nav-panel { left: auto; right: 0; }
 
 /* Dashboard top: title + needs attention on the left, quick actions on the right. */
