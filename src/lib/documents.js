@@ -41,10 +41,10 @@ export const DOC_TYPES = [
 ];
 
 export const CONSENT_TEXT =
-  "I authorize IRep Property Management to obtain a consumer credit report about me through its tenant screening provider, to contact the references I list, and to share my application, the documents I attach, my references and the credit report with the owner of the property I apply for, for the purpose of evaluating my rental application.";
+  "I authorize IRep Property Management to obtain a consumer credit report about me through its tenant screening provider, to contact the references I list, and to share my application, the documents I attach, my references and the credit report with the owner of the property I apply for, who will review them for the purpose of evaluating my rental application. I understand the owner sees my photo ID and other sensitive documents only on a secure IRep page that expires, can't be downloaded and records each view, and that IRep records only that my ID was checked, never its number. If my application is declined or I withdraw it, IRep deletes my photo ID and sensitive documents within 30 days and my other application documents within 90 days.";
 
 // When the consent wording last changed. Consent given before this must be given again.
-export const CONSENT_UPDATED = "2026-10-17T04:00:00Z";
+export const CONSENT_UPDATED = "2026-11-21T17:00:00Z";
 export const consentCurrent = (at) => Boolean(at) && new Date(at) >= new Date(CONSENT_UPDATED);
 
 // Reference types renters can list on their profile (all optional, strongly recommended).

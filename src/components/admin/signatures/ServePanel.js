@@ -186,7 +186,14 @@ export default function ServePanel({ row, tenancy, notice, certs, onServed }) {
             <input id="sv-phone" type="tel" value={f.deliverer_phone} onChange={set("deliverer_phone")} />
           </div>
         </div>
-        <SendButtons kind="certificate_of_service" getForm={certForm} />
+        {(certs || []).some((c) => c.terms?.prepared_with_notice && !["voided", "declined", "error"].includes(c.status)) ? (
+          <p className="small" style={{ margin: 0 }}>
+            The Certificate of Service for Chuck was drafted with this notice (date served and method left for him to fill in). It&apos;s listed
+            below; send it from there.
+          </p>
+        ) : (
+          <SendButtons kind="certificate_of_service" getForm={certForm} />
+        )}
         <div className="req-actions">
           <button type="submit" className="btn ghost sm" disabled={recording}>
             {recording ? "Saving…" : "Record service"}

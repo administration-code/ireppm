@@ -127,11 +127,11 @@ export async function notifyLandlordAndTenants(sb, record) {
     return true;
   });
 
-  const yours = record.source === "tenant_portal";
+  const yours = record.source === "tenant_portal" || record.source === "email";
   for (const t of recipients) {
     const first = String(t.name || "").split(" ")[0] || "there";
     const intro = yours
-      ? `Hi ${first}, we've received your maintenance request and we're working on it. We'll be in touch to arrange a time if we need to come in.`
+      ? `Hi ${first}, we've received your maintenance request${record.source === "email" ? " by email" : ""} and we're working on it. You can follow it in your tenant portal. We'll be in touch to arrange a time if we need to come in.`
       : `Hi ${first}, we've logged a maintenance item at ${whole ? "your building" : "your home"} and we're working on it. ${
           whole ? "The work is outside or in shared areas." : "We'll be in touch to arrange a time if we need to come in."
         }`;

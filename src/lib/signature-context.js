@@ -5,7 +5,7 @@ import { joinNames, splitStreet } from "@/lib/docusign-templates";
 
 const PROPERTY =
   "id, address, city, postal_code, owner_id, owner_name, owner_email, owner_phone, agreement_start, agreement_renewal, unit_count, custom_fee, monthly_fee, promo_discount, promo_start, promo_end";
-const UNIT = `id, label, market_rent, listing_id, property:properties(${PROPERTY})`;
+const UNIT = `id, label, unit_type, management_type, market_rent, listing_id, property:properties(${PROPERTY})`;
 
 // Loads the records a send form prefills from. Query params: tenancy, unit, property, application.
 export async function loadSignatureContext({ tenancy, unit, property, application }) {

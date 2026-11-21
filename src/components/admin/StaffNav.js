@@ -11,6 +11,13 @@ import { COUNTS_EVENT, loadNavCounts } from "@/lib/admin-nav";
 export const NAV_GROUPS = [
   { key: "dashboard", label: "Dashboard", href: "/admin" },
   { key: "workflow", label: "Staff Workflow", href: "/admin/workflow" },
+  { key: "today", label: "Today", href: "/admin/today" },
+  { key: "tasks", label: "Tasks", href: "/admin/tasks", count: "tasksOpen", note: "open" },
+  { key: "emails", label: "Emails", href: "/admin/emails", count: "emailDrafts", note: "drafts" },
+  { key: "inbox", label: "Inbox", href: "/admin/inbox", count: "inboxNew", note: "new" },
+  { key: "unmatched-emails", label: "Unmatched Emails", href: "/admin/inbox/unmatched", count: "emailsUnmatched", note: "to assign" },
+  { key: "ask", label: "Ask IRep", href: "/admin/ask" },
+  { key: "ai", label: "AI Settings", href: "/admin/ai", muted: true },
   { key: "hours", label: "My Hours", href: "/admin/hours" },
   {
     key: "leasing",
@@ -27,10 +34,12 @@ export const NAV_GROUPS = [
     label: "Tenants",
     items: [
       { key: "manage-tenants", label: "Manage Tenants", href: "/admin/tenants" },
+      { key: "onboarding", label: "Onboarding", href: "/admin/onboarding", count: "onboardingOpen", note: "open" },
       { key: "rent", label: "Rent", href: "/admin/rent", count: "unmatchedPayments", note: "to match" },
       { key: "draw", label: "Paid by 7th & Draw", href: "/admin/rent/draw" },
       { key: "payprop-letters", label: "PayProp Letters", href: "/admin/payprop-letters" },
       { key: "maintenance", label: "Maintenance", href: "/admin/maintenance", count: "maintenanceNew", note: "new" },
+      { key: "email-intake", label: "Review Email Intake", href: "/admin/maintenance/intake", count: "intakeReview", note: "to review" },
       { key: "notices", label: "Notices", href: "/admin/notices", count: "earlyMoveOuts", note: "early move-out" },
       { key: "insurance", label: "Tenant Insurance", href: "/admin/insurance", count: "insuranceToReview", note: "to review" },
     ],

@@ -7,6 +7,7 @@ import MoveInForm from "@/components/admin/MoveInForm";
 import DeleteRecord from "@/components/admin/DeleteRecord";
 import { deleteLeasingRecord } from "@/lib/delete-records";
 import AppFileButton from "@/components/AppFileButton";
+import SensitiveDocs from "@/components/admin/SensitiveDocs";
 import ApplicationReview from "@/components/admin/ApplicationReview";
 import DeclineNotice from "@/components/admin/DeclineNotice";
 import { listingTitle } from "@/lib/format";
@@ -149,6 +150,8 @@ function ApplicationItem({ app, onChange, onRemove, earlier = [] }) {
         )}
         <RetentionNote app={app} hasDocs={docs.length > 0} />
       </div>
+
+      <SensitiveDocs applicationId={app.id} />
 
       <ApplicationReview app={app} onChange={onChange} onAccept={() => save("approved")} />
 

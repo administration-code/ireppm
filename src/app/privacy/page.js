@@ -91,8 +91,12 @@ export default function PrivacyPage() {
 
           <h2>How Long We Keep It</h2>
           <p>
-            If your application isn't successful, we delete your application documents within 90 days. You can remove
-            documents from your profile at any time. Records for approved tenants are kept for the length of the tenancy
+            If your application isn&apos;t successful or you withdraw it, we delete your photo ID and other sensitive
+            documents (such as bank statements) within 30 days, and your other application documents within 90 days. We
+            never record ID or licence numbers: we only note that your ID was checked, by whom and when. The landlord
+            reviews your application, but sees photo ID and sensitive documents only on a secure IRep page that expires
+            after 15 minutes, can&apos;t be downloaded, and records each view. You can remove documents from your profile at
+            any time. Records for approved tenants are kept for the length of the tenancy
             and as required by law afterward.
           </p>
 

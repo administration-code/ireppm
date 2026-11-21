@@ -259,6 +259,9 @@ export default function CurrentTenancy({ tenancy, onChanged, heading = "Current 
           <button type="button" className="btn ghost sm" onClick={() => open("edit")}>
             Edit details
           </button>
+          <a className="btn ghost sm" href={`/admin/ask?tenancy=${tenancy.id}`}>
+            Draft with AI
+          </a>
           {isMaintenanceOnly(tenancy) ? (
             <button
               type="button"

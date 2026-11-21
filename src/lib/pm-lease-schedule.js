@@ -14,20 +14,23 @@ export async function pmLeaseRows(sb, propertyId) {
     .from("units")
     .select("id, label, status, tenancies(id, status, start_date, end_date, rent, tenancy_tenants(full_name, is_primary))")
     .eq("property_id", propertyId);
+  // IRep's format: one row per tenant, the unit repeated on each row, the same dates on every row of a
+  // shared lease, and the rent on the first row only ("Incl. above" on the others).
   return (units || [])
     .filter((u) => u.status !== "offline")
     .sort((a, b) => String(a.label).localeCompare(String(b.label), "en", { numeric: true }))
-    .slice(0, MAX_ROWS)
-    .map((u) => {
+    .flatMap((u) => {
       const t = (u.tenancies || []).find((x) => ["active", "notice"].includes(x.status));
-      if (!t) return [u.label, "Vacant", "", "", ""];
+      if (!t) return [[u.label, "Vacant", "", "", ""]];
       const names = [...(t.tenancy_tenants || [])]
         .sort((a, b) => Number(b.is_primary) - Number(a.is_primary))
         .map((p) => p.full_name)
-        .filter(Boolean)
-        .join(", ");
-      return [u.label, names || "Tenant", day(t.start_date), t.end_date ? day(t.end_date) : "Month to month", cad(t.rent)];
-    });
+        .filter(Boolean);
+      const start = day(t.start_date);
+      const end = t.end_date ? day(t.end_date) : "Month to month";
+      return (names.length ? names : ["Tenant"]).map((name, i) => [u.label, name, start, end, i === 0 ? cad(t.rent) : "Incl. above"]);
+    })
+    .slice(0, MAX_ROWS);
 }
 
 // Puts the rows into the draft's lease schedule fields (anchored to "/pmL{row}c{col}/"). The landlord

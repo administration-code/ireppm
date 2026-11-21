@@ -3,6 +3,8 @@ import { insuranceReminders, leaseEndPrompts } from "@/lib/tenant-notices";
 import { showingReminders } from "@/lib/showings";
 import { ensureAutoReminders, syncOutstanding } from "@/lib/signatures-sync";
 import { oldAddressReminders } from "@/lib/etransfer-reminders";
+import { buildToday } from "@/lib/today";
+import { SITE } from "@/lib/site";
 import { activateMoveIns } from "@/lib/move-ins";
 import { drawDigest } from "@/lib/payprop-draw";
 import { mailer, mailConfigured } from "@/lib/mailer";
@@ -185,6 +187,7 @@ export async function GET(request) {
   const digestFailed = await sendDigest(sb, today, result);
   result.reconciliation = await sendReconciliationAlert(sb, today);
   result.documentCleanup = await deleteExpiredDocuments(sb);
+  result.sensitiveCleanup = await deleteExpiredSensitive(sb);
   result.screeningCleanup = await deleteExpiredScreeningReports(sb);
   result.creditReminders = await remindOverdueCreditChecks(sb);
   for (const [key, job] of [
@@ -196,6 +199,12 @@ export async function GET(request) {
     ["signatures", syncOutstanding],
     ["autoReminders", ensureAutoReminders],
     ["oldAddressReminders", oldAddressReminders],
+    ["todayEmail", sendTodayEmail],
+    ["tenancyChanges", async (db) => {
+      const { data, error } = await db.rpc("apply_tenancy_changes");
+      if (error) throw new Error(error.message);
+      return { applied: data };
+    }],
     ["feeChanges", async (db) => {
       const { data, error } = await db.rpc("apply_fee_changes");
       if (error) throw new Error(error.message);
@@ -408,5 +417,64 @@ async function deleteExpiredDocuments(sb) {
     summary.files += paths.length;
   }
 
+  return summary;
+}
+
+// Weekdays: the start-of-day list to administration@ (about 8 am Toronto in winter, 9 am in summer).
+async function sendTodayEmail(sb) {
+  const day = new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto", weekday: "short" });
+  if (["Sat", "Sun"].includes(day)) return "skipped (weekend)";
+  if (!mailConfigured()) return "skipped (email not set up)";
+  const today = await buildToday(sb);
+  let summary = null;
+  try {
+    const { todaySummary } = await import("@/lib/ai");
+    summary = await todaySummary(sb, today.text);
+  } catch {
+    summary = null;
+  }
+  const text = [summary ? `${summary}\n` : "", today.text, "", "Open: https://ireppm.ca/admin/today"].join("\n").trim();
+  const html = `<pre style="font-family:Menlo,Consolas,monospace;font-size:13px;line-height:1.45;white-space:pre-wrap;color:#161616">${escapeHtml(text)}</pre>`;
+  const { error } = await mailer().emails.send({ from: FROM, to: [SITE.email], subject: today.head, html, text });
+  if (error) throw new Error(error.message);
+  return { sent: true };
+}
+
+// ID and sensitive documents: deleted 30 days after an application is declined or withdrawn
+// (staff-saved files, and the photo ID and bank statements applicants uploaded). Counts only.
+async function deleteExpiredSensitive(sb) {
+  const summary = { files: 0, skipped: 0 };
+  const [{ data: saved, error: e1 }, { data: uploaded, error: e2 }] = await Promise.all([
+    sb.rpc("sensitive_docs_due", { p_days: 30 }),
+    sb.rpc("applicant_sensitive_due", { p_days: 30 }),
+  ]);
+  if (e1 || e2) {
+    console.error("[cron] sensitive retention lookup failed:", (e1 || e2).message);
+    return { ...summary, error: "Couldn't load sensitive documents due for deletion" };
+  }
+  if ((saved || []).length) {
+    const { error } = await sb.storage.from("applicant-docs").remove(saved.map((d) => d.file_path));
+    if (error) summary.skipped += saved.length;
+    else {
+      const { data: n } = await sb.rpc("finish_sensitive_deletion", { p_user_id: null, p_paths: [], p_sensitive_ids: saved.map((d) => d.id) });
+      summary.files += n || 0;
+    }
+  }
+  const byUser = new Map();
+  for (const r of uploaded || []) {
+    if (!byUser.has(r.user_id)) byUser.set(r.user_id, []);
+    byUser.get(r.user_id).push(r.file_path);
+  }
+  for (const [userId, paths] of byUser) {
+    const { error } = await sb.storage.from("applicant-docs").remove(paths);
+    if (error) {
+      summary.skipped += paths.length;
+      continue;
+    }
+    const { data: n } = await sb.rpc("finish_sensitive_deletion", { p_user_id: userId, p_paths: paths, p_sensitive_ids: [] });
+    summary.files += n || 0;
+  }
+  // Expired secure-view links are no longer needed.
+  await sb.from("sensitive_view_tokens").delete().lt("expires_at", new Date(Date.now() - 86400000).toISOString());
   return summary;
 }

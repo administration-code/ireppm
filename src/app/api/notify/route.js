@@ -5,6 +5,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { applicationEmail, landlordEmail, maintenanceEmail, showingEmail } from "@/lib/staff-alerts";
 import { decideBy, respondLink, showingAgents } from "@/lib/showings";
 import { notifyLandlordAndTenants } from "@/lib/maintenance-notify";
+import { alertChuck } from "@/lib/chuck-alert";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -87,6 +88,11 @@ export async function POST(request) {
   }
 
   const { type, table, record } = payload || {};
+  // A request raised to urgent or emergency after it was logged: tell Chuck again.
+  if (type === "ESCALATED" && table === "maintenance_requests" && record?.id) {
+    const out = await alertChuck(getSupabaseAdmin(), record, { escalated: true }).catch((err) => ({ error: String(err?.message || err) }));
+    return NextResponse.json({ ok: true, chuck: out });
+  }
   if (type !== "INSERT" || !HANDLED_TABLES.has(table) || !record || typeof record !== "object") {
     return NextResponse.json({ ok: true, skipped: true });
   }
@@ -105,6 +111,12 @@ export async function POST(request) {
 
     // New maintenance: also tell the landlord, and the tenants that it's being worked on.
     if (table === "maintenance_requests") {
+      // Chuck (maintenance lead) gets his own alert with tenant contact and photo links, whoever logged it.
+      try {
+        await alertChuck(getSupabaseAdmin(), record);
+      } catch (err) {
+        console.error(`[notify] Chuck alert for ${record.id} failed:`, err?.message || err);
+      }
       try {
         await notifyLandlordAndTenants(getSupabaseAdmin(), record);
       } catch (err) {

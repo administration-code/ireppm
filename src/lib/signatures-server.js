@@ -3,6 +3,7 @@ import { sendWelcome } from "@/lib/tenant-notices";
 import { mailer, mailConfigured } from "@/lib/mailer";
 import { escapeHtml } from "@/lib/staff-alerts";
 import { notifyOwnerMoveOut } from "@/lib/owner-move-out";
+import { linkLeaseToUpcoming, openOnboarding } from "@/lib/onboarding";
 import { ds, getDocument, getEnvelope, getRecipients, summarizeRecipients } from "@/lib/docusign";
 import { mfaSatisfied } from "@/lib/staff-mfa";
 
@@ -168,6 +169,8 @@ async function onCompleted(sb, row) {
   }
 
   let applied = null;
+  // A tenancy already started by hand for this lease: use it rather than making a second one.
+  if (row.kind === "lease" && !row.applied_at) await linkLeaseToUpcoming(sb, row);
   if (["lease", "pm_contract", "N9", "N11"].includes(row.kind) && !row.applied_at) {
     const { data, error } = await sb.rpc("apply_signed_document", { p_request_id: row.id });
     if (error) throw new Error(`Couldn't update records: ${error.message}`);
@@ -251,7 +254,10 @@ export async function syncRequest(sb, row, { eventStatus } = {}) {
   // Envelopes picked up from DocuSign (not made on the website) only track their status: there's no
   // tenancy or property data to apply when they're signed.
   if (current.terms?.imported) {
-    if (current.status === "completed" && before !== "completed") await alertStaff(`Signed: ${current.title}`, [`${current.title} has been signed by everyone.`], row.id);
+    if (current.status === "completed" && before !== "completed") {
+      await alertStaff(`Signed: ${current.title}`, [`${current.title} has been signed by everyone.`], row.id);
+      await openOnboarding(sb, row.id);
+    }
     const { data: fresh } = await sb.from("signature_requests").select("*").eq("id", row.id).maybeSingle();
     return fresh || current;
   }
@@ -276,6 +282,7 @@ export async function syncRequest(sb, row, { eventStatus } = {}) {
     }
     if (before !== "completed") {
       await completedAlert(current, result);
+      await openOnboarding(sb, row.id);
       if (current.kind === "lease") {
         try {
           const { data: done } = await sb.from("signature_requests").select("tenancy_id").eq("id", row.id).maybeSingle();
