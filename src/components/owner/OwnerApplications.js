@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import AppFileButton from "@/components/AppFileButton";
+import OwnerSensitiveDocs, { SECURE_TYPES } from "@/components/owner/OwnerSensitiveDocs";
 import AppThread from "@/components/AppThread";
 import ReferenceList from "@/components/ReferenceList";
 import { useAuth } from "@/components/AuthProvider";
@@ -159,7 +160,7 @@ function ApplicantDetail({ app, onReload }) {
                   <span className="doc-name">
                     <b>{label}</b>
                   </span>
-                  <AppFileButton appId={app.id} doc={d.type} label={`View ${label}`} />
+                  <AppFileButton appId={app.id} doc={d.type} label={SECURE_TYPES.has(d.type) ? `View ${label} Securely` : `View ${label}`} />
                 </li>
               );
             })}
@@ -167,6 +168,7 @@ function ApplicantDetail({ app, onReload }) {
         ) : (
           <p className="small">No documents are available.</p>
         )}
+        <OwnerSensitiveDocs appId={app.id} />
       </div>
 
       <div className="stack" style={{ gap: 8 }}>

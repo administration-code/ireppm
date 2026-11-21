@@ -195,6 +195,14 @@ export async function buildToday(sb) {
     ),
   });
 
+  // 10. Sensitive documents saved but the original still in an email or chat
+  const { data: originals } = await sb.from("sensitive_documents").select("label, received_via, uploaded_at").is("original_deleted_at", null).order("uploaded_at");
+  if ((originals || []).length)
+    sections.push({
+      title: `Delete originals of sensitive documents (${originals.length})`,
+      lines: cap(originals.map((d) => `${d.label}: delete it from the ${d.received_via === "whatsapp" ? "WhatsApp chat" : d.received_via === "text" ? "text messages" : d.received_via} (saved ${md(d.uploaded_at)})`), "the applicant or tenant file"),
+    });
+
   const head = `IRep Today: ${new Date(`${today}T12:00:00`).toLocaleDateString("en-CA", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}`;
   const text = [head, ...sections.map((s) => [`\n${s.title}`, ...(s.lines.length ? s.lines.map((l) => `- ${l}`) : ["- none"])].join("\n"))].join("\n");
   return { date: today, head, sections, text };

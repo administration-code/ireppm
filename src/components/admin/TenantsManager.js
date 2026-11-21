@@ -1,6 +1,7 @@
 "use client";
 
 import Communications from "@/components/admin/comms/Communications";
+import SensitiveDocs from "@/components/admin/SensitiveDocs";
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { getBrowserClient } from "@/lib/supabase";
@@ -454,6 +455,8 @@ function TenantPanel({ person, all, tenancies, onChanged, onRemoved }) {
           ) : null}
         </div>
       </div>
+
+      {t ? <SensitiveDocs tenancyId={t.id} /> : null}
 
       {t ? (
         <details>
