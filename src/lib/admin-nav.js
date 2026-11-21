@@ -30,6 +30,7 @@ export async function loadNavCounts() {
     insuranceToReview: sb.from("tenant_insurance").select("id", head).eq("status", "submitted"),
     inspectionReportsToReview: sb.from("inspection_reports").select("id", head).eq("status", "submitted"),
     ownerRequestsOpen: sb.from("owner_requests").select("id", head).eq("status", "open"),
+    emailDrafts: sb.from("email_drafts").select("id", head).eq("status", "draft"),
     tasksOpen: sb.from("staff_tasks").select("id", head).eq("status", "open"),
     onboardingOpen: sb.from("lease_onboarding").select("id", head).eq("status", "open"),
     invoicesUnpaid: sb.from("invoices").select("id", head).eq("status", "sent"),

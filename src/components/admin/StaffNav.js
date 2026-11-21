@@ -13,6 +13,7 @@ export const NAV_GROUPS = [
   { key: "workflow", label: "Staff Workflow", href: "/admin/workflow" },
   { key: "today", label: "Today", href: "/admin/today" },
   { key: "tasks", label: "Tasks", href: "/admin/tasks", count: "tasksOpen", note: "open" },
+  { key: "emails", label: "Emails", href: "/admin/emails", count: "emailDrafts", note: "drafts" },
   { key: "hours", label: "My Hours", href: "/admin/hours" },
   {
     key: "leasing",
