@@ -344,7 +344,10 @@ export default function SignaturesList() {
               Clear
             </button>
           ) : null}
-          {bulk ? <span className="small" role="status">{bulk}</span> : <span className="small">Tick the documents to remind, then send them all at once.</span>}
+          {bulk ? <span className="small" role="status">{bulk}</span> : <span className="small">
+              DocuSign reminds anyone who hasn&apos;t signed automatically: 2 days after sending, then every 2 days. To nudge sooner, tick
+              documents and send reminders now.
+            </span>}
         </div>
       ) : null}
       {rows === null ? (

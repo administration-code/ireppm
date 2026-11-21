@@ -157,11 +157,32 @@ async function fixAdminCopy(id) {
   });
 }
 
+// Automatic reminders: DocuSign re-emails anyone who hasn't signed REMIND_AFTER days after sending,
+// then every REMIND_EVERY days. The envelope's expiry settings are kept as they are.
+export const REMIND_AFTER = 2;
+export const REMIND_EVERY = 2;
+export async function applyReminderSchedule(id) {
+  const current = await ds(`/envelopes/${id}/notification`).catch(() => null);
+  await ds(`/envelopes/${id}/notification`, {
+    method: "PUT",
+    body: {
+      useAccountDefaults: "false",
+      reminders: { reminderEnabled: "true", reminderDelay: String(REMIND_AFTER), reminderFrequency: String(REMIND_EVERY) },
+      ...(current?.expirations ? { expirations: current.expirations } : {}),
+    },
+  });
+}
+
 export async function createEnvelope(definition) {
-  if (!definition?.templateId) return ds("/envelopes", { method: "POST", body: definition });
+  if (!definition?.templateId) {
+    const made = await ds("/envelopes", { method: "POST", body: definition });
+    await applyReminderSchedule(made.envelopeId).catch((err) => console.error("[docusign] reminders not set:", err?.message || err));
+    return made;
+  }
   const send = definition.status === "sent";
   const env = await ds("/envelopes", { method: "POST", body: { ...definition, status: "created" } });
   await fixAdminCopy(env.envelopeId);
+  await applyReminderSchedule(env.envelopeId).catch((err) => console.error("[docusign] reminders not set:", err?.message || err));
   if (send) {
     await removeEmptyRecipients(env.envelopeId);
     await ds(`/envelopes/${env.envelopeId}`, { method: "PUT", body: { status: "sent" } });

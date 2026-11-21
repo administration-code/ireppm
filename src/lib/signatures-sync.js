@@ -80,3 +80,30 @@ export async function syncOutstanding(sb) {
   }
   return result;
 }
+
+// Turns on automatic reminders for envelopes out for signature that don't have them yet
+// (sent before reminders were automated, or made straight in DocuSign). Runs with the daily job.
+export async function ensureAutoReminders(sb) {
+  const { applyReminderSchedule, REMIND_AFTER, REMIND_EVERY } = await import("@/lib/docusign");
+  const { data: open } = await sb
+    .from("signature_requests")
+    .select("id, envelope_id, terms")
+    .in("status", ["sent", "delivered"])
+    .not("envelope_id", "is", null);
+  const result = { set: 0, errors: 0 };
+  for (const row of open || []) {
+    if (row.terms?.auto_reminders) continue;
+    try {
+      await applyReminderSchedule(row.envelope_id);
+      await sb
+        .from("signature_requests")
+        .update({ terms: { ...(row.terms || {}), auto_reminders: `${REMIND_AFTER}/${REMIND_EVERY}` } })
+        .eq("id", row.id);
+      result.set += 1;
+    } catch (err) {
+      console.error("[docusign] auto reminders failed:", row.envelope_id, err?.message || err);
+      result.errors += 1;
+    }
+  }
+  return result;
+}
