@@ -10,9 +10,10 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 function secretMatches(provided) {
-  const expected = process.env.INBOUND_MAIL_SECRET;
+  // Trimmed on both sides: a space or line break picked up when pasting the value shouldn't break it.
+  const expected = (process.env.INBOUND_MAIL_SECRET || "").trim();
   if (!expected || typeof provided !== "string") return false;
-  const a = Buffer.from(provided);
+  const a = Buffer.from(provided.trim());
   const b = Buffer.from(expected);
   return a.length === b.length && timingSafeEqual(a, b);
 }
