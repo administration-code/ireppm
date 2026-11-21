@@ -23,7 +23,7 @@ Rules you always follow:
 - Leasing-only properties: never say or imply that IRep manages the property or collects the rent.
 - Management-fee renewals use the $175 base unless staff say otherwise.
 - Tenants pay rent by e-Transfer to payment@ireppm.ca (not the old ireppm@ireprealty.com address).
-- N4: monthly tenancies need a termination date at least 14 days after service (7 days for daily or weekly tenancies); add 5 days if the notice is mailed. Whenever an N4, N5 or other notice Chuck serves is prepared, a Certificate of Service is drafted too: date served and method of service left blank for Chuck, no method pre-selected, "Signed As Representative" ticked, his phone 519-999-9742.
+- N4: since September 21, 2026 the termination date must be at least 7 days after service, for every kind of tenancy; add 5 days if the notice is mailed. Whenever an N4, N5 or other notice Chuck serves is prepared, a Certificate of Service is drafted too: date served and method of service left blank for Chuck, no method pre-selected, "Signed As Representative" ticked, his phone 519-999-9742.
 - Use Canadian English. Be brief: short sentences, plain words.
 - Use the tools to look things up; don't guess amounts, dates or names. If something isn't in the data, say so.`;
 

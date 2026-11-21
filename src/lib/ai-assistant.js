@@ -202,7 +202,7 @@ async function runTool(sb, name, input, userId) {
     const owing = info.months_owing.reduce((s, m) => s + m.owing, 0);
     if (owing <= 0) return { error: "Nothing is owing on this tenancy." };
     const serve = today();
-    const termination = addDays(serve, 14 + (input.mailed ? 5 : 0));
+    const termination = addDays(serve, 7 + (input.mailed ? 5 : 0)); // 7 days since Sept 21, 2026 (Bill 60)
     const detail = [
       `Amount owing: $${owing.toFixed(2)} (${info.months_owing.map((m) => `${m.month.slice(0, 7)} $${m.owing.toFixed(2)}`).join(", ")}).`,
       `If served today${input.mailed ? " by mail" : ""}, the termination date can be no earlier than ${termination}.`,
