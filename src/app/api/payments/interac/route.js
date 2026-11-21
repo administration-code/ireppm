@@ -4,6 +4,7 @@ import { mailer, mailConfigured } from "@/lib/mailer";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { escapeHtml } from "@/lib/staff-alerts";
 import { money } from "@/lib/format";
+import { isOldAddress, remindOldAddress } from "@/lib/etransfer-reminders";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -99,6 +100,38 @@ export async function POST(request) {
 
   const receivedOn = torontoDate(body.received_at);
   const sb = getSupabaseAdmin();
+  // Only the address the e-Transfer was sent to (never the mailbox the notice arrived in).
+  const sentTo = clip(body.sent_to, 200);
+
+  // Sent to the old address and not deposited automatically: staff must accept it in online banking.
+  // Record it for staff (not as a payment yet) and remind the tenant to use payment@ireppm.ca.
+  if (body.pending) {
+    const { data: guess } = await sb.rpc("match_payer", { p_name: clip(body.sent_from, 200) || "" }).maybeSingle();
+    const tenancyId = guess?.match_id || null;
+    const { data: row, error: pendErr } = await sb
+      .from("etransfer_pending")
+      .insert({
+        reference,
+        amount,
+        payer_name: clip(body.sent_from, 200),
+        memo: clip(body.message, 1000),
+        sent_to: sentTo,
+        received_at: new Date(body.received_at || Date.now()).toISOString(),
+        tenancy_id: tenancyId,
+      })
+      .select("id")
+      .single();
+    if (pendErr?.code === "23505") return NextResponse.json({ ok: true, duplicate: true, pending: true });
+    if (pendErr) {
+      console.error("[interac] pending insert failed:", pendErr.message);
+      return NextResponse.json({ error: "Could not save" }, { status: 500 });
+    }
+    await alertPending({ amount, payer_name: clip(body.sent_from, 200), memo: clip(body.message, 1000), reference, received_on: receivedOn, sent_to: sentTo }).catch(
+      (err) => console.error("[interac] pending alert failed:", err?.message || err)
+    );
+    if (tenancyId) await remindOldAddress(sb, tenancyId, "Pending e-Transfer to the old address").catch(() => null);
+    return NextResponse.json({ ok: true, pending: true, id: row.id });
+  }
 
   // Staff may already have recorded this e-Transfer by hand (no reference number).
   // If a hand-entered e-Transfer has the same amount within two days, attach the
@@ -132,8 +165,9 @@ export async function POST(request) {
       memo: clip(body.message, 1000),
       reference,
       source: "interac_email",
+      sent_to: sentTo,
     })
-    .select("id, status, amount, payer_name, memo, reference, received_on")
+    .select("id, status, tenancy_id, amount, payer_name, memo, reference, received_on")
     .single();
 
   if (error?.code === "23505") return NextResponse.json({ ok: true, duplicate: true });
@@ -154,5 +188,38 @@ export async function POST(request) {
     }
   }
 
+  if (matched && isOldAddress(sentTo) && payment.tenancy_id) {
+    await remindOldAddress(sb, payment.tenancy_id, "e-Transfer sent to the old address").catch(() => null);
+  }
   return NextResponse.json({ ok: true, matched });
+}
+
+async function alertPending(p) {
+  const to = staffRecipients();
+  if (!to.length || !mailConfigured()) return;
+  const rows = [
+    ["Amount", money(p.amount)],
+    ["From", p.payer_name || "Unknown sender"],
+    ["Sent to", p.sent_to || "the old address"],
+    ["Received", p.received_on],
+    ["Message", p.memo || "—"],
+    ["Reference", p.reference],
+  ];
+  const html = `<div style="font-family:Helvetica,Arial,sans-serif;color:#161616;background:#F7F4EE;padding:24px;">
+    <div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #ddd5c9;border-radius:4px;padding:24px;">
+      <h1 style="font-family:Georgia,serif;font-weight:600;font-size:24px;margin:0 0 8px;">e-Transfer Waiting to Be Accepted</h1>
+      <p style="margin:0 0 16px;">This e-Transfer went to the old address, so it wasn't deposited automatically. Accept it in online banking, then mark it deposited on the To Match page so it's recorded.</p>
+      <table style="border-collapse:collapse;font-size:14px;">${rows
+        .map(([k, v]) => `<tr><td style="padding:4px 16px 4px 0;color:#5e5852;">${escapeHtml(k)}</td><td style="padding:4px 0;">${escapeHtml(v)}</td></tr>`)
+        .join("")}</table>
+      <p style="margin:20px 0 0;"><a href="${MATCH_URL}" style="display:inline-block;background:#B41710;color:#fff;text-decoration:none;padding:10px 18px;border-radius:4px;font-weight:600;">Open To Match</a></p>
+    </div></div>`;
+  const { error } = await mailer().emails.send({
+    from: FROM,
+    to,
+    subject: `Pending e-Transfer (old address): ${money(p.amount)} from ${p.payer_name || "unknown sender"}`,
+    html,
+    text: [...rows.map(([k, v]) => `${k}: ${v}`), "", `Open To Match: ${MATCH_URL}`].join("\n"),
+  });
+  if (error) console.error("[interac] pending alert failed:", error.message || "");
 }

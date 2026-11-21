@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { insuranceReminders, leaseEndPrompts } from "@/lib/tenant-notices";
 import { showingReminders } from "@/lib/showings";
 import { ensureAutoReminders, syncOutstanding } from "@/lib/signatures-sync";
+import { oldAddressReminders } from "@/lib/etransfer-reminders";
 import { activateMoveIns } from "@/lib/move-ins";
 import { drawDigest } from "@/lib/payprop-draw";
 import { mailer, mailConfigured } from "@/lib/mailer";
@@ -194,6 +195,12 @@ export async function GET(request) {
     ["drawDigest", (db) => drawDigest(db, new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" }))],
     ["signatures", syncOutstanding],
     ["autoReminders", ensureAutoReminders],
+    ["oldAddressReminders", oldAddressReminders],
+    ["feeChanges", async (db) => {
+      const { data, error } = await db.rpc("apply_fee_changes");
+      if (error) throw new Error(error.message);
+      return { updated: data };
+    }],
   ]) {
     try {
       result[key] = await job(sb);

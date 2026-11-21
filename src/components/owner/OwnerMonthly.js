@@ -22,7 +22,13 @@ export default function OwnerMonthly() {
       const sb = getBrowserClient();
       const { data: ownerId } = await sb.rpc("my_owner_id");
       if (!ownerId) return alive && setState({ loading: false, data: null });
-      const { data } = await sb.rpc("landlord_year_report", { p_owner_id: ownerId, p_year: year });
+      // Early in the year, last year's months (December's statement) stay in the list too.
+      const month = Number(new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" }).slice(5, 7));
+      const years = month <= 2 ? [year - 1, year] : [year];
+      const reports = await Promise.all(years.map((y) => sb.rpc("landlord_year_report", { p_owner_id: ownerId, p_year: y })));
+      const data = reports.some((r) => r.data)
+        ? { properties: reports.flatMap((r) => r.data?.properties || []) }
+        : null;
       if (alive) setState({ loading: false, data });
     })();
     return () => {

@@ -6,6 +6,7 @@ import { getBrowserClient } from "@/lib/supabase";
 import { isSpecialUnit } from "@/lib/maintenance-units";
 import { PROPERTY_SELECT, UNIT_FIELDS, propertyTitle } from "@/lib/admin-properties";
 import PropertyAddons from "./PropertyAddons";
+import PropertyFeeSchedule from "./PropertyFeeSchedule";
 import PropertyAgents from "./PropertyAgents";
 import PropertyForm from "./PropertyForm";
 import PropertyMaintenance from "./PropertyMaintenance";
@@ -97,6 +98,7 @@ export default function PropertyEditor({ id, initialOwnerId }) {
         onSaved={(p) => setState((s) => ({ ...s, property: p }))}
       />
 
+      <PropertyFeeSchedule propertyId={property.id} currentFee={property.monthly_fee} />
       <PropertyAddons propertyId={property.id} />
       <PropertyAgents propertyId={property.id} />
 

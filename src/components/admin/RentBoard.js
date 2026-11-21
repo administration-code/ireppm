@@ -5,7 +5,6 @@ import Link from "next/link";
 import { getBrowserClient } from "@/lib/supabase";
 import { money } from "@/lib/format";
 import {
-  METHOD_LABEL,
   RENT_TENANCY_SELECT,
   cents,
   countUnmatched,
@@ -15,6 +14,7 @@ import {
   tenancyAddress,
   thisMonth,
   todayISO,
+  methodText,
 } from "@/lib/rent";
 import RentNav, { RentHead } from "./RentNav";
 import FrontLobbyReport from "./FrontLobbyReport";
@@ -311,7 +311,7 @@ export default function RentBoard() {
 function TenantsPaid({ month, loading, people: everyone, who, setWho, how, setHow, find, setFind, copied, setCopied }) {
   const methodsOf = (p) => p.c?.methods || [];
   const methodsUsed = [...new Set(everyone.flatMap(methodsOf))].sort((a, b) =>
-    String(METHOD_LABEL[a] || a).localeCompare(String(METHOD_LABEL[b] || b))
+    String(methodText(a)).localeCompare(String(methodText(b)))
   );
   // Every word typed must appear in the tenants' names, address, unit, email, phone or PayProp reference.
   const words = find.trim().toLowerCase().split(/\s+/).filter(Boolean);
@@ -339,7 +339,7 @@ function TenantsPaid({ month, loading, people: everyone, who, setWho, how, setHo
         [
           p.name,
           p.address,
-          methodsOf(p).map((m) => METHOD_LABEL[m] || m).join(", "),
+          methodsOf(p).map((m) => methodText(m)).join(", "),
           p.monthOwing.toFixed(2),
           p.totalOwing.toFixed(2),
           p.balance?.last_paid_on || p.c?.last_paid_on || "",
@@ -391,7 +391,7 @@ function TenantsPaid({ month, loading, people: everyone, who, setWho, how, setHo
             <option value="">Any way they paid</option>
             {methodsUsed.map((m) => (
               <option key={m} value={m}>
-                {METHOD_LABEL[m] || m}
+                {methodText(m)}
               </option>
             ))}
             <option value="none">No payment this month</option>
@@ -448,7 +448,7 @@ function TenantsPaid({ month, loading, people: everyone, who, setWho, how, setHo
                   </td>
                   <td className="r num">{p.c ? money(p.c.due) : "—"}</td>
                   <td className="r num">{p.c ? money(p.c.paid) : "—"}</td>
-                  <td className="small">{methodsOf(p).map((m) => METHOD_LABEL[m] || m).join(", ") || "—"}</td>
+                  <td className="small">{methodsOf(p).map((m) => methodText(m)).join(", ") || "—"}</td>
                   <td className={`r num${cents(p.monthOwing) > 0 ? " owing" : ""}`}>{money(p.monthOwing)}</td>
                   <td className={`r num${cents(p.totalOwing) > 0 ? " owing" : ""}`}>{money(p.totalOwing)}</td>
                   <td>{shortDate(p.balance?.last_paid_on || p.c?.last_paid_on) || "—"}</td>
@@ -495,7 +495,7 @@ function TenancyRows({ items, pastSeventh }) {
                 <td className="r num">{money(c.paid)}</td>
                 <td className="r num">{money(c.paid_by_7th)}</td>
                 <td>{shortDate(c.last_paid_on)}</td>
-                <td>{(c.methods || []).map((m) => METHOD_LABEL[m] || m).join(", ") || "—"}</td>
+                <td>{(c.methods || []).map((m) => methodText(m)).join(", ") || "—"}</td>
                 <td className={`r num${out > 0 ? " owing" : ""}`}>{money(out)}</td>
                 <td className={`r num${cents(balance?.balance) > 0 ? " owing" : ""}`}>{money(balance?.balance)}</td>
               </tr>

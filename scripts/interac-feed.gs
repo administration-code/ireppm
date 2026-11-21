@@ -14,6 +14,14 @@
  *  4. Pick "setup" → Run. This starts the 5-minute check and sends the backlog.
  * Safe to re-run: the website ignores an e-Transfer it has already recorded, and
  * links one staff already entered by hand (same amount, within two days).
+ *
+ * Also sends "sent you money" notices (e-Transfers to the old address that need to be
+ * accepted by hand) as pending, so staff are alerted and the tenant is reminded to use
+ * payment@ireppm.ca. This script only reads mail: it never replies to, forwards or
+ * deletes an Interac email.
+ *
+ * Updating from an older version: paste this whole file over the old one, Save, then
+ * run "setup" once.
  */
 const ENDPOINT = 'https://ireppm.ca/api/payments/interac';
 const START_DATE = '2026/10/19'; // e-Transfers before this are already in the website
@@ -54,7 +62,8 @@ function checkInterac() {
   const props = PropertiesService.getScriptProperties();
   const done = new Set(JSON.parse(props.getProperty('done') || '[]'));
   const query = 'from:notify@payments.interac.ca deposited after:' + START_DATE + ' newer_than:60d';
-  const threads = GmailApp.search(query, 0, 200);
+  const threads = GmailApp.search(query, 0, 200)
+    .concat(GmailApp.search('from:notify@payments.interac.ca "sent you money" after:' + START_DATE + ' newer_than:30d', 0, 100));
   const sent = [];
   let failed = 0;
 
@@ -77,11 +86,18 @@ function checkInterac() {
 
 function parseInterac(msg) {
   const body = msg.getPlainBody() || '';
-  if (!/deposited/i.test(body + msg.getSubject())) return null;
+  const subject = msg.getSubject() || '';
+  const deposited = /deposited/i.test(body + subject);
+  const pending = !deposited && /sent you money/i.test(subject + body);
+  if (!deposited && !pending) return null;
   const pick = (re) => { const m = body.match(re); return m ? m[1].trim() : ''; };
   const amount = pick(/Amount:\s*\$([\d,]+\.\d{2})/i) || pick(/\$([\d,]+\.\d{2})/);
   const reference = pick(/Reference Number:\s*(\S+)/i);
-  const sentFrom = pick(/Sent From:\s*(.+)/i) || (msg.getSubject().match(/from (.+?) and it has/i) || [])[1] || '';
+  const sentFrom = pick(/Sent From:\s*(.+)/i) || (subject.match(/from (.+?) and it has/i) || [])[1] ||
+    (subject.match(/:\s*(.+?) sent you money/i) || [])[1] || '';
+  // Deposit notices for payment@ireppm.ca are delivered to this mailbox too, so its own address
+  // only says where the money went for a pending ("sent you money") notice.
+  const sentTo = pick(/(?:Sent To|Recipient(?: Email)?|Deposited To):\s*(\S+@\S+)/i) || (pending ? msg.getTo() : '');
   const message = pick(/Message:\s*\n([\s\S]*?)\n\s*\n/i);
   if (!amount || !reference) return null;
   return {
@@ -92,5 +108,7 @@ function parseInterac(msg) {
     received_at: msg.getDate().toISOString(),
     message: message.slice(0, 500),
     to: msg.getTo(),
+    sent_to: sentTo,
+    pending: pending,
   };
 }

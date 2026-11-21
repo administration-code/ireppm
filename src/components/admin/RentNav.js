@@ -9,6 +9,7 @@ const LINKS = [
   ["/admin/rent/payprop", "PayProp Batch"],
   ["/admin/rent/refunds", "Refunds"],
   ["/admin/rent/senders", "Sender Rules"],
+  ["/admin/rent/audit", "Matched By"],
 ];
 
 export default function RentNav({ current, unmatched = 0 }) {

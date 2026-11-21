@@ -32,7 +32,8 @@ const guessName = (l) => (/rishi/i.test(`${l.description} ${l.note}`) ? "Rishi B
 export default function DividendsBoard({ year: initialYear }) {
   const id = useId();
   const thisYear = Number(todayISO().slice(0, 4));
-  const [year, setYear] = useState(initialYear || thisYear);
+  // January to April is year-end season: open on last year by default.
+  const [year, setYear] = useState(initialYear || (Number(todayISO().slice(5, 7)) <= 4 ? thisYear - 1 : thisYear));
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [form, setForm] = useState(EMPTY);

@@ -11,6 +11,8 @@ export const METHOD_LABEL = {
   paid_to_owner: "Paid to landlord directly",
   other: "Other",
 };
+// For showing a payment's method (includes ones staff don't pick, like an opening credit).
+export const methodText = (m) => METHOD_LABEL[m] || (m === "opening_credit" ? "Opening credit (from the tracker)" : m || "");
 
 export const PAYMENT_KIND_LABEL = {
   rent: "Rent",

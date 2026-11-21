@@ -7,6 +7,7 @@ import { money } from "@/lib/format";
 import { TENANCY_FIELDS, TENANT_FIELDS, UNIT_FIELDS, UNIT_STATUS, bedsBaths, currentTenancy, isMaintenanceOnly, prettyDate, sortTenants, unitPill } from "@/lib/admin-properties";
 import CurrentTenancy from "./CurrentTenancy";
 import RentLedger from "./RentLedger";
+import RentMonths from "./RentMonths";
 import RecordSignatures from "./signatures/RecordSignatures";
 
 // Past tenancies load their ledger only when opened, to keep the unit page quick.
@@ -126,7 +127,10 @@ export default function UnitTenancy({ id }) {
               </p>
             </section>
           ) : (
-            <RentLedger tenancy={current} />
+            <>
+              <RentLedger tenancy={current} />
+              <RentMonths tenancyId={current.id} />
+            </>
           )}
           <NoticesPanel tenancyId={current.id} />
           <RecordSignatures type="tenancy" id={current.id} />

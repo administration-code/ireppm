@@ -6,7 +6,7 @@ import { getBrowserClient } from "@/lib/supabase";
 import { money } from "@/lib/format";
 import { SITE } from "@/lib/site";
 import { loadReceipt } from "@/lib/receipt";
-import { METHOD_LABEL, PAYMENT_KIND_LABEL, monthLabel, shortDate } from "@/lib/rent";
+import { PAYMENT_KIND_LABEL, monthLabel, shortDate, methodText } from "@/lib/rent";
 import { IRepMark } from "@/components/Brand";
 
 const paymentFor = (p) => (p.kind === "rent" ? monthLabel(p.period) : PAYMENT_KIND_LABEL[p.kind] || "Other");
@@ -166,7 +166,7 @@ export default function RentReceipt({ params }) {
               <tr key={p.id}>
                 <td>{shortDate(p.received_on)}</td>
                 <td>{paymentFor(p)}</td>
-                <td>{METHOD_LABEL[p.method] || p.method}</td>
+                <td>{methodText(p.method)}</td>
                 <td className="r num">{money(p.amount)}</td>
               </tr>
             ))}

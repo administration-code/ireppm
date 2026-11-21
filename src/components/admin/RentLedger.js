@@ -19,6 +19,7 @@ import {
   shortDate,
   thisMonth,
   todayISO,
+  methodText,
 } from "@/lib/rent";
 
 const CHARGE_FIELDS = "id, period, kind, description, amount, maintenance_request_id, created_at";
@@ -66,7 +67,7 @@ async function loadLedger(tenancyId) {
 const chargeLabel = (c) => c.description || `${CHARGE_KIND_LABEL[c.kind] || "Charge"}, ${monthLabel(c.period)}`;
 
 function paymentLabel(p) {
-  const parts = [METHOD_LABEL[p.method] || p.method];
+  const parts = [methodText(p.method)];
   parts.push(p.kind === "rent" ? `for ${monthLabel(p.period)}` : PAYMENT_KIND_LABEL[p.kind]);
   if (p.received_by) parts.push(`received by ${p.received_by}`);
   return parts.join(" · ");

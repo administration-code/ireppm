@@ -18,6 +18,7 @@ import {
   tenancyAddress,
   primaryTenant,
 } from "@/lib/rent";
+import PendingETransfers from "./PendingETransfers";
 import RentNav, { RentHead } from "./RentNav";
 import TenancyPicker from "./TenancyPicker";
 
@@ -69,6 +70,7 @@ export default function MatchPayments() {
         intro="Payments we couldn't tie to a tenancy automatically. Once you match an e-Transfer, we remember the sender's name for next time."
       />
       <RentNav current="/admin/rent/match" unmatched={payments.length} />
+      <PendingETransfers tenancies={tenancies} />
 
       {error ? <div className="warnbox">{error}</div> : null}
       {done ? (

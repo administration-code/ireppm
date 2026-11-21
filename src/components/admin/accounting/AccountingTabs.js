@@ -8,6 +8,7 @@ const TABS = [
   { href: "/admin/accounting/import", label: "Bank Imports" },
   { href: "/admin/accounting/year", label: "Year End" },
   { href: "/admin/accounting/landlords", label: "Landlord Year-End" },
+  { href: "/admin/accounting/deposits", label: "Deposits & Leasing" },
   { href: "/admin/accounting/commissions", label: "Commissions & Loans" },
   { href: "/admin/accounting/dividends", label: "Dividends & T5" },
 ];
