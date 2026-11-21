@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { redact } from "@/lib/ai";
 import { INTAKE_BUCKET, processInbound } from "@/lib/email-intake";
-import { idLikeAttachment, labelEmail, matchParty, otherParty } from "@/lib/comms";
+import { idLikeAttachment, isAutoReply, labelEmail, matchParty, otherParty } from "@/lib/comms";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -51,6 +51,9 @@ export async function POST(request) {
   if (INTERAC.test(fromEmail || "")) return NextResponse.json({ ok: true, skipped: "interac", uploads: [] });
   const toEmails = (Array.isArray(body.to_emails) ? body.to_emails : []).map((e) => String(e).trim().toLowerCase()).filter((e) => e.includes("@")).slice(0, 30);
   const threadId = clip(body.thread_id, 200);
+  // IRep's automatic "We've received your message" replies aren't kept: they'd clutter the timeline
+  // and count as answering the tenant.
+  if (direction === "out" && isAutoReply(body.subject)) return NextResponse.json({ ok: true, skipped: "auto-reply", uploads: [] });
 
   // A template email sent from the portal is already on the timeline: link it to its Gmail copy.
   if (direction === "out" && UUID.test(String(body.draft_id || ""))) {

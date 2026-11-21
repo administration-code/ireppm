@@ -17,6 +17,13 @@ export function otherParty(email) {
   return f && !OURS.test(f) ? f : null;
 }
 
+// System senders (DocuSign, Vercel, no-reply and bounce addresses) are filed as "not a contact".
+const AUTOMATED =
+  /(^|[._+-])(no-?reply|do-?not-?reply|donotreply|mailer-daemon|postmaster|bounces?|notifications?|alerts?)([._+-]|@)|@([\w-]+\.)*(docusign\.(net|com)|vercel\.com|amazonses\.com)$/i;
+export const isAutomatedAddress = (e) => AUTOMATED.test(String(e || ""));
+// IRep's own auto-acknowledgement ("We've received your message") is not a real reply.
+export const isAutoReply = (subject) => /^\s*we[’']ve received your message/i.test(String(subject || ""));
+
 // Tenant, landlord, applicant or partner for an address, with their unit and property.
 export async function matchParty(sb, address) {
   const e = String(address || "").trim().toLowerCase();
@@ -28,6 +35,7 @@ export async function matchParty(sb, address) {
   };
 
   const { data: rule } = await sb.from("email_address_rules").select("*").eq("email", e).maybeSingle();
+  if (!rule && isAutomatedAddress(e)) return { party_kind: "ignored", party_email: e, party_name: "Automated sender" };
   if (rule) {
     if (rule.party_kind === "ignored") return { party_kind: "ignored", party_email: e, party_name: rule.name };
     if (rule.party_kind === "tenant") return { party_kind: "tenant", party_email: e, party_name: rule.name, ...(await unitOf(rule.tenancy_id)) };
