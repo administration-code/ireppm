@@ -16,7 +16,8 @@
  *  4. Run "setup" to start the 10-minute check.
  *  (Already set up? Paste this file over the old one and Save. Nothing else changes.)
  */
-const ENDPOINT = 'https://ireppm.ca/api/admin-mail/intake';
+// Goes through IRep's Supabase relay: Vercel challenges requests from Google's script servers.
+const ENDPOINT = 'https://xtmvfqnnmrbgucfelvtu.supabase.co/functions/v1/mail-relay?to=admin-mail';
 const INTERAC = /interac\.ca|payments\.interac/i;
 
 function secret_() {

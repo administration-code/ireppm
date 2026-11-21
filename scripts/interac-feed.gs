@@ -23,7 +23,8 @@
  * Updating from an older version: paste this whole file over the old one, Save, then
  * run "setup" once.
  */
-const ENDPOINT = 'https://ireppm.ca/api/payments/interac';
+// Goes through IRep's Supabase relay: Vercel challenges requests from Google's script servers.
+const ENDPOINT = 'https://xtmvfqnnmrbgucfelvtu.supabase.co/functions/v1/mail-relay?to=interac';
 const START_DATE = '2026/10/19'; // e-Transfers before this are already in the website
 
 function secret_() {
