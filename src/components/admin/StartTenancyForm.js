@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getBrowserClient } from "@/lib/supabase";
-import { createTenancy, tenancyForm, tenancyRow, todayISO, validateTenancy, validateTenant } from "@/lib/admin-properties";
+import { createTenancy, prettyDate, tenancyForm, tenancyRow, todayISO, validateTenancy, validateTenant } from "@/lib/admin-properties";
 import { METHOD_LABEL, checkAmount, recordFirstAndLast } from "@/lib/rent";
 import TenancyFields from "./TenancyFields";
 import { TenantInputs, tenantRow } from "./TenantsEditor";
@@ -13,10 +13,17 @@ const dollars = (v) => (v === "" || v === null || v === undefined ? "" : String(
 const sameEmail = (a, b) => a && b && String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
 const isBlank = (p) => !p.full_name.trim() && !p.email.trim() && !p.phone.trim();
 
-export default function StartTenancyForm({ unit, onCreated, onCancel }) {
+const dayAfter = (iso) => {
+  const d = new Date(`${iso}T12:00:00`);
+  d.setDate(d.getDate() + 1);
+  return d.toISOString().slice(0, 10);
+};
+
+// after: the current tenancy's move-out date, when starting the unit's next tenancy before that one ends.
+export default function StartTenancyForm({ unit, onCreated, onCancel, after = "" }) {
   const [form, setForm] = useState(() => ({
     ...tenancyForm(null),
-    start_date: todayISO(),
+    start_date: after ? dayAfter(after) : todayISO(),
     rent: unit.market_rent ? String(unit.market_rent) : "",
   }));
   const [people, setPeople] = useState([BLANK]);
@@ -105,6 +112,9 @@ export default function StartTenancyForm({ unit, onCreated, onCancel }) {
     setError("");
     const filled = people.filter((p) => p.full_name.trim() || p.email.trim() || p.phone.trim());
     const problem =
+      (after && form.start_date && form.start_date <= after
+        ? `The new tenancy has to start after the current tenant moves out on ${prettyDate(after)}.`
+        : "") ||
       validateTenancy(form) ||
       (filled.length ? filled.map(validateTenant).find(Boolean) : "Add at least one tenant.");
     if (problem) return setError(problem);
@@ -119,6 +129,7 @@ export default function StartTenancyForm({ unit, onCreated, onCancel }) {
     try {
       const created = await createTenancy({
         unitId: unit.id,
+        afterTenancy: Boolean(after),
         tenancy: tenancyRow(form),
         tenants: filled.map((p, i) => ({ ...tenantRow(p), ...(p.id ? { id: p.id } : {}), is_primary: i === 0 })),
       });
@@ -144,12 +155,19 @@ export default function StartTenancyForm({ unit, onCreated, onCancel }) {
   return (
     <form className="boxed stack" onSubmit={save} noValidate aria-labelledby="start-title">
       <h2 id="start-title" className="sec-title">
-        Start Tenancy
+        {after ? "Start Next Tenancy" : "Start Tenancy"}
       </h2>
-      <p className="small">
-        If the start date is today or earlier, the tenancy starts as active and the unit is marked occupied. A future
-        start date is saved as upcoming.
-      </p>
+      {after ? (
+        <p className="small">
+          The current tenant moves out on {prettyDate(after)}, so the new tenancy must start after that. It&apos;s saved as upcoming and becomes active on
+          its start date, once the current tenancy has been ended.
+        </p>
+      ) : (
+        <p className="small">
+          If the start date is today or earlier, the tenancy starts as active and the unit is marked occupied. A future
+          start date is saved as upcoming.
+        </p>
+      )}
       {leases.length ? (
         <div className="okbox stack" style={{ gap: 6 }}>
           <span>

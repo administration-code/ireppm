@@ -78,6 +78,9 @@ export default function UnitTenancy({ id }) {
   }
 
   const current = currentTenancy(tenancies);
+  // The next tenancy, signed while the current tenant is still there (moving out before it starts).
+  const next = current && current.status !== "upcoming" ? tenancies.find((t) => t.status === "upcoming") || null : null;
+  const canStartNext = current && current.status !== "upcoming" && !next && Boolean(current.move_out_date);
   const past = tenancies.filter((t) => t.status === "ended");
 
   return (
@@ -127,6 +130,37 @@ export default function UnitTenancy({ id }) {
           )}
           <NoticesPanel tenancyId={current.id} />
           <RecordSignatures type="tenancy" id={current.id} />
+          {next ? (
+            <CurrentTenancy key={`${next.id}-${next.status}`} tenancy={next} onChanged={reload} heading="Next Tenancy" />
+          ) : starting ? (
+            <StartTenancyForm
+              unit={unit}
+              after={current.move_out_date}
+              onCancel={() => setStarting(false)}
+              onCreated={async () => {
+                await reload();
+                setStarting(false);
+              }}
+            />
+          ) : canStartNext ? (
+            <div className="boxed stack" style={{ gap: 8 }}>
+              <h2 className="sec-title">Next Tenancy</h2>
+              <p className="small" style={{ margin: 0 }}>
+                The current tenant moves out on {prettyDate(current.move_out_date)}. You can set up the next tenancy now, starting after that
+                date.
+              </p>
+              <div className="req-actions">
+                <button type="button" className="btn primary sm" onClick={() => setStarting(true)}>
+                  Start Next Tenancy
+                </button>
+                <Link className="btn ghost sm" href={`/admin/signatures/new?kind=lease&unit=${unit.id}`}>
+                  Send a Lease for Signature
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <p className="small">To set up the next tenancy, record the current tenant&apos;s notice (their move-out date) first.</p>
+          )}
         </>
       ) : starting ? (
         <StartTenancyForm

@@ -177,9 +177,11 @@ export const ONE_CURRENT_MESSAGE =
 
 // Creates the tenancy as "upcoming" first so a failed tenant insert can be rolled back
 // without the database trigger changing the unit's status.
-export async function createTenancy({ unitId, tenancy, tenants }) {
+// afterTenancy: the unit's current tenancy is still in place (moving out before this one starts),
+// so the new one stays upcoming and becomes active on its start date once that one has ended.
+export async function createTenancy({ unitId, tenancy, tenants, afterTenancy = false }) {
   const sb = getBrowserClient();
-  const wantedStatus = tenancy.start_date <= todayISO() ? "active" : "upcoming";
+  const wantedStatus = !afterTenancy && tenancy.start_date <= todayISO() ? "active" : "upcoming";
 
   const created = await sb
     .from("tenancies")

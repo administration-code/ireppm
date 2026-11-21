@@ -14,7 +14,7 @@ async function updateTenancy(id, changes) {
   if (error || !data?.length) throw new Error("That didn't save. Try again.");
 }
 
-export default function CurrentTenancy({ tenancy, onChanged }) {
+export default function CurrentTenancy({ tenancy, onChanged, heading = "Current Tenancy" }) {
   const [mode, setMode] = useState("");
   const [form, setForm] = useState(() => tenancyForm(tenancy));
   const [moveOut, setMoveOut] = useState(tenancy.move_out_date || "");
@@ -107,10 +107,10 @@ export default function CurrentTenancy({ tenancy, onChanged }) {
   const markMovedIn = () => run(() => updateTenancy(tenancy.id, { status: "active" }));
 
   return (
-    <section className="boxed stack" aria-labelledby="sec-current">
+    <section className="boxed stack" aria-labelledby={heading === "Current Tenancy" ? "sec-current" : "sec-next"}>
       <div className="req-top">
-        <h2 id="sec-current" className="sec-title">
-          Current Tenancy
+        <h2 id={heading === "Current Tenancy" ? "sec-current" : "sec-next"} className="sec-title">
+          {heading}
         </h2>
         <span className="req-actions" style={{ gap: 6 }}>
           {isMaintenanceOnly(tenancy) ? <span className="pill maint-only">Maintenance Only</span> : null}
@@ -278,14 +278,19 @@ export default function CurrentTenancy({ tenancy, onChanged }) {
           ) : null}
           {tenancy.status === "upcoming" ? (
             <>
-              <button type="button" className="btn primary sm" onClick={markMovedIn} disabled={busy}>
-                {busy ? "Saving…" : "Mark as moved in now"}
-              </button>
+              {heading === "Next Tenancy" ? null : (
+                <button type="button" className="btn primary sm" onClick={markMovedIn} disabled={busy}>
+                  {busy ? "Saving…" : "Mark as moved in now"}
+                </button>
+              )}
               <button type="button" className="btn ghost sm" onClick={() => open("cancel")}>
                 Cancel tenancy
               </button>
               {tenancy.start_date ? (
-                <span className="small">Becomes active automatically on {prettyDate(tenancy.start_date)}.</span>
+                <span className="small">
+                  Becomes active automatically on {prettyDate(tenancy.start_date)}
+                  {heading === "Next Tenancy" ? ", once the current tenancy above has been ended." : "."}
+                </span>
               ) : null}
             </>
           ) : (
