@@ -126,7 +126,7 @@ export async function todaySummary(sb, todayText) {
   return out || null;
 }
 
-const CATEGORIES = ["rent", "tenant_issue", "landlord", "maintenance", "payprop", "other"];
+const CATEGORIES = ["maintenance", "rent", "lease", "notices", "landlord", "general"];
 // Category and a one-line summary for an email that arrived at administration@.
 export async function classifyEmail(sb, { from, subject, snippet }) {
   const msg = await callModel(sb, {
@@ -136,15 +136,15 @@ export async function classifyEmail(sb, { from, subject, snippet }) {
     messages: [
       {
         role: "user",
-        content: `Classify this email to a property manager as one of: ${CATEGORIES.join(", ")}. Reply as JSON {"category":"...","summary":"one short line"}.\nFrom: ${redact(from)}\nSubject: ${redact(subject)}\n\n${redact(String(snippet || "").slice(0, 1200))}`,
+        content: `Label this email to or from a property manager as one of: ${CATEGORIES.join(", ")} (lease = leases, renewals and signatures; notices = N4, N5, N12 and other tenancy notices; landlord = owner business with no other label). Reply as JSON {"category":"...","summary":"one short line"}.\nFrom: ${redact(from)}\nSubject: ${redact(subject)}\n\n${redact(String(snippet || "").slice(0, 1200))}`,
       },
     ],
   });
   try {
     const j = JSON.parse(textOf(msg).replace(/^```(json)?|```$/g, "").trim());
-    return { category: CATEGORIES.includes(j.category) ? j.category : "other", summary: String(j.summary || "").slice(0, 200) };
+    return { category: CATEGORIES.includes(j.category) ? j.category : "general", summary: String(j.summary || "").slice(0, 200) };
   } catch {
-    return { category: "other", summary: "" };
+    return { category: "general", summary: "" };
   }
 }
 

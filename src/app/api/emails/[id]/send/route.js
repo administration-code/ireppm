@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logSentEmail } from "@/lib/comms-log";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { staffFromRequest } from "@/lib/server-auth";
 import { mailer, mailConfigured } from "@/lib/mailer";
@@ -38,9 +39,12 @@ export async function POST(request, { params }) {
     subject: d.subject,
     html,
     text: d.body,
+    // Lets the mailbox feed link Gmail's copy to the timeline entry below.
+    headers: { "X-IRep-Draft": d.id },
   });
   if (error) return NextResponse.json({ error: "The email didn't send. Nothing was changed." }, { status: 502 });
   await sb.from("email_drafts").update({ status: "sent", sent_at: new Date().toISOString(), sent_by: staff.id }).eq("id", id);
+  await logSentEmail(sb, d, to).catch((err) => console.error("[emails] timeline log failed:", err?.message || err));
   if (d.task_id) await sb.from("staff_tasks").update({ status: "done", done_at: new Date().toISOString(), done_by: staff.id }).eq("id", d.task_id);
   return NextResponse.json({ sent: true, to });
 }

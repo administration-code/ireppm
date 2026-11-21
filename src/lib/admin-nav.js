@@ -31,6 +31,7 @@ export async function loadNavCounts() {
     inspectionReportsToReview: sb.from("inspection_reports").select("id", head).eq("status", "submitted"),
     ownerRequestsOpen: sb.from("owner_requests").select("id", head).eq("status", "open"),
     inboxNew: sb.from("inbound_emails").select("id", head).eq("status", "new"),
+    emailsUnmatched: sb.from("inbound_emails").select("id", head).eq("party_kind", "unmatched").not("party_email", "is", null),
     intakeReview: sb.from("inbound_emails").select("id", head).eq("intake_status", "review"),
     emailDrafts: sb.from("email_drafts").select("id", head).eq("status", "draft"),
     tasksOpen: sb.from("staff_tasks").select("id", head).eq("status", "open"),

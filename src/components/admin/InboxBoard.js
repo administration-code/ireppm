@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { getBrowserClient } from "@/lib/supabase";
 import { shortDate } from "@/lib/rent";
 
-const CATS = { rent: "Rent", tenant_issue: "Tenant issue", landlord: "Landlord", maintenance: "Maintenance", payprop: "PayProp", other: "Other" };
+const CATS = { maintenance: "Maintenance", rent: "Rent", lease: "Lease & Signatures", notices: "Notices", landlord: "Landlord", general: "General" };
 
 // Staff: emails to administration@, sorted into categories with a one-line summary.
 export default function InboxBoard() {
@@ -12,7 +12,7 @@ export default function InboxBoard() {
   const [cat, setCat] = useState("");
   const [tab, setTab] = useState("new");
   async function load() {
-    let q = getBrowserClient().from("inbound_emails").select("*").eq("status", tab).order("received_at", { ascending: false }).limit(200);
+    let q = getBrowserClient().from("inbound_emails").select("*").eq("direction", "in").eq("status", tab).order("received_at", { ascending: false }).limit(200);
     if (cat) q = q.eq("category", cat);
     const { data } = await q;
     setRows(data || []);
@@ -63,7 +63,18 @@ export default function InboxBoard() {
                   {CATS[r.category] || "Not sorted"} · {shortDate(String(r.received_at).slice(0, 10))}
                 </span>
               </div>
-              <span className="small">From {r.from_name || r.from_email}</span>
+              <span className="small">
+                From {r.from_name || r.from_email}
+                {r.party_kind && r.party_kind !== "unmatched" ? ` · ${r.party_kind === "landlord" ? "Landlord" : r.party_kind === "tenant" ? "Tenant" : r.party_kind === "partner" ? "Partner" : r.party_kind === "applicant" ? "Applicant" : "Ignored"}${r.party_name ? `: ${r.party_name}` : ""}` : " · Unmatched"}
+                {r.thread_id ? (
+                  <>
+                    {" · "}
+                    <a href={`https://mail.google.com/mail/u/administration@ireppm.ca/#all/${r.thread_id}`} target="_blank" rel="noreferrer">
+                      Open in Gmail
+                    </a>
+                  </>
+                ) : null}
+              </span>
               {r.summary ? <p className="small" style={{ margin: "4px 0" }}>{r.summary}</p> : null}
               {tab === "new" ? (
                 <div className="req-actions">

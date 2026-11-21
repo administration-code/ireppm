@@ -1,4 +1,5 @@
 import "server-only";
+import { olderThanBusinessDays } from "@/lib/comms";
 
 // The start-of-day list: short plain lines, one page, for staff and the AI assistant.
 const T = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" });
@@ -170,6 +171,27 @@ export async function buildToday(sb) {
         ...waiting.map((t) => `WAITING on ${t.waiting_on} since ${md(t.waiting_since)} (${days(t.waiting_since || today, today)}d): ${t.title}`),
       ],
       "Tasks"
+    ),
+  });
+
+  // 9. Tenant and landlord emails with no reply after 1 business day
+  const { data: inbox } = await sb
+    .from("inbound_emails")
+    .select("subject, received_at, party_kind, party_name, from_email, category, unit:units(label, property:properties(address))")
+    .eq("direction", "in")
+    .eq("status", "new")
+    .is("answered_at", null)
+    .in("party_kind", ["tenant", "landlord"])
+    .order("received_at")
+    .limit(200);
+  const unanswered = (inbox || []).filter((e) => olderThanBusinessDays(e.received_at, 1));
+  sections.push({
+    title: `Unanswered emails, over 1 business day (${unanswered.length})`,
+    lines: cap(
+      unanswered.map(
+        (e) => `${e.party_kind === "landlord" ? "Landlord" : "Tenant"} ${e.party_name || e.from_email}${e.unit ? ` (${place(e.unit)})` : ""}, ${md(e.received_at)}: ${e.subject || "(no subject)"}`
+      ),
+      "Inbox"
     ),
   });
 

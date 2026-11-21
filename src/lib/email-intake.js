@@ -102,7 +102,7 @@ export async function createRequests(sb, email, tenancy, issues) {
 export async function processInbound(sb, id) {
   const { data: email } = await sb.from("inbound_emails").select("*").eq("id", id).maybeSingle();
   if (!email || !["none", "waiting_files"].includes(email.intake_status)) return { skipped: true };
-  if (/payments\.interac\.ca|@ireppm\.ca$/i.test(email.from_email || "")) {
+  if (email.direction === "out" || email.party_kind === "ignored" || /interac\.ca|@ireppm\.ca$/i.test(email.from_email || "")) {
     await sb.from("inbound_emails").update({ intake_status: "none" }).eq("id", id);
     return { skipped: "not for intake" };
   }

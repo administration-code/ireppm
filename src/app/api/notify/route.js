@@ -5,7 +5,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { applicationEmail, landlordEmail, maintenanceEmail, showingEmail } from "@/lib/staff-alerts";
 import { decideBy, respondLink, showingAgents } from "@/lib/showings";
 import { notifyLandlordAndTenants } from "@/lib/maintenance-notify";
-import { DEFAULT_DELIVERER } from "@/lib/lease-defaults";
+import { alertChuck } from "@/lib/chuck-alert";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -88,6 +88,11 @@ export async function POST(request) {
   }
 
   const { type, table, record } = payload || {};
+  // A request raised to urgent or emergency after it was logged: tell Chuck again.
+  if (type === "ESCALATED" && table === "maintenance_requests" && record?.id) {
+    const out = await alertChuck(getSupabaseAdmin(), record, { escalated: true }).catch((err) => ({ error: String(err?.message || err) }));
+    return NextResponse.json({ ok: true, chuck: out });
+  }
   if (type !== "INSERT" || !HANDLED_TABLES.has(table) || !record || typeof record !== "object") {
     return NextResponse.json({ ok: true, skipped: true });
   }
@@ -96,9 +101,7 @@ export async function POST(request) {
   try {
     // Showing requests go to the property's showing agent(s) (or the default contact) and staff.
     const agents = table === "showing_requests" ? await showingAgents(getSupabaseAdmin(), record.listing_id) : null;
-    // New maintenance requests also go to Chuck (maintenance lead), whoever logged them.
-    const chuck = table === "maintenance_requests" && DEFAULT_DELIVERER.email ? [DEFAULT_DELIVERER.email] : [];
-    const to = agents ? [...new Set([...agents.emails, ...staffRecipients()])] : [...new Set([...staffRecipients(), ...chuck])];
+    const to = agents ? [...new Set([...agents.emails, ...staffRecipients()])] : staffRecipients();
     if (!to.length) throw new Error("STAFF_ALERT_EMAIL is not set");
     if (!mailConfigured()) throw new Error("Email is not set up (GMAIL_USER / GMAIL_APP_PASSWORD)");
 
@@ -108,6 +111,12 @@ export async function POST(request) {
 
     // New maintenance: also tell the landlord, and the tenants that it's being worked on.
     if (table === "maintenance_requests") {
+      // Chuck (maintenance lead) gets his own alert with tenant contact and photo links, whoever logged it.
+      try {
+        await alertChuck(getSupabaseAdmin(), record);
+      } catch (err) {
+        console.error(`[notify] Chuck alert for ${record.id} failed:`, err?.message || err);
+      }
       try {
         await notifyLandlordAndTenants(getSupabaseAdmin(), record);
       } catch (err) {

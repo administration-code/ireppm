@@ -59,7 +59,7 @@ create table if not exists public.inbound_emails (
   subject text,
   snippet text,
   received_at timestamptz not null default now(),
-  category text check (category is null or category in ('rent', 'tenant_issue', 'landlord', 'maintenance', 'payprop', 'other')),
+  category text check (category is null or category in ('maintenance', 'rent', 'lease', 'notices', 'landlord', 'general')),
   summary text,
   classified_at timestamptz,
   status text not null default 'new' check (status in ('new', 'handled', 'ignored')),

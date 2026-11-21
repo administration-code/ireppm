@@ -15,6 +15,7 @@ export const NAV_GROUPS = [
   { key: "tasks", label: "Tasks", href: "/admin/tasks", count: "tasksOpen", note: "open" },
   { key: "emails", label: "Emails", href: "/admin/emails", count: "emailDrafts", note: "drafts" },
   { key: "inbox", label: "Inbox", href: "/admin/inbox", count: "inboxNew", note: "new" },
+  { key: "unmatched-emails", label: "Unmatched Emails", href: "/admin/inbox/unmatched", count: "emailsUnmatched", note: "to assign" },
   { key: "ask", label: "Ask IRep", href: "/admin/ask" },
   { key: "ai", label: "AI Settings", href: "/admin/ai", muted: true },
   { key: "hours", label: "My Hours", href: "/admin/hours" },

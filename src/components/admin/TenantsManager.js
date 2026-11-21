@@ -1,5 +1,6 @@
 "use client";
 
+import Communications from "@/components/admin/comms/Communications";
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { getBrowserClient } from "@/lib/supabase";
@@ -453,6 +454,13 @@ function TenantPanel({ person, all, tenancies, onChanged, onRemoved }) {
           ) : null}
         </div>
       </div>
+
+      {t ? (
+        <details>
+          <summary className="eyebrow">Communications</summary>
+          <Communications tenancyId={t.id} title="Emails with This Tenancy" />
+        </details>
+      ) : null}
 
       <div className="stack" style={{ gap: 10 }}>
         <h3 className="eyebrow" style={{ margin: 0 }}>Emails</h3>
