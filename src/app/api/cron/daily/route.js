@@ -196,6 +196,11 @@ export async function GET(request) {
     ["signatures", syncOutstanding],
     ["autoReminders", ensureAutoReminders],
     ["oldAddressReminders", oldAddressReminders],
+    ["tenancyChanges", async (db) => {
+      const { data, error } = await db.rpc("apply_tenancy_changes");
+      if (error) throw new Error(error.message);
+      return { applied: data };
+    }],
     ["feeChanges", async (db) => {
       const { data, error } = await db.rpc("apply_fee_changes");
       if (error) throw new Error(error.message);

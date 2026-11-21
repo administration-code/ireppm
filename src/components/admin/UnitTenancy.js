@@ -40,7 +40,9 @@ async function loadUnit(id) {
       .eq("unit_id", id)
       .order("start_date", { ascending: false }),
   ]);
+  const { count: onboardingOpen } = await sb.from("lease_onboarding").select("id", { count: "exact", head: true }).eq("unit_id", id).eq("status", "open");
   return {
+    onboardingOpen: onboardingOpen || 0,
     unit: u.data,
     tenancies: t.data || [],
     error: u.error || t.error ? "We couldn't load this unit. Refresh the page to try again." : "",
@@ -65,6 +67,7 @@ export default function UnitTenancy({ id }) {
   }, [id]);
 
   const { loading, unit, tenancies, error } = state;
+  const onboardingOpen = state.onboardingOpen;
   if (loading) return <p className="small">Loading unit…</p>;
   if (!unit) {
     return (
@@ -104,6 +107,11 @@ export default function UnitTenancy({ id }) {
             </p>
           </div>
           <span className="req-actions" style={{ gap: 6 }}>
+            {onboardingOpen ? (
+              <Link href="/admin/onboarding" className="pill ts-upcoming">
+                Signed: onboarding open
+              </Link>
+            ) : null}
             {isMaintenanceOnly(current) ? <span className="pill maint-only">Maintenance Only</span> : null}
             {(() => { const p = unitPill(unit, current); return <span className={`pill ${p.cls}`}>{p.text}</span>; })()}
           </span>

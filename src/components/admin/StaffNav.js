@@ -11,6 +11,8 @@ import { COUNTS_EVENT, loadNavCounts } from "@/lib/admin-nav";
 export const NAV_GROUPS = [
   { key: "dashboard", label: "Dashboard", href: "/admin" },
   { key: "workflow", label: "Staff Workflow", href: "/admin/workflow" },
+  { key: "today", label: "Today", href: "/admin/today" },
+  { key: "tasks", label: "Tasks", href: "/admin/tasks", count: "tasksOpen", note: "open" },
   { key: "hours", label: "My Hours", href: "/admin/hours" },
   {
     key: "leasing",
@@ -27,6 +29,7 @@ export const NAV_GROUPS = [
     label: "Tenants",
     items: [
       { key: "manage-tenants", label: "Manage Tenants", href: "/admin/tenants" },
+      { key: "onboarding", label: "Onboarding", href: "/admin/onboarding", count: "onboardingOpen", note: "open" },
       { key: "rent", label: "Rent", href: "/admin/rent", count: "unmatchedPayments", note: "to match" },
       { key: "draw", label: "Paid by 7th & Draw", href: "/admin/rent/draw" },
       { key: "payprop-letters", label: "PayProp Letters", href: "/admin/payprop-letters" },

@@ -31,6 +31,15 @@ export default function SignaturesList() {
   // Rows ticked for a bulk reminder (out for signature only).
   const [picked, setPicked] = useState(() => new Set());
   const [bulk, setBulk] = useState("");
+  // Signed leases and amendments whose onboarding isn't finished.
+  const [onboarding, setOnboarding] = useState(() => new Set());
+  useEffect(() => {
+    getBrowserClient()
+      .from("lease_onboarding")
+      .select("signature_request_id")
+      .eq("status", "open")
+      .then(({ data }) => setOnboarding(new Set((data || []).map((d) => d.signature_request_id))));
+  }, []);
   useEffect(() => {
     setPicked(new Set());
     setBulk("");
@@ -394,6 +403,11 @@ export default function SignaturesList() {
                       {r.title}
                     </Link>
                     {r.terms?.imported ? <span className="small muted"> · made in DocuSign</span> : null}
+                    {onboarding.has(r.id) ? (
+                      <Link href="/admin/onboarding" className="pill ts-upcoming" style={{ marginLeft: 6 }}>
+                        Signed: onboarding open
+                      </Link>
+                    ) : null}
                   </td>
                   <td>{kindLabel(r)}</td>
                   <td className="small">{outTo(r) || "—"}</td>
