@@ -195,6 +195,15 @@ export async function buildToday(sb) {
     ),
   });
 
+  // 9b. Cash Chuck logged but hasn't deposited after 3 days (table from 0084; skipped until it exists)
+  const { data: held, error: heldErr } = await sb.from("cash_collections").select("amount, collected_on, tenancy:tenancies(tenancy_tenants(full_name, is_primary))").eq("status", "held").order("collected_on");
+  const late = heldErr ? [] : (held || []).filter((c) => days(c.collected_on, today) > 3);
+  if (late.length)
+    sections.push({
+      title: `Cash Chuck hasn't deposited, over 3 days (${late.length})`,
+      lines: cap(late.map((c) => `$${Number(c.amount).toFixed(2)} from ${(c.tenancy?.tenancy_tenants || []).find((t) => t.is_primary)?.full_name || c.tenancy?.tenancy_tenants?.[0]?.full_name || "a tenant"}, got ${md(c.collected_on)}`), "Cash from Chuck"),
+    });
+
   // 10. Sensitive documents saved but the original still in an email or chat
   const { data: originals } = await sb.from("sensitive_documents").select("label, received_via, uploaded_at").is("original_deleted_at", null).order("uploaded_at");
   if ((originals || []).length)

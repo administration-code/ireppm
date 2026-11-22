@@ -43,6 +43,7 @@ export async function loadNavCounts() {
     invoicesUnpaid: sb.from("invoices").select("id", head).eq("status", "sent"),
     expensesToPay: sb.from("landlord_expenses").select("id", head).eq("status", "to_pay"),
     unmatchedBankLines: sb.from("bank_transactions").select("id", head).eq("status", "unmatched"),
+    cashHeld: sb.from("cash_collections").select("id", head).eq("status", "held"),
   };
   const keys = Object.keys(queries);
   const results = await Promise.all(Object.values(queries));

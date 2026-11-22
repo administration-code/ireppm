@@ -85,6 +85,7 @@ export const NAV_GROUPS = [
       { key: "reconciliation", label: "Reconciliation", href: "/admin/accounting", count: "unmatchedBankLines", note: "bank lines to match" },
       { key: "bank-imports", label: "Bank Imports", href: "/admin/accounting/import" },
       { key: "payprop-recon", label: "PayProp Reconciliation", href: "/admin/accounting/payprop" },
+      { key: "cash", label: "Cash from Chuck", href: "/admin/accounting/cash", count: "cashHeld", note: "held by Chuck" },
       { key: "payouts", label: "Landlord Payouts", href: "/admin/payouts" },
       { key: "invoices", label: "Invoices", href: "/admin/invoices", count: "invoicesUnpaid", note: "unpaid" },
       { key: "expenses", label: "Additional Expenses", href: "/admin/expenses", count: "expensesToPay", note: "to pay" },

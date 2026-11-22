@@ -21,6 +21,16 @@ export default function AgentPortal() {
   const { user, ready, openSignIn } = useAuth();
   const [state, setState] = useState({ loading: true, data: null });
   const [tour, setTour] = useState({ loaded: false, dismissedAt: null });
+  const [cash, setCash] = useState(null);
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data } = await getBrowserClient().auth.getSession();
+      const res = await fetch("/api/agent/cash", { headers: { Authorization: `Bearer ${data?.session?.access_token || ""}` } }).catch(() => null);
+      const out = res ? await res.json().catch(() => null) : null;
+      if (out?.allowed) setCash({ held: out.held.length, total: out.held.reduce((s, c) => s + Number(c.amount), 0) });
+    })();
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
@@ -78,6 +88,11 @@ export default function AgentPortal() {
         <span className="eyebrow">Agent Portal</span>
         <h1 className="admin-title">Hi {String(d.partner.name || "").split(" ")[0]}</h1>
         <div className="req-actions">
+          {cash ? (
+            <Link className="btn primary sm" href="/agent/cash">
+              {cash.held ? `Cash (holding $${cash.total.toFixed(2)})` : "Log Cash"}
+            </Link>
+          ) : null}
           <Link className="btn primary sm" href="/agent/inspection">
             Inspection report
           </Link>
