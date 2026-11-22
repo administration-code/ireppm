@@ -109,6 +109,9 @@ export default function AgentPortal() {
       <div style={{ display: "grid", gap: 6 }}>
         <span className="eyebrow">Agent Portal</span>
         <h1 className="admin-title">Hi {String(d.partner.name || "").split(" ")[0]}</h1>
+        <Link className="btn primary" href="/agent/help" style={{ width: "fit-content", fontSize: "1.05rem" }}>
+          Help: What Do I Do?
+        </Link>
         <div className="req-actions">
           {serve ? (
             <Link className={`btn ${serve.count ? "primary" : "ghost"} sm`} href="/agent/notices">
@@ -136,7 +139,7 @@ export default function AgentPortal() {
 
       <PushToggle />
 
-      <section className={`boxed stack${toAnswer.length ? " attention" : ""}`} aria-labelledby="ag-show">
+      <section id="showings" className={`boxed stack${toAnswer.length ? " attention" : ""}`} aria-labelledby="ag-show">
         <h2 id="ag-show" className="sec-title">
           Showings{toAnswer.length ? ` (${toAnswer.length} to answer)` : ""}
         </h2>
@@ -187,7 +190,7 @@ export default function AgentPortal() {
       />
 
       {d.jobs.length ? (
-        <section className="boxed stack" aria-labelledby="ag-jobs">
+        <section id="jobs" className="boxed stack" aria-labelledby="ag-jobs">
           <h2 id="ag-jobs" className="sec-title">
             Open Jobs
           </h2>

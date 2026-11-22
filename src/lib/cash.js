@@ -27,12 +27,12 @@ function checkDate(d, label) {
 export async function cashTenancies(sb) {
   const { data } = await sb
     .from("tenancies")
-    .select("id, rent, status, collects_rent, unit:units(label, property:properties(address, archived)), tenancy_tenants(full_name, is_primary, created_at)")
+    .select("id, rent, status, collects_rent, unit:units(label, property:properties(*)), tenancy_tenants(full_name, is_primary, created_at)")
     .in("status", ["active", "notice", "upcoming"]);
   const { data: cash } = await sb.from("payments").select("tenancy_id").eq("method", "cash").not("tenancy_id", "is", null);
   const payers = new Set((cash || []).map((p) => p.tenancy_id));
   return (data || [])
-    .filter((t) => t.collects_rent !== false && !t.unit?.property?.archived)
+    .filter((t) => (t.collects_rent !== false || t.unit?.property?.is_practice) && !t.unit?.property?.archived)
     .map((t) => {
       const people = [...(t.tenancy_tenants || [])].sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0) || String(a.created_at).localeCompare(String(b.created_at)));
       return {
@@ -40,11 +40,12 @@ export async function cashTenancies(sb) {
         names: people.map((p) => p.full_name).filter(Boolean).join(", ") || "Tenant",
         place: [t.unit?.property?.address, t.unit?.label].filter(Boolean).join(", "),
         address: t.unit?.property?.address || "",
+        practice: Boolean(t.unit?.property?.is_practice),
         rent: t.rent == null ? null : Number(t.rent),
         paysCash: payers.has(t.id),
       };
     })
-    .sort((a, b) => Number(b.paysCash) - Number(a.paysCash) || a.address.localeCompare(b.address, "en-CA", { numeric: true }) || a.place.localeCompare(b.place, "en-CA", { numeric: true }));
+    .sort((a, b) => Number(b.practice) - Number(a.practice) || Number(b.paysCash) - Number(a.paysCash) || a.address.localeCompare(b.address, "en-CA", { numeric: true }) || a.place.localeCompare(b.place, "en-CA", { numeric: true }));
 }
 
 // What Chuck sees: cash he's holding and his recent deposits.

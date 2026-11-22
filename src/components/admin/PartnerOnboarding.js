@@ -31,6 +31,49 @@ async function loadUsage(sb) {
   ];
 }
 
+// The practice property (1 Practice St (TEST)): what Chuck has logged there, and a button to clear it.
+function PracticeClear() {
+  const [d, setD] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const call = async (method) => {
+    const { data } = await getBrowserClient().auth.getSession();
+    const res = await fetch("/api/admin/practice", { method, headers: { Authorization: `Bearer ${data?.session?.access_token || ""}` } });
+    return res.json().catch(() => ({}));
+  };
+  const load = useCallback(async () => setD(await call("GET")), []);
+  useEffect(() => {
+    load();
+  }, [load]);
+  if (!d?.ready) return null;
+  const total = d.requests + d.cash + d.vacancies;
+  return (
+    <section className="boxed stack">
+      <h2 className="sec-title">Practice Property</h2>
+      <p className="small">
+        Chuck can try things at 1 Practice St (TEST) without touching real tenants or money. Logged there now: {d.requests} request
+        {d.requests === 1 ? "" : "s"}, {d.cash} cash entr{d.cash === 1 ? "y" : "ies"}, {d.vacancies} vacanc{d.vacancies === 1 ? "y" : "ies"}. Don&apos;t approve
+        practice jobs in Jobs Done: clear them here instead.
+      </p>
+      <div className="req-actions">
+        <button
+          type="button"
+          className="btn ghost sm"
+          disabled={busy || !total}
+          onClick={async () => {
+            if (!window.confirm("Clear everything logged at the practice property?")) return;
+            setBusy(true);
+            await call("POST");
+            setBusy(false);
+            load();
+          }}
+        >
+          {busy ? "Clearing…" : "Clear Practice Data"}
+        </button>
+      </div>
+    </section>
+  );
+}
+
 // Staff (Rishi): Chuck's onboarding checklist, his real use of the portal, and notes from each review meeting.
 export default function PartnerOnboarding() {
   const [checks, setChecks] = useState(null);
@@ -103,13 +146,15 @@ export default function PartnerOnboarding() {
           CHECKLIST.map((d) => (
             <div key={d.day} className="stack" style={{ gap: 4 }}>
               <b className="small">{d.day}</b>
-              {d.items.map(([k, label]) => {
+              {d.note ? <span className="small">{d.note}</span> : null}
+              {d.items.map(([k, label, mins]) => {
                 const c = checks.get(k);
                 return (
                   <label key={k} className="check-line">
                     <input type="checkbox" checked={!!c} onChange={(e) => toggle(k, e.target.checked)} />
                     <span>
                       {label}
+                      {mins ? <span className="small"> · ~{mins} min</span> : null}
                       {c ? <span className="small"> · {[nameOf(c.done_by), shortDate(String(c.done_at).slice(0, 10))].filter(Boolean).join(", ")}</span> : null}
                     </span>
                   </label>
@@ -145,6 +190,8 @@ export default function PartnerOnboarding() {
           </table>
         )}
       </section>
+
+      <PracticeClear />
 
       <form className="boxed stack" onSubmit={saveFeedback}>
         <h2 className="sec-title">Meeting Notes and Feedback</h2>

@@ -62,7 +62,7 @@ export default function PushToggle() {
 
   if (state === "loading" || state === "unconfigured") return null;
   return (
-    <section className="boxed stack" aria-labelledby="push-title" style={{ gap: 8 }}>
+    <section id="push" className="boxed stack" aria-labelledby="push-title" style={{ gap: 8 }}>
       <h2 id="push-title" className="sec-title">
         Phone Notifications
       </h2>

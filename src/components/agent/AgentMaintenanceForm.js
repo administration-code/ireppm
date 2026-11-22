@@ -87,7 +87,7 @@ export default function AgentMaintenanceForm({ userId, onLogged }) {
   }
 
   return (
-    <section className="boxed stack" aria-labelledby="ag-log">
+    <section id="log" className="boxed stack" aria-labelledby="ag-log">
       <div className="admin-head">
         <h2 id="ag-log" className="sec-title">
           Log a Maintenance Request
