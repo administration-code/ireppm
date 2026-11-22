@@ -15,13 +15,15 @@ async function loadPayouts(month) {
   const sb = getBrowserClient();
   const period = `${month}-01`;
   const gen = await sb.rpc("generate_rent_charges", { p_month: period });
-  const [totals, properties] = await Promise.all([
+  const [totals, properties, ppFees] = await Promise.all([
     sb.from("owner_statement_totals").select("*").eq("period", period),
     sb.from("properties").select("id, address, city, owner:owners(id, name)"),
+    sb.from("payprop_fees_by_month").select("property_id, payprop_fee").eq("period", period),
   ]);
   const byId = new Map((properties.data || []).map((p) => [p.id, p]));
+  const ppBy = new Map((ppFees.data || []).map((f) => [f.property_id, Number(f.payprop_fee) || 0]));
   const rows = (totals.data || [])
-    .map((t) => ({ ...t, property: byId.get(t.property_id) }))
+    .map((t) => ({ ...t, property: byId.get(t.property_id), payprop_fee: ppBy.get(t.property_id) || 0 }))
     .sort((a, b) => String(a.property?.address).localeCompare(String(b.property?.address)));
   const failed = gen.error || totals.error || properties.error;
   return { rows, error: failed ? "Some figures couldn't load. Refresh the page to try again." : "" };
@@ -40,9 +42,31 @@ function rentBadge(row) {
   return <span className="pill cs-partial">Waiting on rent</span>;
 }
 
+// The fee PayProp already took for this property and month (from the PayProp imports), and what that means.
+function payPropNote(row) {
+  const fee = row.fee_billed_separately ? 0 : addMoney(row.mgmt_fee, row.mgmt_fee_hst);
+  const pp = Number(row.payprop_fee || 0);
+  if (!pp) return null;
+  if (cents(pp) > cents(fee) + 1)
+    return { bad: true, text: `PayProp took ${money(pp)}, more than this month's fee (${money(fee)}). An older fee may have been collected again: check PayProp and refund the landlord the difference.` };
+  if (cents(row.to_pay) > 0 && Math.abs(cents(row.to_pay) - cents(pp)) <= 1 && cents(row.paid_out) > 0)
+    return { bad: true, text: `PayProp took the ${money(pp)} fee and an e-Transfer payout seems to have taken it too. The ${money(pp)} left to pay is that fee going back to the landlord.` };
+  return { bad: false, text: `${money(pp)} of the fee was taken by PayProp. Don't take it again from an e-Transfer payout; "Left to pay" already accounts for it.` };
+}
+
 function FeeCell({ row }) {
   if (row.fee_billed_separately) return <span className="small">Paid separately</span>;
-  return <span className="num">{signedMoney(-addMoney(row.mgmt_fee, row.mgmt_fee_hst))}</span>;
+  const note = payPropNote(row);
+  return (
+    <span className="num">
+      {signedMoney(-addMoney(row.mgmt_fee, row.mgmt_fee_hst))}
+      {note ? (
+        <span className={`small${note.bad ? " is-late" : ""}`} style={{ display: "block", whiteSpace: "normal", maxWidth: 260 }} title={note.text}>
+          {note.bad ? "⚠ " : ""}PayProp took {money(row.payprop_fee)}
+        </span>
+      ) : null}
+    </span>
+  );
 }
 
 function ToPay({ value }) {
@@ -92,6 +116,7 @@ export default function PayoutsBoard({ initialMonth }) {
       net: sumBy(shown, "net_due"),
       paidOut: sumBy(shown, "paid_out"),
       toPay: sumBy(shown, "to_pay"),
+      payPropFees: sumBy(shown.filter((r) => !r.fee_billed_separately), "payprop_fee"),
     }),
     [shown]
   );
@@ -137,6 +162,8 @@ export default function PayoutsBoard({ initialMonth }) {
           ["Net due to owners", money(totals.net)],
           ["Paid out", money(totals.paidOut)],
           ["Left to pay", toPayLabel(totals.toPay).text],
+          ["IRep fees taken by PayProp", money(totals.payPropFees)],
+          ["IRep fees to move from trust", money(Math.max(0, -totals.fee - totals.payPropFees))],
         ].map(([label, value]) => (
           <div key={label} className="stat">
             <span className="stat-label">{label}</span>
