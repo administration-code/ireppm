@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const TABS = [
   { href: "/admin/accounting", label: "Reconcile" },
   { href: "/admin/accounting/import", label: "Bank Imports" },
+  { href: "/admin/accounting/payprop", label: "PayProp" },
   { href: "/admin/accounting/year", label: "Year End" },
   { href: "/admin/accounting/landlords", label: "Landlord Year-End" },
   { href: "/admin/accounting/deposits", label: "Deposits & Leasing" },
