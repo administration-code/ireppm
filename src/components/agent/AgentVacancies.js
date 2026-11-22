@@ -1,0 +1,256 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { useAuth } from "@/components/AuthProvider";
+import { getBrowserClient } from "@/lib/supabase";
+import { shortDate } from "@/lib/rent";
+
+const TYPES = ["Apartment", "House", "Townhouse", "Room"];
+const UTILS = { all: "All utilities included", water: "Water included, tenant pays hydro and gas", none: "Tenant pays all utilities" };
+const utilKey = (text) => (/^All/.test(text || "") ? "all" : /^Water/.test(text || "") ? "water" : /^Tenant/.test(text || "") ? "none" : "");
+const blank = { unit_id: "", rent: "", available_on: "", property_type: "Apartment", beds: "1", baths: "1", utilities: "", description: "", visibility: "link" };
+
+async function call(method, body) {
+  const { data } = await getBrowserClient().auth.getSession();
+  const res = await fetch("/api/agent/vacancies", {
+    method,
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${data?.session?.access_token || ""}` },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  return res.json().catch(() => ({ error: "Something went wrong. Try again." }));
+}
+
+function Fields({ f, setF }) {
+  const set = (k) => (e) => setF((s) => ({ ...s, [k]: e.target.value }));
+  return (
+    <>
+      <div className="req-actions" style={{ flexWrap: "wrap" }}>
+        <label className="stack" style={{ gap: 4 }}>
+          <span className="small">Rent a month</span>
+          <input inputMode="numeric" value={f.rent} onChange={(e) => setF((s) => ({ ...s, rent: e.target.value.replace(/\D/g, "") }))} placeholder="1500" style={{ width: 110 }} />
+        </label>
+        <label className="stack" style={{ gap: 4 }}>
+          <span className="small">Available</span>
+          <input type="date" value={f.available_on} onChange={set("available_on")} />
+        </label>
+        <label className="stack" style={{ gap: 4 }}>
+          <span className="small">Type</span>
+          <select value={f.property_type} onChange={set("property_type")}>
+            {TYPES.map((t) => (
+              <option key={t}>{t}</option>
+            ))}
+          </select>
+        </label>
+        {f.property_type !== "Room" ? (
+          <label className="stack" style={{ gap: 4 }}>
+            <span className="small">Bedrooms</span>
+            <input inputMode="numeric" value={f.beds} onChange={set("beds")} style={{ width: 70 }} />
+          </label>
+        ) : null}
+        <label className="stack" style={{ gap: 4 }}>
+          <span className="small">Bathrooms</span>
+          <input inputMode="decimal" value={f.baths} onChange={set("baths")} style={{ width: 70 }} />
+        </label>
+      </div>
+      <label className="stack" style={{ gap: 4 }}>
+        <span className="small">Utilities</span>
+        <select value={f.utilities} onChange={set("utilities")}>
+          <option value="">Choose…</option>
+          {Object.entries(UTILS).map(([k, v]) => (
+            <option key={k} value={k}>
+              {v}
+            </option>
+          ))}
+        </select>
+      </label>
+      <textarea rows={3} placeholder="A few words about it (optional): parking, laundry, what's nearby" value={f.description} onChange={set("description")} />
+      <label className="check-line">
+        <input type="checkbox" checked={f.visibility === "public"} onChange={(e) => setF((s) => ({ ...s, visibility: e.target.checked ? "public" : "link" }))} />
+        Also show it on ireppm.ca&apos;s rentals page (otherwise only people with the link can see it)
+      </label>
+    </>
+  );
+}
+
+// Chuck: put a vacancy up, get the apply link and the Facebook text, take it down when it's rented.
+export default function AgentVacancies() {
+  const { user, ready, openSignIn } = useAuth();
+  const [d, setD] = useState(null);
+  const [f, setF] = useState(blank);
+  const [edit, setEdit] = useState(null);
+  const [msg, setMsg] = useState("");
+  const [copied, setCopied] = useState("");
+  const [busy, setBusy] = useState(false);
+  const load = useCallback(async () => setD(await call("GET")), []);
+  useEffect(() => {
+    if (user) load();
+  }, [user, load]);
+
+  if (!ready) return <p className="small">Loading…</p>;
+  if (!user)
+    return (
+      <div className="empty">
+        <h1>Vacancies</h1>
+        <button type="button" className="btn primary" onClick={() => openSignIn("/agent/vacancies")}>
+          Sign in
+        </button>
+      </div>
+    );
+  if (!d) return <p className="small">Loading…</p>;
+  if (d.error) return <p className="small">{d.error}</p>;
+
+  async function start(e) {
+    e.preventDefault();
+    if (!f.unit_id) return setMsg("Choose the unit.");
+    if (!f.utilities) return setMsg("Choose the utilities.");
+    setBusy(true);
+    const out = await call("POST", { action: "start", ...f });
+    setBusy(false);
+    if (out.error) return setMsg(out.error);
+    setMsg("It's up. Copy the Facebook text below and post it.");
+    setF(blank);
+    load();
+  }
+  async function save(e) {
+    e.preventDefault();
+    setBusy(true);
+    const out = await call("POST", { action: "update", ...edit });
+    setBusy(false);
+    if (out.error) return setMsg(out.error);
+    setEdit(null);
+    load();
+  }
+  async function close(v, rented) {
+    if (!window.confirm(rented ? `Mark ${v.address}${v.unit ? `, ${v.unit}` : ""} as rented and take it down?` : "Take this vacancy down?")) return;
+    setBusy(true);
+    await call("POST", { action: "close", id: v.id, rented });
+    setBusy(false);
+    load();
+  }
+  async function copy(text, key) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(key);
+      setTimeout(() => setCopied(""), 2500);
+    } catch {
+      window.prompt("Copy this:", text);
+    }
+  }
+
+  const free = d.units.filter((u) => !u.hasVacancy);
+  return (
+    <div className="stack" style={{ gap: 24 }}>
+      <div style={{ display: "grid", gap: 6 }}>
+        <span className="eyebrow">
+          <Link href="/agent">Agent Portal</Link>
+        </span>
+        <h1 className="admin-title">Vacancies</h1>
+        <p className="small">
+          Put a unit up here, then post the text on Facebook. People apply online with the link and upload their own documents, so you don&apos;t need to
+          collect anything. Showing requests come to you as usual.
+        </p>
+      </div>
+
+      {d.vacancies.length ? (
+        <section className="boxed stack attention" aria-labelledby="vac-up">
+          <h2 id="vac-up" className="sec-title">
+            Up Now
+          </h2>
+          <ul className="req-list">
+            {d.vacancies.map((v) => (
+              <li className="req stack" key={v.id}>
+                <div className="req-top">
+                  <b>
+                    {v.address}
+                    {v.unit ? `, ${v.unit}` : ""} · ${Number(v.rent).toLocaleString("en-CA")}
+                  </b>
+                  <span className="small">
+                    {v.applications} application{v.applications === 1 ? "" : "s"} · {v.showings} showing{v.showings === 1 ? "" : "s"} · {v.visibility === "public" ? "on ireppm.ca" : "link only"}
+                  </span>
+                </div>
+                {edit?.id === v.id ? (
+                  <form className="stack" onSubmit={save}>
+                    <Fields f={edit} setF={setEdit} />
+                    <div className="req-actions">
+                      <button type="submit" className="btn primary sm" disabled={busy}>
+                        Save
+                      </button>
+                      <button type="button" className="link-btn small" onClick={() => setEdit(null)}>
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <>
+                    <pre className="small" style={{ whiteSpace: "pre-wrap", margin: 0, padding: 10, background: "var(--ivory, #F7F4EE)", borderRadius: 6 }}>
+                      {v.post}
+                    </pre>
+                    <div className="req-actions" style={{ flexWrap: "wrap" }}>
+                      <button type="button" className="btn primary sm" onClick={() => copy(v.post, `p${v.id}`)}>
+                        {copied === `p${v.id}` ? "Copied" : "Copy Facebook Text"}
+                      </button>
+                      <button type="button" className="btn ghost sm" onClick={() => copy(v.link, `l${v.id}`)}>
+                        {copied === `l${v.id}` ? "Copied" : "Copy Apply Link"}
+                      </button>
+                      <button
+                        type="button"
+                        className="link-btn small"
+                        onClick={() =>
+                          setEdit({
+                            id: v.id,
+                            rent: String(v.rent),
+                            available_on: v.available_on || "",
+                            property_type: v.property_type,
+                            beds: String(v.beds),
+                            baths: String(v.baths),
+                            utilities: utilKey(v.utilities),
+                            description: v.description || "",
+                            visibility: v.visibility,
+                          })
+                        }
+                      >
+                        Change
+                      </button>
+                      <button type="button" className="link-btn small" onClick={() => close(v, true)} disabled={busy}>
+                        Rented
+                      </button>
+                      <button type="button" className="link-btn small" onClick={() => close(v, false)} disabled={busy}>
+                        Take down
+                      </button>
+                    </div>
+                    <span className="small">Up since {shortDate(String(v.created_at).slice(0, 10))}</span>
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      <form className="boxed stack" onSubmit={start} aria-labelledby="vac-new">
+        <h2 id="vac-new" className="sec-title">
+          Put a Unit Up
+        </h2>
+        <label className="stack" style={{ gap: 4 }}>
+          <span className="small">Unit</span>
+          <select value={f.unit_id} onChange={(e) => setF((s) => ({ ...s, unit_id: e.target.value }))}>
+            <option value="">Choose the unit…</option>
+            {free.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.place} ({u.state})
+              </option>
+            ))}
+          </select>
+        </label>
+        <Fields f={f} setF={setF} />
+        <div className="req-actions">
+          <button type="submit" className="btn primary" disabled={busy}>
+            Put It Up
+          </button>
+          {msg ? <span className="small">{msg}</span> : null}
+        </div>
+      </form>
+    </div>
+  );
+}

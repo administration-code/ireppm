@@ -15,6 +15,7 @@ export async function generateMetadata({ params }) {
   return {
     title: `${listingTitle(listing)}, ${listing.city}`,
     description: `${listing.beds} bed, ${listing.baths} bath ${listing.property_type.toLowerCase()} for rent at ${money(listing.rent)}/month in ${listing.neighbourhood || listing.city}.`,
+    ...(listing.visibility === "link" ? { robots: { index: false, follow: false } } : {}),
   };
 }
 

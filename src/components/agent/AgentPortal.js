@@ -93,6 +93,9 @@ export default function AgentPortal() {
               {cash.held ? `Cash (holding $${cash.total.toFixed(2)})` : "Log Cash"}
             </Link>
           ) : null}
+          <Link className="btn primary sm" href="/agent/vacancies">
+            Vacancies
+          </Link>
           <Link className="btn primary sm" href="/agent/inspection">
             Inspection report
           </Link>
