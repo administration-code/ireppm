@@ -45,8 +45,11 @@ export async function mapProperties(sb, lines) {
   const { data: known } = await sb.from("payprop_properties").select("*");
   const map = new Map((known || []).map((k) => [k.payprop_property_id, k]));
   const upserts = [];
+  const seen = new Set();
   for (const l of lines) {
-    if (!l.payprop_property_id || map.get(l.payprop_property_id)?.property_id) continue;
+    // Once per PayProp property (an upsert can't touch the same row twice), keeping any match already made.
+    if (!l.payprop_property_id || seen.has(l.payprop_property_id) || map.get(l.payprop_property_id)?.property_id) continue;
+    seen.add(l.payprop_property_id);
     const k = propKey(l.property_name);
     const [num, street = ""] = k.split(" ");
     const hit =
@@ -59,7 +62,10 @@ export async function mapProperties(sb, lines) {
     map.set(l.payprop_property_id, row);
     upserts.push(row);
   }
-  if (upserts.length) await sb.from("payprop_properties").upsert(upserts, { onConflict: "payprop_property_id" });
+  if (upserts.length) {
+    const { error } = await sb.from("payprop_properties").upsert(upserts, { onConflict: "payprop_property_id" });
+    if (error) throw new Error(`Couldn't match PayProp properties: ${error.message}`);
+  }
   return map;
 }
 
