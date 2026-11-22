@@ -6,6 +6,7 @@ import { oldAddressReminders } from "@/lib/etransfer-reminders";
 import { buildToday } from "@/lib/today";
 import { SITE } from "@/lib/site";
 import { activateMoveIns } from "@/lib/move-ins";
+import { autoLeasingFees } from "@/lib/auto-leasing-fee";
 import { drawDigest } from "@/lib/payprop-draw";
 import { mailer, mailConfigured } from "@/lib/mailer";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
@@ -192,6 +193,7 @@ export async function GET(request) {
   result.creditReminders = await remindOverdueCreditChecks(sb);
   for (const [key, job] of [
     ["moveIns", activateMoveIns],
+    ["leasingFees", autoLeasingFees],
     ["insurance", insuranceReminders],
     ["leaseEnd", leaseEndPrompts],
     ["showings", showingReminders],
