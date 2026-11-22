@@ -19,9 +19,22 @@ export function otherParty(email) {
 
 // System senders (DocuSign, Vercel, no-reply and bounce addresses) are filed as "not a contact".
 const AUTOMATED =
-  /(^|[._+-])(no-?reply|do-?not-?reply|donotreply|mailer-daemon|postmaster|bounces?|notifications?|alerts?)([._+-]|@)|@([\w-]+\.)*(docusign\.(net|com)|vercel\.com|amazonses\.com)$/i;
+  /(^|[._+-])(no-?reply|do-?not-?reply|donotreply|mailer-daemon|postmaster|bounces?|notifications?|alerts?)([._+-]|@)|@([\w-]+\.)*(docusign\.(net|com)|vercel\.com|amazonses\.com|mail\.anthropic\.com)$/i;
 export const isAutomatedAddress = (e) => AUTOMATED.test(String(e || ""));
 // IRep's own auto-acknowledgement ("We've received your message") is not a real reply.
+// Emails that aren't kept at all: DocuSign's own status mail (the Signatures page records sent, viewed and signed
+// from DocuSign directly), and receipts or security codes from automated senders. A person replying to a DocuSign
+// email comes from their own address, so it's still logged.
+export const isDocuSignSystem = (e) => /@([\w-]+\.)*docusign\.(net|com)$/i.test(String(e || ""));
+const CODE_SUBJECT = /\b(security|verification|confirmation|login|log-?in|sign-?in|one-?time|access|authentication)\s+(code|pin|link)\b|\bverify your\b|\b2fa\b|\bsecurity alert\b|\bnew sign-?in\b/i;
+const RECEIPT_SUBJECT = /\b(receipt|invoice|payment (received|confirmation|successful)|your payment|subscription|order confirmation|billing)\b/i;
+export function skipLogging({ from_email, subject, automated }) {
+  if (isDocuSignSystem(from_email)) return "DocuSign status email";
+  const auto = automated || isAutomatedAddress(from_email);
+  if (auto && CODE_SUBJECT.test(subject || "")) return "Security or verification code";
+  if (auto && RECEIPT_SUBJECT.test(subject || "")) return "Receipt or billing email";
+  return null;
+}
 export const isAutoReply = (subject) => /^\s*we[’']ve received your message/i.test(String(subject || ""));
 
 // Tenant, landlord, applicant or partner for an address, with their unit and property.

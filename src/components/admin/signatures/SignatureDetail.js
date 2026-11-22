@@ -267,7 +267,8 @@ export default function SignatureDetail({ id }) {
                 </div>
                 <div className="small" style={{ textAlign: "right" }}>
                   {SIG_STATUS[r.status] || r.status || "—"}
-                  {r.signed_at ? <div>{when(r.signed_at)}</div> : null}
+                  {r.delivered_at ? <div>Viewed {when(r.delivered_at)}</div> : null}
+                  {r.signed_at ? <div>Signed {when(r.signed_at)}</div> : null}
                 </div>
               </li>
             ))}

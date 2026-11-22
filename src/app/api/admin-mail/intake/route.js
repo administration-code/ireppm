@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { redact } from "@/lib/ai";
 import { INTAKE_BUCKET, processInbound } from "@/lib/email-intake";
-import { idLikeAttachment, isAutoReply, labelEmail, matchParty, otherParty } from "@/lib/comms";
+import { idLikeAttachment, isAutoReply, labelEmail, matchParty, otherParty, skipLogging } from "@/lib/comms";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -54,6 +54,10 @@ export async function POST(request) {
   // IRep's automatic "We've received your message" replies aren't kept: they'd clutter the timeline
   // and count as answering the tenant.
   if (direction === "out" && isAutoReply(body.subject)) return NextResponse.json({ ok: true, skipped: "auto-reply", uploads: [] });
+  if (direction === "in") {
+    const why = skipLogging({ from_email: fromEmail, subject: body.subject, automated: Boolean(body.automated) });
+    if (why) return NextResponse.json({ ok: true, skipped: why, uploads: [] });
+  }
 
   // A template email sent from the portal is already on the timeline: link it to its Gmail copy.
   if (direction === "out" && UUID.test(String(body.draft_id || ""))) {

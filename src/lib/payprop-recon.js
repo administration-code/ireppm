@@ -47,7 +47,14 @@ export async function mapProperties(sb, lines) {
   const upserts = [];
   for (const l of lines) {
     if (!l.payprop_property_id || map.get(l.payprop_property_id)?.property_id) continue;
-    const hit = (props || []).find((p) => propKey(p.address) === propKey(l.property_name));
+    const k = propKey(l.property_name);
+    const [num, street = ""] = k.split(" ");
+    const hit =
+      (props || []).find((p) => propKey(p.address) === k) ||
+      (props || []).find((p) => {
+        const [n2, s2 = ""] = propKey(p.address).split(" ");
+        return n2 === num && s2.slice(0, 4) === street.slice(0, 4);
+      });
     const row = { payprop_property_id: l.payprop_property_id, name: l.property_name, property_id: hit?.id || null, updated_at: new Date().toISOString() };
     map.set(l.payprop_property_id, row);
     upserts.push(row);
