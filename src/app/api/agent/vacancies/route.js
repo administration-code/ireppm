@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { partnerFromRequest } from "@/lib/server-auth";
-import { closeVacancy, startVacancy, updateVacancy, vacancyBoard } from "@/lib/vacancies";
+import { addPhotos, closeVacancy, photoUploadLinks, removePhoto, startVacancy, updateVacancy, vacancyBoard } from "@/lib/vacancies";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,6 +10,8 @@ export const dynamic = "force-dynamic";
 //   GET → { units, vacancies }
 //   POST { action: "start", unit_id, rent, available_on, property_type, beds, baths, utilities, description, visibility }
 //   POST { action: "update", id, ...same fields }   POST { action: "close", id, rented }
+//   POST { action: "photo-links", id, files: [{ name, type }] } → upload links; then { action: "photos-add", id, paths }
+//   POST { action: "photo-remove", id, url }
 export async function GET(request) {
   const sb = getSupabaseAdmin();
   const partner = await partnerFromRequest(sb, request);
@@ -29,6 +31,12 @@ export async function POST(request) {
         ? await updateVacancy(sb, partner, body)
         : body.action === "close"
           ? await closeVacancy(sb, partner, body)
-          : { error: "Unknown action." };
+          : body.action === "photo-links"
+            ? await photoUploadLinks(sb, partner, body)
+            : body.action === "photos-add"
+              ? await addPhotos(sb, partner, body)
+              : body.action === "photo-remove"
+                ? await removePhoto(sb, partner, body)
+                : { error: "Unknown action." };
   return NextResponse.json(out, { status: out.error ? 400 : 200 });
 }

@@ -77,6 +77,16 @@ export async function POST(request) {
   if (estProblem) return NextResponse.json({ error: estProblem }, { status: 400 });
   const done = body?.already_done === true;
   const settled = done && body?.settled_direct === true;
+  // Already done and billed through IRep: goes to staff review (Jobs Done) with his date and price, like Job Done.
+  const review = done && !settled;
+  const doneOn = String(body?.done_on || "");
+  const noCharge = body?.no_charge === true;
+  const price = noCharge ? 0 : Number(body?.price);
+  if (review) {
+    const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" });
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(doneOn) || doneOn > today) return NextResponse.json({ error: "Choose the date you finished it." }, { status: 400 });
+    if (!noCharge && !(price > 0 && price < 100000)) return NextResponse.json({ error: "Enter your price before HST, or tick No charge." }, { status: 400 });
+  }
   const est = settled ? { estimated_cost: null, note: "" } : estimateFromForm(body?.est_repair, body?.est_replace);
 
   const props = await assignedProperties(sb, partner.id);
@@ -111,7 +121,7 @@ export async function POST(request) {
   const photos = (Array.isArray(body?.photos) ? body.photos : [])
     .filter((p) => typeof p?.path === "string" && p.path.startsWith(`${partner.userId}/`))
     .slice(0, 15)
-    .map((p) => ({ path: p.path, name: clip(p.name, 120) || "photo" }));
+    .map((p) => ({ path: p.path, name: clip(p.name, 120) || "photo", ...(body?.already_done === true && body?.settled_direct !== true ? { stage: "after" } : {}) }));
 
   // The tenancy living in that unit, so staff see who's affected.
   let tenancyId = null;
@@ -126,9 +136,21 @@ export async function POST(request) {
     tenancyId = t?.[0]?.id || null;
   }
 
+  let vendor = {};
+  if (review) {
+    const { data: pt } = await sb.from("partners").select("charges_hst").eq("id", partner.id).maybeSingle();
+    vendor = {
+      vendor_done_at: new Date().toISOString(),
+      vendor_done_on: doneOn,
+      vendor_notes: description,
+      vendor_price: noCharge ? 0 : price,
+      vendor_hst: noCharge ? false : pt?.charges_hst !== false,
+    };
+  }
   const { data: created, error } = await sb
     .from("maintenance_requests")
     .insert({
+      ...vendor,
       unit_id: unit,
       tenancy_id: tenancyId,
       source: "staff",
@@ -141,15 +163,15 @@ export async function POST(request) {
       estimated_cost: est.estimated_cost,
       estimate_plus_hst: est.estimated_cost != null,
       photos,
-      status: done ? "completed" : "new",
-      completed_at: done ? new Date().toISOString() : null,
+      status: settled ? "completed" : "new",
+      completed_at: settled ? new Date().toISOString() : null,
       partner_id: partner.id,
       reporter_name: partner.name,
       reporter_phone: partner.phone || null,
       reporter_email: partner.email,
       permission_to_enter: false,
       staff_notes: `Logged by ${partner.name} through the Agent Portal${
-        settled ? " as completed and settled directly with the landlord (nothing to bill)" : done ? " as already completed" : ""
+        settled ? " as completed and settled directly with the landlord (nothing to bill)" : done ? " as already done, for IRep to review (Jobs Done)" : ""
       }.`,
     })
     .select("id")
@@ -157,6 +179,10 @@ export async function POST(request) {
   if (error) {
     console.error("[agent/maintenance] insert failed:", error.message);
     return NextResponse.json({ error: "We couldn't save that. Try again." }, { status: 500 });
+  }
+  if (review) {
+    const { jobDoneAlert } = await import("@/lib/job-done");
+    await jobDoneAlert(partner, { id: created.id, title, where: property.address, doneOn, notes: description, price: noCharge ? 0 : price, photos: photos.length });
   }
   return NextResponse.json({ id: created.id });
 }

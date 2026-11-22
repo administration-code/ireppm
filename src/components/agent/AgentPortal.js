@@ -10,6 +10,7 @@ import { getBrowserClient } from "@/lib/supabase";
 import { SITE } from "@/lib/site";
 import { GettingStarted } from "@/components/tenant/TenantCards";
 import AgentMaintenanceForm from "./AgentMaintenanceForm";
+import AgentJobDone from "./AgentJobDone";
 
 const longDay = (iso) =>
   iso ? new Date(`${iso}T12:00:00`).toLocaleDateString("en-CA", { weekday: "short", month: "long", day: "numeric" }) : "";
@@ -23,6 +24,16 @@ export default function AgentPortal() {
   const [tour, setTour] = useState({ loaded: false, dismissedAt: null });
   const [cash, setCash] = useState(null);
   const [serve, setServe] = useState(null);
+  const [doneJobs, setDoneJobs] = useState([]);
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data } = await getBrowserClient().auth.getSession();
+      const res = await fetch("/api/agent/maintenance/done", { headers: { Authorization: `Bearer ${data?.session?.access_token || ""}` } }).catch(() => null);
+      const out = res ? await res.json().catch(() => null) : null;
+      if (Array.isArray(out?.done)) setDoneJobs(out.done);
+    })();
+  }, [user]);
   useEffect(() => {
     if (!user) return;
     (async () => {
@@ -192,6 +203,7 @@ export default function AgentPortal() {
                       : "Arrange a time with the tenant first."}
                   {j.access_notes ? ` ${j.access_notes}` : ""}
                 </span>
+                <AgentJobDone job={j} userId={user.id} done={doneJobs.includes(j.id)} onDone={(id) => setDoneJobs((l) => [...l, id])} />
               </li>
             ))}
           </ul>

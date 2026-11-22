@@ -43,6 +43,7 @@ export async function loadNavCounts() {
     invoicesUnpaid: sb.from("invoices").select("id", head).eq("status", "sent"),
     expensesToPay: sb.from("landlord_expenses").select("id", head).eq("status", "to_pay"),
     unmatchedBankLines: sb.from("bank_transactions").select("id", head).eq("status", "unmatched"),
+    jobsDone: sb.from("maintenance_requests").select("id", head).not("vendor_done_at", "is", null).neq("status", "completed"),
     cashHeld: sb.from("cash_collections").select("id", head).eq("status", "held"),
     emailServeOpen: sb.from("staff_tasks").select("id", head).in("status", ["open", "waiting"]).ilike("title", "Serve by email:%"),
   };

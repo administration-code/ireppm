@@ -21,6 +21,60 @@ async function call(method, body) {
   return res.json().catch(() => ({ error: "Something went wrong. Try again." }));
 }
 
+function Photos({ v, onChange }) {
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  async function add(list) {
+    const files = Array.from(list || []);
+    if (!files.length) return;
+    if (files.some((f) => f.size > 10 * 1024 * 1024)) return setMsg("Each photo must be under 10 MB.");
+    setBusy(true);
+    setMsg(`Uploading ${files.length} photo${files.length === 1 ? "" : "s"}…`);
+    const out = await call("POST", { action: "photo-links", id: v.id, files: files.map((f) => ({ name: f.name, type: f.type })) });
+    if (out.error) {
+      setBusy(false);
+      return setMsg(out.error);
+    }
+    const sb = getBrowserClient();
+    const done = [];
+    for (const [i, l] of out.links.entries()) {
+      const { error } = await sb.storage.from("listing-photos").uploadToSignedUrl(l.path, l.token, files[i], { contentType: files[i].type });
+      if (!error) done.push(l.path);
+    }
+    const saved = done.length ? await call("POST", { action: "photos-add", id: v.id, paths: done }) : { error: "The upload didn't work. Try again." };
+    setBusy(false);
+    setMsg(saved.error || (done.length < files.length ? `${done.length} of ${files.length} uploaded.` : ""));
+    onChange();
+  }
+  async function remove(url) {
+    setBusy(true);
+    await call("POST", { action: "photo-remove", id: v.id, url });
+    setBusy(false);
+    onChange();
+  }
+  return (
+    <div className="stack" style={{ gap: 6 }}>
+      {(v.photos || []).length ? (
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {v.photos.map((u) => (
+            <div key={u} style={{ position: "relative" }}>
+              <img src={u} alt="" style={{ width: 84, height: 64, objectFit: "cover", borderRadius: 4 }} />
+              <button type="button" className="link-btn small" onClick={() => remove(u)} disabled={busy} aria-label="Remove photo" style={{ position: "absolute", top: 0, right: 2 }}>
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : null}
+      <label className="btn ghost sm" style={{ width: "fit-content" }}>
+        {busy ? "Uploading…" : (v.photos || []).length ? "Add More Photos" : "Add Photos"}
+        <input type="file" accept="image/jpeg,image/png,image/webp" multiple hidden disabled={busy} onChange={(e) => add(e.target.files)} />
+      </label>
+      {msg ? <span className="small">{msg}</span> : null}
+    </div>
+  );
+}
+
 function Fields({ f, setF }) {
   const set = (k) => (e) => setF((s) => ({ ...s, [k]: e.target.value }));
   return (
@@ -219,6 +273,7 @@ export default function AgentVacancies() {
                         Take down
                       </button>
                     </div>
+                    <Photos v={v} onChange={load} />
                     <span className="small">Up since {shortDate(String(v.created_at).slice(0, 10))}</span>
                   </>
                 )}

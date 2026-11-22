@@ -69,7 +69,7 @@ export async function vacancyBoard(sb, partnerId) {
   if (listingIds.length) {
     const { data: ls } = await sb
       .from("listings")
-      .select("id, slug, address, unit, city, property_type, beds, baths, rent, available_on, utilities, description, status, visibility, created_at")
+      .select("id, slug, address, unit, city, property_type, beds, baths, rent, available_on, utilities, description, status, visibility, created_at, photos")
       .in("id", listingIds)
       .eq("status", "available");
     const live = ls || [];
@@ -162,4 +162,50 @@ export async function closeVacancy(sb, partner, input) {
   if (!v) return { error: "That vacancy wasn't found." };
   const { error } = await sb.from("listings").update({ status: input?.rented ? "leased" : "archived" }).eq("id", v.id);
   return error ? { error: "That didn't save. Try again." } : { ok: true };
+}
+
+// Photos for a vacancy: the server hands out one-time upload links (the partner can't write to storage directly),
+// then adds the uploaded photos to the listing.
+const LISTING_PHOTOS = "listing-photos";
+const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MAX_PHOTOS = 20;
+
+export async function photoUploadLinks(sb, partner, input) {
+  const v = await ownVacancy(sb, partner, String(input?.id || ""));
+  if (!v) return { error: "That vacancy wasn't found." };
+  const files = (Array.isArray(input?.files) ? input.files : []).slice(0, MAX_PHOTOS - (v.photos || []).length);
+  if (!files.length) return { error: `A vacancy can have up to ${MAX_PHOTOS} photos.` };
+  const links = [];
+  for (const [i, f] of files.entries()) {
+    if (!PHOTO_TYPES.includes(f?.type)) return { error: "Photos must be JPEG, PNG or WebP. (iPhone: Settings → Camera → Formats → Most Compatible.)" };
+    const safe = String(f.name || "photo").replace(/[^\w.\-]+/g, "_").slice(-60);
+    const path = `vacancies/${v.id}/${Date.now()}-${i}-${safe}`;
+    const { data, error } = await sb.storage.from(LISTING_PHOTOS).createSignedUploadUrl(path);
+    if (error) return { error: "Couldn't start the upload. Try again." };
+    links.push({ path, token: data.token });
+  }
+  return { ok: true, links };
+}
+
+export async function addPhotos(sb, partner, input) {
+  const v = await ownVacancy(sb, partner, String(input?.id || ""));
+  if (!v) return { error: "That vacancy wasn't found." };
+  const paths = (Array.isArray(input?.paths) ? input.paths : []).filter((p) => typeof p === "string" && p.startsWith(`vacancies/${v.id}/`));
+  const urls = paths.map((p) => sb.storage.from(LISTING_PHOTOS).getPublicUrl(p).data.publicUrl);
+  const photos = [...new Set([...(v.photos || []), ...urls])].slice(0, MAX_PHOTOS);
+  const { error } = await sb.from("listings").update({ photos }).eq("id", v.id);
+  return error ? { error: "Couldn't save the photos." } : { ok: true, photos };
+}
+
+export async function removePhoto(sb, partner, input) {
+  const v = await ownVacancy(sb, partner, String(input?.id || ""));
+  if (!v) return { error: "That vacancy wasn't found." };
+  const url = String(input?.url || "");
+  const photos = (v.photos || []).filter((u) => u !== url);
+  const { error } = await sb.from("listings").update({ photos }).eq("id", v.id);
+  const marker = `/storage/v1/object/public/${LISTING_PHOTOS}/`;
+  const i = url.indexOf(marker);
+  const path = i === -1 ? null : decodeURIComponent(url.slice(i + marker.length).split("?")[0]);
+  if (!error && path?.startsWith(`vacancies/${v.id}/`)) await sb.storage.from(LISTING_PHOTOS).remove([path]);
+  return error ? { error: "Couldn't remove it." } : { ok: true, photos };
 }
