@@ -16,6 +16,7 @@ export const NAV_GROUPS = [
     items: [
       { key: "today", label: "Today", href: "/admin/today" },
       { key: "tasks", label: "Tasks", href: "/admin/tasks", count: "tasksOpen", note: "open" },
+      { key: "serving", label: "Email Service", href: "/admin/serving", count: "emailServeOpen", note: "to send or sign" },
       { key: "workflow", label: "Staff Workflow", href: "/admin/workflow" },
       { key: "ask", label: "Ask IRep", href: "/admin/ask" },
       { key: "hours", label: "My Hours", href: "/admin/hours" },

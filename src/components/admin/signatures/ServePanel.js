@@ -70,7 +70,7 @@ export default function ServePanel({ row, tenancy, notice, certs, onServed }) {
       } catch {}
       const res = await docusignApi(`/requests/${row.id}/serve-email`, { body: { signer_name: signer.trim() } });
       setMessage({
-        text: `Emailed to ${res.sent_to.join(", ")} and recorded as served. ${res.certificate ? "Your Certificate of Service is in your email from DocuSign: sign it." : "The Certificate of Service couldn't be sent: send it below."}`,
+        text: `Emailed to ${res.sent_to.join(", ")} and recorded as served. ${res.certificate ? "Sign your Certificate of Service on the Email Service page (My Day → Email Service)." : "The Certificate of Service couldn't be sent: send it below."}`,
         tone: "ok",
       });
       await onServed();

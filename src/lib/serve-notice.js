@@ -9,6 +9,7 @@ import { escapeHtml, renderEmail, renderText } from "@/lib/staff-alerts";
 
 // Email service from the office is Rishi's job: he serves it, so he signs the certificate.
 export const EMAIL_SERVER_EMAIL = "rishi@ireppm.ca";
+const EMBED_ID = "irep-staff-serve";
 
 // Chuck serves N4, N5 and N1 notices from the Agent Portal: once the landlord signs, it's on his list; he
 // marks it delivered with the date and how; the portal records the service, fills the date and method into
@@ -351,6 +352,8 @@ export async function emailServe(sb, requestId, server) {
       method_details: how.slice(0, 200),
     };
     const built = buildCertificate(cf, ids);
+    // Signed right in the staff portal (Email Service page), so no DocuSign email is needed.
+    built.definition.templateRoles[0].clientUserId = EMBED_ID;
     const title = `Certificate of Service (${row.kind}): ${place}`;
     const { data: c, error } = await sb
       .from("signature_requests")
@@ -366,7 +369,7 @@ export async function emailServe(sb, requestId, server) {
         related_request_id: row.id,
         recipients: built.recipients,
         prefill: built.prefill,
-        terms: { served_on: today, method: "email", notice_form: row.kind, method_details: how },
+        terms: { served_on: today, method: "email", notice_form: row.kind, method_details: how, embedded: true },
         email_subject: `Please sign: ${title}`.slice(0, 100),
         sent_by: row.sent_by,
       })
@@ -399,7 +402,7 @@ export async function emailServeTask(sb, row) {
     await sb.from("staff_tasks").insert({
       kind: "follow_up",
       title,
-      detail: "The tenants consented in writing to email service. Open it, type your name, click Email It to the Tenants, then sign the Certificate of Service DocuSign sends you.",
+      detail: "The tenants consented in writing to email service. Open Email Service, click Email It to the Tenants, then Review and Sign the Certificate of Service on the same page.",
       status: "open",
       due_date: due,
       tenancy_id: row.tenancy_id,
@@ -413,7 +416,7 @@ export async function emailServeTask(sb, row) {
     });
     if (rishi?.email && mailConfigured()) {
       const rows = [["Task", title], ["Due", due]];
-      const href = { href: `https://ireppm.ca${link}`, label: "Open the notice" };
+      const href = { href: "https://ireppm.ca/admin/serving", label: "Open Email Service" };
       await mailer().emails.send({
         from: "IRep Property Management <alerts@ireppm.ca>",
         to: [rishi.email],
@@ -426,4 +429,62 @@ export async function emailServeTask(sb, row) {
   } catch (err) {
     console.error("[serve] email task failed:", err?.message || err);
   }
+}
+
+// Staff Email Service page: notices ready to email, and certificates waiting for this staff member to sign.
+export async function servingBoard(sb, staff) {
+  const since = new Date(Date.now() - 120 * 86400000).toISOString();
+  const { data: notices } = await sb
+    .from("signature_requests")
+    .select("id, kind, title, completed_at, tenancy_id, terms, prefill")
+    .in("kind", FORMS)
+    .eq("status", "completed")
+    .is("notice_id", null)
+    .gte("completed_at", since)
+    .order("completed_at");
+  const list = notices || [];
+  const { data: handled } = list.length
+    ? await sb.from("signature_requests").select("related_request_id").eq("kind", "certificate_of_service").in("status", ["sent", "delivered", "completed"]).in("related_request_id", list.map((n) => n.id))
+    : { data: [] };
+  const done = new Set((handled || []).map((h) => h.related_request_id));
+  const open = list.filter((n) => !done.has(n.id));
+  const elig = await Promise.all(open.map((n) => emailEligibility(sb, n.tenancy_id)));
+  const toSend = open
+    .map((n, i) => ({ n, e: elig[i] }))
+    .filter((x) => x.e.ok)
+    .map(({ n, e }) => ({
+      id: n.id,
+      form: n.kind,
+      title: n.title,
+      signed_on: String(n.completed_at).slice(0, 10),
+      emails: e.emails,
+      termination: n.terms?.effective_date || n.prefill?.termination_date || n.prefill?.increase_date || null,
+    }));
+  const me = String(staff?.email || "").toLowerCase();
+  const { data: certs } = await sb
+    .from("signature_requests")
+    .select("id, title, sent_at, terms, recipients, related_request_id")
+    .eq("kind", "certificate_of_service")
+    .in("status", ["sent", "delivered"])
+    .order("sent_at");
+  const toSign = (certs || [])
+    .filter((c) => (c.recipients || []).some((r) => String(r.email || "").toLowerCase() === me))
+    .map((c) => ({ id: c.id, title: c.title, sent_on: String(c.sent_at || "").slice(0, 10), served_on: c.terms?.served_on || null, embedded: Boolean(c.terms?.embedded) }));
+  return { toSend, toSign };
+}
+
+// A DocuSign signing link, inside the portal, for a certificate this staff member signs.
+export async function certificateSigningUrl(sb, staff, id, returnUrl) {
+  const { data: c } = await sb.from("signature_requests").select("id, kind, status, envelope_id, recipients, terms").eq("id", id).maybeSingle();
+  if (!c || c.kind !== "certificate_of_service" || !c.envelope_id) return { error: "Not found." };
+  if (!["sent", "delivered"].includes(c.status)) return { error: "That certificate is already signed or closed." };
+  const me = String(staff?.email || "").toLowerCase();
+  const r = (c.recipients || []).find((x) => String(x.email || "").toLowerCase() === me);
+  if (!r) return { error: "This certificate is for someone else to sign." };
+  if (!c.terms?.embedded) return { error: "This one was sent by email: open the DocuSign email to sign it." };
+  const view = await ds(`/envelopes/${c.envelope_id}/views/recipient`, {
+    method: "POST",
+    body: { returnUrl, authenticationMethod: "none", email: r.email, userName: r.name, clientUserId: EMBED_ID },
+  });
+  return { url: view.url };
 }
