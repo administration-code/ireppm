@@ -118,7 +118,8 @@ function GoogleButton({ next, onError, phone }) {
     const sb = getBrowserClient();
     const { error } = await sb.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: window.location.origin + next },
+      // Always show Google's account chooser, so a different Google account can be picked.
+      options: { redirectTo: window.location.origin + next, queryParams: { prompt: "select_account" } },
     });
     if (error) {
       setBusy(false);

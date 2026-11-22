@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { getBrowserClient } from "@/lib/supabase";
+import { refreshStaffCounts } from "@/lib/admin-nav";
 import { loadTenancyOptions, tenancyAddress } from "@/lib/rent";
 import { LABELS, gmailLink } from "@/components/admin/comms/Communications";
 
@@ -32,6 +33,7 @@ function Assign({ group, options, onDone }) {
     const out = await res.json().catch(() => ({}));
     setBusy(false);
     if (!res.ok) return setErr(out.error || "That didn't save.");
+    refreshStaffCounts();
     onDone();
   }
   return (

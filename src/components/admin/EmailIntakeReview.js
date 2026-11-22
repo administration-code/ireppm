@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getBrowserClient } from "@/lib/supabase";
+import { refreshStaffCounts } from "@/lib/admin-nav";
 import { loadTenancyOptions, shortDate, tenancyAddress } from "@/lib/rent";
 
 const CATS = ["plumbing", "electrical", "heating_cooling", "appliance", "pests", "doors_locks_windows", "roof_structure", "lawn_snow", "other"];
@@ -33,6 +34,7 @@ function Item({ row, tenancies, onDone }) {
     setErr("");
     try {
       await post(row.id, action === "approve" ? { action, tenancy_id: tenancyId, issues } : { action });
+      refreshStaffCounts();
       onDone();
     } catch (e) {
       setErr(e.message);

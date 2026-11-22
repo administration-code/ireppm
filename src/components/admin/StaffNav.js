@@ -84,6 +84,7 @@ export const NAV_GROUPS = [
     items: [
       { key: "reconciliation", label: "Reconciliation", href: "/admin/accounting", count: "unmatchedBankLines", note: "bank lines to match" },
       { key: "bank-imports", label: "Bank Imports", href: "/admin/accounting/import" },
+      { key: "payprop-recon", label: "PayProp Reconciliation", href: "/admin/accounting/payprop" },
       { key: "payouts", label: "Landlord Payouts", href: "/admin/payouts" },
       { key: "invoices", label: "Invoices", href: "/admin/invoices", count: "invoicesUnpaid", note: "unpaid" },
       { key: "expenses", label: "Additional Expenses", href: "/admin/expenses", count: "expensesToPay", note: "to pay" },
@@ -378,7 +379,7 @@ function MobileNav({ active, c }) {
   );
 }
 
-const REFRESH_MS = 60000;
+const REFRESH_MS = 30000;
 const EXTRA_PREFIXES = [
   ["/admin/units", "properties"],
   ["/admin/inspections", "properties"],
@@ -418,10 +419,12 @@ function useNavCounts(enabled) {
     load();
     const timer = setInterval(load, REFRESH_MS);
     window.addEventListener(COUNTS_EVENT, load);
+    window.addEventListener("focus", load);
     return () => {
       alive = false;
       clearInterval(timer);
       window.removeEventListener(COUNTS_EVENT, load);
+      window.removeEventListener("focus", load);
     };
   }, [enabled]);
   return counts;
