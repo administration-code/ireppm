@@ -54,7 +54,8 @@ export async function POST(request) {
   // IRep's automatic "We've received your message" replies aren't kept: they'd clutter the timeline
   // and count as answering the tenant.
   if (direction === "out" && isAutoReply(body.subject)) return NextResponse.json({ ok: true, skipped: "auto-reply", uploads: [] });
-  if (direction === "in") {
+  // Not switched on until Rosie has checked the list of what it would skip (set INTAKE_SKIP_AUTOMATED=on in Vercel).
+  if (direction === "in" && process.env.INTAKE_SKIP_AUTOMATED === "on") {
     const why = skipLogging({ from_email: fromEmail, subject: body.subject, automated: Boolean(body.automated) });
     if (why) return NextResponse.json({ ok: true, skipped: why, uploads: [] });
   }
