@@ -5,7 +5,7 @@ import { getBrowserClient } from "@/lib/supabase";
 
 export const LABELS = { maintenance: "Maintenance", rent: "Rent", lease: "Lease & Signatures", notices: "Notices", landlord: "Landlord", general: "General" };
 const COLS = "id, message_id, thread_id, direction, from_name, from_email, to_emails, subject, snippet, received_at, category, label_source, answered_at, status, party_kind, party_name, attachments, hidden_attachments, maintenance_request_ids";
-export const gmailLink = (threadId) => (threadId ? `https://mail.google.com/mail/u/administration@ireppm.ca/#all/${threadId}` : null);
+export const gmailLink = (threadId) => (threadId ? `https://mail.google.com/mail/?authuser=administration%40ireppm.ca#all/${threadId}` : null);
 
 const when = (iso) =>
   new Date(iso).toLocaleString("en-CA", { timeZone: "America/Toronto", month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });

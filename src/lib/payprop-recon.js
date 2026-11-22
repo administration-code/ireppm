@@ -153,33 +153,60 @@ export async function reconcileMonth(sb, month) {
     .filter((o) => outLeft.has(o.id) && o.paid_on >= start && o.paid_on < end)
     .map((o) => ({ id: o.id, date: o.paid_on, amount: Number(o.amount), property: addr.get(o.property_id) || "" }));
 
-  // 3. IRep's share (management and other fees), by remittance and payout date, against PayProp deposits at Scotiabank.
-  const fees = new Map();
+  // 3. IRep's PayProp deposits at Scotiabank. Each remittance to IRep is IRep's share of the payments in it,
+  // less PayProp's service and transaction fees on those payments and $0.34 for the transfer. Remittances with
+  // nothing for IRep still have fees, which come off the next deposit. The first deposit each month also has
+  // PayProp's monthly charge taken off (about $40).
+  const feesOf = new Map();
   for (const l of all) {
-    if (l.ben_type !== "C" || !(l.transferred_date >= start && l.transferred_date < end)) continue;
-    const f = fees.get(l.remit_id) || { remit: l.remit_id, date: l.transferred_date, amount: 0, lines: 0 };
-    f.amount += Number(l.after_split || 0);
-    f.lines += Number(l.after_split || 0) ? 1 : 0;
-    fees.set(l.remit_id, f);
+    const f = feesOf.get(l.payprop_payment_id) || 0;
+    feesOf.set(l.payprop_payment_id, f + Number(l.raw?.ServiceFee || 0) + Number(l.raw?.TransactionFee || 0));
+  }
+  const remitC = new Map();
+  for (const l of all) {
+    if (l.ben_type !== "C" || !l.transferred_date) continue;
+    const f = remitC.get(l.remit_id) || { remit: l.remit_id, date: l.transferred_date, share: 0, pays: new Set() };
+    f.share += Number(l.after_split || 0);
+    f.pays.add(l.payprop_payment_id);
+    remitC.set(l.remit_id, f);
+  }
+  const ordered = [...remitC.values()].sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  let carry = 0;
+  const deposits = [];
+  for (const f of ordered) {
+    const fees = [...f.pays].reduce((s, id) => s + (feesOf.get(id) || 0), 0);
+    const net = f.share - fees - 0.34;
+    if (f.share <= 0) {
+      carry += net;
+      continue;
+    }
+    deposits.push({ remit: f.remit, date: f.date, share: Math.round(f.share * 100) / 100, fees: Math.round((fees + 0.34 - carry) * 100) / 100, expected: Math.round((net + carry) * 100) / 100 });
+    carry = 0;
   }
   const { data: bank } = await sb
     .from("bank_transactions")
     .select("id, posted_on, amount, description")
     .ilike("description", "%payprop%")
     .gt("amount", 0)
-    .gte("posted_on", start)
+    .gte("posted_on", pad(start, -3))
     .lt("posted_on", pad(end, 7));
   const bankLeft = new Set((bank || []).map((b) => b.id));
-  const irep = [...fees.values()]
-    .filter((f) => f.amount > 0)
-    .sort((a, b) => String(a.date).localeCompare(String(b.date)))
+  const firstOfMonth = new Set();
+  const irep = deposits
+    .filter((f) => f.date >= start && f.date < end)
     .map((f) => {
-      const amount = Math.round(f.amount * 100) / 100;
       const near = (bank || []).filter((b) => bankLeft.has(b.id) && dayDiff(b.posted_on, f.date) >= 0 && dayDiff(b.posted_on, f.date) <= 4);
-      const exact = near.find((b) => c(b.amount) === c(amount));
-      const hit = exact || near[0];
+      near.sort((a, b) => Math.abs(Number(a.amount) - f.expected) - Math.abs(Number(b.amount) - f.expected));
+      const hit = near[0];
       if (hit) bankLeft.delete(hit.id);
-      return { ...f, amount, status: exact ? "matched" : hit ? "differs" : "not_at_bank", bank: hit ? { date: hit.posted_on, amount: Number(hit.amount) } : null, difference: hit && !exact ? Math.round((Number(hit.amount) - amount) * 100) / 100 : null };
+      const diff = hit ? Math.round((Number(hit.amount) - f.expected) * 100) / 100 : null;
+      let status = "not_at_bank";
+      if (hit && Math.abs(diff) <= 0.05) status = "matched";
+      else if (hit && diff < -30 && diff > -55 && !firstOfMonth.has(f.date.slice(0, 7))) {
+        status = "monthly_charge";
+        firstOfMonth.add(f.date.slice(0, 7));
+      } else if (hit) status = "differs";
+      return { ...f, amount: f.expected, status, bank: hit ? { date: hit.posted_on, amount: Number(hit.amount) } : null, difference: status === "matched" ? null : diff };
     });
 
   const unmappedProperties = [...new Set(all.filter((l) => !propOf.get(l.payprop_property_id)).map((l) => l.property_name))];

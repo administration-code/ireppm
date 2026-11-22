@@ -379,7 +379,7 @@ function MobileNav({ active, c }) {
   );
 }
 
-const REFRESH_MS = 60000;
+const REFRESH_MS = 30000;
 const EXTRA_PREFIXES = [
   ["/admin/units", "properties"],
   ["/admin/inspections", "properties"],
@@ -419,10 +419,12 @@ function useNavCounts(enabled) {
     load();
     const timer = setInterval(load, REFRESH_MS);
     window.addEventListener(COUNTS_EVENT, load);
+    window.addEventListener("focus", load);
     return () => {
       alive = false;
       clearInterval(timer);
       window.removeEventListener(COUNTS_EVENT, load);
+      window.removeEventListener("focus", load);
     };
   }, [enabled]);
   return counts;

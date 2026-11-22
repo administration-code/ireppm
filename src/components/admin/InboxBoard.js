@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getBrowserClient } from "@/lib/supabase";
+import { refreshStaffCounts } from "@/lib/admin-nav";
 import { shortDate } from "@/lib/rent";
 
 const CATS = { maintenance: "Maintenance", rent: "Rent", lease: "Lease & Signatures", notices: "Notices", landlord: "Landlord", general: "General" };
@@ -23,6 +24,7 @@ export default function InboxBoard() {
   }, [cat, tab]);
   async function mark(id, status) {
     await getBrowserClient().from("inbound_emails").update({ status }).eq("id", id);
+    refreshStaffCounts();
     load();
   }
   return (
@@ -69,7 +71,7 @@ export default function InboxBoard() {
                 {r.thread_id ? (
                   <>
                     {" · "}
-                    <a href={`https://mail.google.com/mail/u/administration@ireppm.ca/#all/${r.thread_id}`} target="_blank" rel="noreferrer">
+                    <a href={`https://mail.google.com/mail/?authuser=administration%40ireppm.ca#all/${r.thread_id}`} target="_blank" rel="noreferrer">
                       Open in Gmail
                     </a>
                   </>

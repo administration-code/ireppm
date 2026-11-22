@@ -25,6 +25,7 @@ const STATUS = {
   unmatched: ["bad", "No payout recorded"],
   differs: ["bad", "Amount differs"],
   not_at_bank: ["bad", "Not at the bank yet"],
+  monthly_charge: ["ok", "Matched (PayProp monthly charge taken off)"],
 };
 function Tag({ s }) {
   const [tone, label] = STATUS[s] || ["", s];
@@ -180,13 +181,15 @@ export default function PayPropBoard() {
             </h2>
             <table className="acct-table">
               <thead>
-                <tr><th>Paid by PayProp</th><th>Remittance</th><th className="num">Fees in export</th><th>At the bank</th><th>Status</th></tr>
+                <tr><th>Paid by PayProp</th><th>Remittance</th><th className="num">IRep&apos;s share</th><th className="num">PayProp fees</th><th className="num">Expected</th><th>At the bank</th><th>Status</th></tr>
               </thead>
               <tbody>
                 {data.irep.map((f) => (
                   <tr key={f.remit}>
                     <td>{day(f.date)}</td>
                     <td>{f.remit}</td>
+                    <td className="num">{dollars(f.share)}</td>
+                    <td className="num">{dollars(-f.fees)}</td>
                     <td className="num">{dollars(f.amount)}</td>
                     <td>{f.bank ? `${day(f.bank.date)} · ${dollars(f.bank.amount)}` : "—"}</td>
                     <td>
@@ -198,7 +201,7 @@ export default function PayPropBoard() {
               </tbody>
             </table>
             <p className="small">
-              A PayProp deposit can include fees from payments made the month before, and PayProp&apos;s own charges. Upload the previous month&apos;s export so every remittance is complete.
+              Expected = IRep&apos;s share less PayProp&apos;s service and transaction fees on those payments and $0.34 per transfer. The first deposit each month also has PayProp&apos;s monthly charge (about $40) taken off. Upload the previous month&apos;s export too so every remittance is complete.
             </p>
           </section>
         </>
