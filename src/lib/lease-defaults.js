@@ -13,7 +13,8 @@ export const IREP_SIGNER = {
 };
 
 // Who signs the Certificate of Service by default (the person who delivered the notice).
-export const DEFAULT_DELIVERER = { name: "Zan Greksa", email: "chuckfixedmyhouse@gmail.com" };
+// Chuck: IRep work address (Google Group that forwards to him). His business email, for invoices, is on his partner record.
+export const DEFAULT_DELIVERER = { name: "Zan Greksa", email: "chuck@ireppm.ca" };
 
 export const LEASE_DEFAULTS = {
   rentPayableTo: "IRep Property Management, agent for the landlord",

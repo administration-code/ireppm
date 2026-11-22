@@ -235,7 +235,7 @@ export async function POST(request) {
           templateRoles: [
             { roleName: "Landlord (Authorized Signatory)", name: "Test Landlord", email: "administration@ireppm.ca" },
             { roleName: "Landlord (Owner 2)", name: "Test Owner Two", email: "administration+owner2@ireppm.ca" },
-            { roleName: "Manager", name: "Zan Greksa", email: "chuckfixedmyhouse@gmail.com" },
+            { roleName: "Manager", name: "Zan Greksa", email: "chuck@ireppm.ca" },
           ],
         },
       });
