@@ -45,6 +45,7 @@ export async function POST(request) {
   if (listingIds.length) {
     await sb.from("units").update({ listing_id: null }).in("id", unitIds);
     await sb.from("showing_requests").delete().in("listing_id", listingIds);
+    await sb.from("applications").delete().in("listing_id", listingIds); // practice applications (administration+applicant@)
     await sb.from("listings").delete().in("id", listingIds);
   }
   return NextResponse.json({ ok: true });
