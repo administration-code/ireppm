@@ -104,7 +104,9 @@ export async function serveBoard(sb) {
     .eq("kind", "certificate_of_service")
     .in("status", ["sent", "delivered"])
     .order("sent_at");
-  const mine = (certs || []).filter((c) => (c.recipients || []).some((r) => String(r.email || "").toLowerCase() === DEFAULT_DELIVERER.email.toLowerCase()));
+  // Chuck's certificates: sent to chuck@ireppm.ca, or to his business Gmail before Nov 21.
+  const CHUCK = [DEFAULT_DELIVERER.email.toLowerCase(), "chuckfixedmyhouse@gmail.com"];
+  const mine = (certs || []).filter((c) => (c.recipients || []).some((r) => CHUCK.includes(String(r.email || "").toLowerCase())));
   return {
     toServe,
     toSign: mine.map((c) => ({ id: c.id, title: c.title, sent_on: String(c.sent_at || "").slice(0, 10), served_on: c.terms?.served_on || null })),

@@ -219,7 +219,7 @@ export async function buildToday(sb) {
   const byEmail = await Promise.all(openNotices.map((r) => emailEligibility(sb, r.tenancy_id).then((e) => e.ok)));
   const serveLines = [
     ...openNotices.filter((r, i) => !byEmail[i]).map((r) => `Not delivered yet: ${r.title} (signed ${md(r.completed_at)})`),
-    ...(unsignedCerts || []).map((r) => `${/chuck@/i.test(r.recipients?.[0]?.email || "") ? "Chuck" : r.recipients?.[0]?.name || "Staff"} hasn't signed: ${r.title} (sent ${md(r.sent_at)})`),
+    ...(unsignedCerts || []).map((r) => `${/chuck/i.test(r.recipients?.[0]?.email || "") ? "Chuck" : r.recipients?.[0]?.name || "Staff"} hasn't signed: ${r.title} (sent ${md(r.sent_at)})`),
   ];
   const emailReady = openNotices.filter((r, i) => byEmail[i]);
   if (emailReady.length)
