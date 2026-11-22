@@ -325,7 +325,7 @@ async function completedAlert(row, result) {
     const r = await notifyNoticeReady(row.id);
     lines.push(
       r.byEmail
-        ? `The tenants consented to email service, so Chuck wasn't sent this one. Open it and click Email It to the Tenants; Rishi then gets the Certificate of Service to sign.`
+        ? `The tenants consented to email service, so Chuck wasn't sent this one. Open it and click Email It to the Tenants; whoever sends it signs the Certificate of Service.`
         : r.sent
           ? `${r.to} (Chuck) has been emailed the signed ${row.kind} to serve.`
           : `Chuck could not be emailed. Send him the signed ${row.kind} to serve.`

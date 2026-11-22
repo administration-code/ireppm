@@ -2,7 +2,7 @@ import "server-only";
 import { buildCertificate, CERT_METHODS, dmy } from "@/lib/docusign-templates";
 import { createEnvelope, ds, getRecipients, lockRoleTabs, removeEmptyRecipients, resolveTemplates, sendDraftEnvelope } from "@/lib/docusign";
 import { alertStaff, SIGNED_BUCKET } from "@/lib/signatures-server";
-import { DEFAULT_DELIVERER, EMAIL_SERVER } from "@/lib/lease-defaults";
+import { DEFAULT_DELIVERER } from "@/lib/lease-defaults";
 import { SITE } from "@/lib/site";
 import { mailer, mailConfigured } from "@/lib/mailer";
 import { escapeHtml } from "@/lib/staff-alerts";
@@ -271,8 +271,11 @@ export async function markDelivered(sb, partner, input) {
 }
 
 // Serve a signed N4, N5 or N1 by email (tenants who consented in writing), record it, and send the Certificate of
-// Service to Rishi to sign. The blank certificate prepared for Chuck with the notice is discarded.
-export async function emailServe(sb, requestId) {
+// Service to the staff member who sent it, to sign. The blank certificate prepared for Chuck is discarded.
+// `server` = the staff member who clicks Email It: they served it, so they sign the certificate under their own name.
+export async function emailServe(sb, requestId, server) {
+  if (!server?.name || server.name.trim().split(/\s+/).length < 2 || /^administration$/i.test(server.name.trim())) return { error: "Type your full name: you sign the Certificate of Service." };
+  if (!EMAIL.test(String(server.email || ""))) return { error: "Your account has no email for DocuSign." };
   if (!mailConfigured()) return { error: "Email isn't set up." };
   const { data: row } = await sb.from("signature_requests").select("*").eq("id", requestId).maybeSingle();
   if (!row || !FORMS.includes(row.kind)) return { error: "Not found." };
@@ -296,7 +299,7 @@ export async function emailServe(sb, requestId) {
   const lines = [
     `Dear ${elig.names.join(", ") || "tenant"},`,
     `Attached is your ${FORM_NAME[row.kind]} for ${place}. It is served on you by email because you agreed in writing to receive notices and documents by email.`,
-    `If you have questions about this notice, contact ${EMAIL_SERVER.name} at ${EMAIL_SERVER.phone} or ${SITE.email}.`,
+    `If you have questions about this notice, contact ${SITE.emergency.name} (${DEFAULT_DELIVERER.name}) at ${SITE.emergency.phone}, or email ${SITE.email}.`,
     `${SITE.name}\n${SITE.phone}`,
   ];
   const { error: sendError } = await mailer().emails.send({
@@ -312,7 +315,7 @@ export async function emailServe(sb, requestId) {
   if (sendError) return { error: `Email failed: ${sendError.message}` };
 
   const today = torontoToday();
-  const { data: noticeId, error: rpcError } = await sb.rpc("record_notice_service", { p_request_id: row.id, p_served_on: today, p_method: "email", p_served_by: EMAIL_SERVER.name });
+  const { data: noticeId, error: rpcError } = await sb.rpc("record_notice_service", { p_request_id: row.id, p_served_on: today, p_method: "email", p_served_by: server.name.trim() });
   if (rpcError) return { error: `Emailed, but couldn't record the service: ${rpcError.message}` };
   const how = `By email to ${elig.emails.join(", ")} (written consent to email service on file)`;
   await sb.from("notices").update({ notes: [row.terms?.notes, `Served by email from the office: ${elig.emails.join(", ")}.`].filter(Boolean).join(" ") }).eq("id", noticeId);
@@ -321,7 +324,7 @@ export async function emailServe(sb, requestId) {
   const { data: drafts } = await sb.from("signature_requests").select("id, envelope_id").eq("kind", "certificate_of_service").eq("related_request_id", row.id).eq("status", "draft");
   for (const d of drafts || []) {
     if (d.envelope_id) await ds("/folders/recyclebin", { method: "PUT", body: { envelopeIds: [d.envelope_id] } }).catch((err) => console.error("[serve] draft not discarded:", err?.message || err));
-    await sb.from("signature_requests").update({ status: "voided", void_reason: "Served by email instead; Rishi signs the certificate.", status_changed_at: new Date().toISOString() }).eq("id", d.id);
+    await sb.from("signature_requests").update({ status: "voided", void_reason: "Served by email from the office instead.", status_changed_at: new Date().toISOString() }).eq("id", d.id);
   }
 
   let certificate = false;
@@ -336,10 +339,10 @@ export async function emailServe(sb, requestId) {
       city: property?.city || "",
       postal_code: property?.postal_code || "",
       served_to: (t?.tenancy_tenants || []).slice().sort((a, b) => Number(b.is_primary) - Number(a.is_primary)).map((x) => x.full_name).filter(Boolean),
-      deliverer_name: EMAIL_SERVER.name,
-      deliverer_email: EMAIL_SERVER.email,
-      deliverer_phone: EMAIL_SERVER.phone,
-      served_by_name: EMAIL_SERVER.name,
+      deliverer_name: server.name.trim(),
+      deliverer_email: server.email.trim().toLowerCase(),
+      deliverer_phone: SITE.phone,
+      served_by_name: server.name.trim(),
       date_served: today,
       method: "other",
       method_details: how.slice(0, 200),

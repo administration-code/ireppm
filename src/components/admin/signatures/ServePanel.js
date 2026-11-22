@@ -11,6 +11,13 @@ import { docusignApi, openInTab, shortDate, todayIso } from "@/lib/signatures";
 
 export default function ServePanel({ row, tenancy, notice, certs, onServed }) {
   const [emailing, setEmailing] = useState(false);
+  const [signer, setSigner] = useState(() => {
+    try {
+      return localStorage.getItem("irep.serveSigner") || "";
+    } catch {
+      return "";
+    }
+  });
   const [message, setMessage] = useState({ text: "", tone: "" });
   const [f, setF] = useState({
     date_served: todayIso(),
@@ -47,9 +54,12 @@ export default function ServePanel({ row, tenancy, notice, certs, onServed }) {
     setEmailing(true);
     setMessage({ text: "", tone: "" });
     try {
-      const res = await docusignApi(`/requests/${row.id}/serve-email`);
+      try {
+        localStorage.setItem("irep.serveSigner", signer.trim());
+      } catch {}
+      const res = await docusignApi(`/requests/${row.id}/serve-email`, { body: { signer_name: signer.trim() } });
       setMessage({
-        text: `Emailed to ${res.sent_to.join(", ")} and recorded as served. ${res.certificate ? "The Certificate of Service went to Rishi to sign." : "The Certificate of Service couldn't be sent to Rishi: send it below."}`,
+        text: `Emailed to ${res.sent_to.join(", ")} and recorded as served. ${res.certificate ? "Your Certificate of Service is in your email from DocuSign: sign it." : "The Certificate of Service couldn't be sent: send it below."}`,
         tone: "ok",
       });
       await onServed();
@@ -87,11 +97,18 @@ export default function ServePanel({ row, tenancy, notice, certs, onServed }) {
     );
   } else {
     emailBlock = (
-      <div className="req-actions">
-        <button type="button" className="btn primary sm" disabled={emailing} onClick={emailIt}>
-          {emailing ? "Emailing…" : "Email It to the Tenants"}
-        </button>
-        <span className="small">{tenants.map((t) => t.email).filter(Boolean).join(", ")}</span>
+      <div className="stack" style={{ gap: 6 }}>
+        <div className="field">
+          <label htmlFor="sv-signer">Your full name (you served it, so you sign the Certificate of Service)</label>
+          <input id="sv-signer" value={signer} onChange={(e) => setSigner(e.target.value)} placeholder="First and last name" />
+        </div>
+        <div className="req-actions">
+          <button type="button" className="btn primary sm" disabled={emailing || signer.trim().split(/\s+/).length < 2} onClick={emailIt}>
+            {emailing ? "Emailing…" : "Email It to the Tenants"}
+          </button>
+          <span className="small">{tenants.map((t) => t.email).filter(Boolean).join(", ")}</span>
+        </div>
+        <span className="small">The email lists Chuck (519-999-9742) and administration@ireppm.ca as the contacts.</span>
       </div>
     );
   }

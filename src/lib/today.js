@@ -219,7 +219,7 @@ export async function buildToday(sb) {
   const byEmail = await Promise.all(openNotices.map((r) => emailEligibility(sb, r.tenancy_id).then((e) => e.ok)));
   const serveLines = [
     ...openNotices.filter((r, i) => !byEmail[i]).map((r) => `Not delivered yet: ${r.title} (signed ${md(r.completed_at)})`),
-    ...(unsignedCerts || []).map((r) => `${String(r.recipients?.[0]?.email || "").startsWith("rishi") ? "Rishi" : "Chuck"} hasn't signed: ${r.title} (sent ${md(r.sent_at)})`),
+    ...(unsignedCerts || []).map((r) => `${/chuck@/i.test(r.recipients?.[0]?.email || "") ? "Chuck" : r.recipients?.[0]?.name || "Staff"} hasn't signed: ${r.title} (sent ${md(r.sent_at)})`),
   ];
   const emailReady = openNotices.filter((r, i) => byEmail[i]);
   if (emailReady.length)
@@ -227,7 +227,7 @@ export async function buildToday(sb) {
       title: `Notices to serve by email (${emailReady.length})`,
       lines: cap(emailReady.map((r) => `${r.title}: open it and click Email It to the Tenants (signed ${md(r.completed_at)})`), "Signatures"),
     });
-  if (serveLines.length) sections.push({ title: `Notices waiting on Chuck or Rishi (${serveLines.length})`, lines: cap(serveLines, "Signatures") });
+  if (serveLines.length) sections.push({ title: `Notices waiting on a signature or delivery (${serveLines.length})`, lines: cap(serveLines, "Signatures") });
 
   // 10. Sensitive documents saved but the original still in an email or chat
   const { data: originals } = await sb.from("sensitive_documents").select("label, received_via, uploaded_at").is("original_deleted_at", null).order("uploaded_at");
