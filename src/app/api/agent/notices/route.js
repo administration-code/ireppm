@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { partnerFromRequest } from "@/lib/server-auth";
-import { isServer, markDelivered, serveBoard, signedPdfUrl } from "@/lib/serve-notice";
+import { CHUCK_EMAILS, certificateSigningUrl, isServer, markDelivered, serveBoard, signedPdfUrl } from "@/lib/serve-notice";
+import { syncRequest } from "@/lib/signatures-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,6 +27,16 @@ export async function POST(request) {
   if (body.action === "pdf") {
     const url = await signedPdfUrl(sb, String(body.id || ""));
     return url ? NextResponse.json({ url }) : NextResponse.json({ error: "The signed copy isn't available. Ask Rosie." }, { status: 404 });
+  }
+  if (body.action === "sign") {
+    const origin = new URL(request.url).origin;
+    const out = await certificateSigningUrl(sb, null, String(body.id || ""), `${origin}/agent/notices?signed=${body.id}`, CHUCK_EMAILS).catch((err) => ({ error: err.message }));
+    return NextResponse.json(out, { status: out.error ? 400 : 200 });
+  }
+  if (body.action === "refresh") {
+    const { data: row } = await sb.from("signature_requests").select("*").eq("id", String(body.id || "")).eq("kind", "certificate_of_service").maybeSingle();
+    if (row) await syncRequest(sb, row).catch(() => null);
+    return NextResponse.json({ ok: true });
   }
   if (body.action === "deliver") {
     const out = await markDelivered(sb, partner, body);

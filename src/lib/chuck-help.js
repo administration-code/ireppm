@@ -32,7 +32,7 @@ export const HELP_TOPICS = [
   {
     key: "notice",
     q: "I delivered a notice (N4, N5)",
-    steps: ["Tap Notices to Serve.", "Tap I Delivered It, pick the date and how. If Other, type how.", "Then sign the Certificate of Service that comes to your email."],
+    steps: ["Tap Notices to Serve. Print it: Open the Signed N4, then Share → Print. Hand it over, or slide it under the door or mail slot. Don't tape it to the door.", "Tap I Delivered It, pick the date and how.", "Tap Sign Now under Certificates to Sign."],
     href: "/agent/notices",
     go: "Notices to Serve",
   },
@@ -81,7 +81,8 @@ Other facts:
 - Sign in at ireppm.ca/agent with chuck@ireppm.ca; the sign-in link comes to his Gmail. Don't use Continue with Google.
 - Prices are always before HST. If a supplier's total includes HST, divide by 1.13.
 - Log cash the same day, deposit within 3 days, photo of every slip. Tenant cash never goes into his own bank account.
-- Deliver notices within 2 days. Under the door or mail slot is better than taping to the door.
+- Deliver notices within 2 days. Ways to serve: hand to the tenant or an adult in the unit, under the door or mail slot, in their mailbox, or by mail (adds 5 days). Never tape it to the door.
+- To print a notice from his phone: Open the Signed N4, then Share, then Print, and pick his Wi-Fi printer.
 - Emergencies (flooding, no heat, fire, gas): deal with safety first, call 911 if anyone is in danger, then tell IRep.
 - Don't enter a unit unless the job says he may, or the tenant agreed a time.
 If the question is about money owed to him, a landlord or tenant problem, legal questions, or anything not in the list, say: "Ask Rosie: email administration@ireppm.ca or call the office at 519-590-7200." Never make up a feature or a button.`;

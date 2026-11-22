@@ -10,6 +10,8 @@ import { escapeHtml, renderEmail, renderText } from "@/lib/staff-alerts";
 // Email service from the office is Rishi's job: he serves it, so he signs the certificate.
 export const EMAIL_SERVER_EMAIL = "rishi@ireppm.ca";
 const EMBED_ID = "irep-staff-serve";
+const CHUCK_EMBED = "irep-chuck-serve"; // Chuck signs his certificates right in the Agent Portal
+export const CHUCK_EMAILS = ["chuck@ireppm.ca", "chuckfixedmyhouse@gmail.com"];
 
 // Chuck serves N4, N5 and N1 notices from the Agent Portal: once the landlord signs, it's on his list; he
 // marks it delivered with the date and how; the portal records the service, fills the date and method into
@@ -105,11 +107,18 @@ export async function serveBoard(sb) {
     .in("status", ["sent", "delivered"])
     .order("sent_at");
   // Chuck's certificates: sent to chuck@ireppm.ca, or to his business Gmail before Nov 21.
-  const CHUCK = [DEFAULT_DELIVERER.email.toLowerCase(), "chuckfixedmyhouse@gmail.com"];
+  const CHUCK = CHUCK_EMAILS;
   const mine = (certs || []).filter((c) => (c.recipients || []).some((r) => CHUCK.includes(String(r.email || "").toLowerCase())));
   return {
     toServe,
-    toSign: mine.map((c) => ({ id: c.id, title: c.title, sent_on: String(c.sent_at || "").slice(0, 10), served_on: c.terms?.served_on || null })),
+    toSign: mine.map((c) => ({
+      id: c.id,
+      title: c.title,
+      sent_on: String(c.sent_at || "").slice(0, 10),
+      served_on: c.terms?.served_on || null,
+      embedded: Boolean(c.terms?.embedded),
+      email: (c.recipients || [])[0]?.email || null,
+    })),
   };
 }
 
@@ -193,7 +202,8 @@ export async function markDelivered(sb, partner, input) {
   try {
     const ids = await resolveTemplates(["certificate_of_service"]);
     const built = buildCertificate(cf, ids);
-    const terms = { served_on: served, method: methodKey, notice_form: n.kind, method_details: details || undefined, marked_by: "chuck" };
+    const terms = { served_on: served, method: methodKey, notice_form: n.kind, method_details: details || undefined, marked_by: "chuck", embedded: true, embed_id: CHUCK_EMBED };
+    built.definition.templateRoles[0].clientUserId = CHUCK_EMBED;
     const { data: drafts } = await sb
       .from("signature_requests")
       .select("id, envelope_id, status, terms")
@@ -213,6 +223,10 @@ export async function markDelivered(sb, partner, input) {
         "Fax Number": methodKey === "fax" ? cf.fax_number : "",
       };
       await fillDraft(draft.envelope_id, text, [method.tab]);
+      // Signed in the Agent Portal (Sign Now), not from an email.
+      const rec = await getRecipients(draft.envelope_id);
+      const signer = (rec?.signers || [])[0];
+      if (signer) await ds(`/envelopes/${draft.envelope_id}/recipients`, { method: "PUT", body: { signers: [{ recipientId: signer.recipientId, clientUserId: CHUCK_EMBED }] } });
       await lockRoleTabs(draft.envelope_id, /^Delivery By$/).catch(() => 0);
       await sendDraftEnvelope(draft.envelope_id);
       await sb.from("signature_requests").update({ status: "sent", sent_at: now, status_changed_at: now, prefill: built.prefill, terms, error: null }).eq("id", draft.id);
@@ -371,7 +385,7 @@ export async function emailServe(sb, requestId, server) {
         related_request_id: row.id,
         recipients: built.recipients,
         prefill: built.prefill,
-        terms: { served_on: today, method: "email", notice_form: row.kind, method_details: how, embedded: true },
+        terms: { served_on: today, method: "email", notice_form: row.kind, method_details: how, embedded: true, embed_id: EMBED_ID },
         email_subject: `Please sign: ${title}`.slice(0, 100),
         sent_by: row.sent_by,
       })
@@ -476,17 +490,17 @@ export async function servingBoard(sb, staff) {
 }
 
 // A DocuSign signing link, inside the portal, for a certificate this staff member signs.
-export async function certificateSigningUrl(sb, staff, id, returnUrl) {
+export async function certificateSigningUrl(sb, staff, id, returnUrl, allowed = null) {
   const { data: c } = await sb.from("signature_requests").select("id, kind, status, envelope_id, recipients, terms").eq("id", id).maybeSingle();
   if (!c || c.kind !== "certificate_of_service" || !c.envelope_id) return { error: "Not found." };
   if (!["sent", "delivered"].includes(c.status)) return { error: "That certificate is already signed or closed." };
-  const me = String(staff?.email || "").toLowerCase();
-  const r = (c.recipients || []).find((x) => String(x.email || "").toLowerCase() === me);
+  const mine = allowed || [String(staff?.email || "").toLowerCase()];
+  const r = (c.recipients || []).find((x) => mine.includes(String(x.email || "").toLowerCase()));
   if (!r) return { error: "This certificate is for someone else to sign." };
   if (!c.terms?.embedded) return { error: "This one was sent by email: open the DocuSign email to sign it." };
   const view = await ds(`/envelopes/${c.envelope_id}/views/recipient`, {
     method: "POST",
-    body: { returnUrl, authenticationMethod: "none", email: r.email, userName: r.name, clientUserId: EMBED_ID },
+    body: { returnUrl, authenticationMethod: "none", email: r.email, userName: r.name, clientUserId: c.terms?.embed_id || EMBED_ID },
   });
   return { url: view.url };
 }

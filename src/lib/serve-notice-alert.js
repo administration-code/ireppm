@@ -60,7 +60,7 @@ export async function notifyNoticeReady(requestId) {
     }
 
     const heading = `${row.kind} Ready to Serve`;
-    const intro = `The landlord has signed the ${row.kind}. Please deliver it to the tenants within 2 days. Then open Notices to Serve in your Agent Portal, tap I Delivered It and say how. Your Certificate of Service will come to you filled in, ready to sign.`;
+    const intro = `The landlord has signed the ${row.kind}. Please deliver it to the tenants within 2 days. Then open Notices to Serve in your Agent Portal, tap I Delivered It and say how. Your Certificate of Service then shows there filled in: tap Sign Now.`;
     const extraHtml = attachments.length
       ? `<p style="margin:12px 0 0">The signed ${row.kind} is attached.</p>`
       : `<p style="margin:12px 0 0">The signed copy is in the staff portal under Signatures.</p>`;

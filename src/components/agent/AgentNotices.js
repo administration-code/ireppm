@@ -36,7 +36,7 @@ function Deliver({ n, onDone }) {
     if (out.error) return setMsg(out.error);
     onDone(
       out.certificate
-        ? "Saved. Your Certificate of Service is filled in and on its way to your email. Open it and sign."
+        ? "Saved. Your Certificate of Service is filled in: tap Sign Now under Certificates to Sign."
         : "Saved. Rosie will send you the Certificate of Service to sign."
     );
   }
@@ -89,8 +89,24 @@ export default function AgentNotices() {
   const [done, setDone] = useState("");
   const load = useCallback(async () => setD(await call("GET")), []);
   useEffect(() => {
-    if (user) load();
+    if (!user) return;
+    (async () => {
+      // Back from signing in DocuSign: update that certificate.
+      const qs = new URLSearchParams(window.location.search);
+      const signed = qs.get("signed");
+      if (signed) {
+        await call("POST", { action: "refresh", id: signed });
+        setDone(qs.get("event") === "signing_complete" ? "Signed. Thanks, it's saved." : "Not signed yet. It's still below.");
+        window.history.replaceState(null, "", "/agent/notices");
+      }
+      load();
+    })();
   }, [user, load]);
+  async function sign(id) {
+    const out = await call("POST", { action: "sign", id });
+    if (out.url) window.location.href = out.url;
+    else setDone(out.error || "Couldn't open it. Try again.");
+  }
 
   if (!ready) return <p className="small">Loading…</p>;
   if (!user)
@@ -125,8 +141,8 @@ export default function AgentNotices() {
         </span>
         <h1 className="admin-title">Notices to Serve</h1>
         <p className="small">
-          When a landlord signs a notice, it shows here. Print it, deliver it, then tap Delivered and say how. Your Certificate of Service comes to your
-          email filled in, ready to sign.
+          When a landlord signs a notice, it shows here. Print it, deliver it, then tap I Delivered It and say how. Your Certificate of Service then
+          shows below, filled in: tap Sign Now.
         </p>
       </div>
       {done ? (
@@ -134,6 +150,18 @@ export default function AgentNotices() {
           {done}
         </div>
       ) : null}
+
+      <section className="boxed stack" style={{ gap: 6 }}>
+        <b>How to serve a notice</b>
+        <span className="small">
+          Hand it to the tenant, or to an adult in the unit · slide it under the door or through the mail slot · put it in their mailbox · or mail it
+          (mailing adds 5 days).
+        </span>
+        <span className="small">
+          <b>Don&apos;t tape it to the door.</b> The Landlord and Tenant Board doesn&apos;t list that as a way to serve.
+        </span>
+        <span className="small">To print: tap Open the Signed N4, then Share → Print, and pick your printer.</span>
+      </section>
 
       <section className={`boxed stack${d.toServe.length ? " attention" : ""}`} aria-labelledby="ns-serve">
         <h2 id="ns-serve" className="sec-title">
@@ -189,12 +217,23 @@ export default function AgentNotices() {
           <h2 id="ns-sign" className="sec-title">
             Certificates to Sign ({d.toSign.length})
           </h2>
-          <p className="small">These are in your email from DocuSign. Open each one and sign. Everything is already filled in.</p>
-          <ul className="plain-list">
+          <p className="small">Everything is already filled in. Tap Sign Now, or for older ones, open the DocuSign email.</p>
+          <ul className="req-list">
             {d.toSign.map((c) => (
-              <li key={c.id}>
-                {c.title}
-                <span className="small"> · sent {shortDate(c.sent_on)}</span>
+              <li key={c.id} className="req">
+                <div className="req-top">
+                  <b>{c.title}</b>
+                  <span className="small">sent {shortDate(c.sent_on)}</span>
+                </div>
+                {c.embedded ? (
+                  <div className="req-actions">
+                    <button type="button" className="btn primary sm" onClick={() => sign(c.id)}>
+                      Sign Now
+                    </button>
+                  </div>
+                ) : (
+                  <span className="small">In your email ({c.email}) from DocuSign: open it and sign.</span>
+                )}
               </li>
             ))}
           </ul>
