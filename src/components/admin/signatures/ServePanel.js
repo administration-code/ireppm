@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getBrowserClient } from "@/lib/supabase";
 import SendButtons from "@/components/admin/signatures/SendButtons";
@@ -29,6 +29,17 @@ export default function ServePanel({ row, tenancy, notice, certs, onServed }) {
   });
   const [recording, setRecording] = useState(false);
   const set = (k) => (e) => setF((s) => ({ ...s, [k]: e.target.value }));
+  // Email service is Rishi's: his name fills in when he's signed in (whoever sends it signs the certificate).
+  useEffect(() => {
+    (async () => {
+      const sb = getBrowserClient();
+      const { data: u } = await sb.auth.getUser();
+      if (!u?.user) return;
+      const { data: p } = await sb.from("profiles").select("full_name").eq("id", u.user.id).maybeSingle();
+      const name = String(p?.full_name || "").trim();
+      if (name && !/^administration$/i.test(name)) setSigner(name);
+    })();
+  }, []);
 
   const tenants = tenancy?.tenancy_tenants || [];
   const property = tenancy?.unit?.property;
@@ -108,7 +119,10 @@ export default function ServePanel({ row, tenancy, notice, certs, onServed }) {
           </button>
           <span className="small">{tenants.map((t) => t.email).filter(Boolean).join(", ")}</span>
         </div>
-        <span className="small">The email lists Chuck (519-999-9742) and administration@ireppm.ca as the contacts.</span>
+        <span className="small">
+          Email service is Rishi&apos;s to send, so he signs the certificate. The email lists Chuck (519-999-9742) and administration@ireppm.ca as the
+          contacts.
+        </span>
       </div>
     );
   }

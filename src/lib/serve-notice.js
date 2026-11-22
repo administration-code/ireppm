@@ -5,7 +5,10 @@ import { alertStaff, SIGNED_BUCKET } from "@/lib/signatures-server";
 import { DEFAULT_DELIVERER } from "@/lib/lease-defaults";
 import { SITE } from "@/lib/site";
 import { mailer, mailConfigured } from "@/lib/mailer";
-import { escapeHtml } from "@/lib/staff-alerts";
+import { escapeHtml, renderEmail, renderText } from "@/lib/staff-alerts";
+
+// Email service from the office is Rishi's job: he serves it, so he signs the certificate.
+export const EMAIL_SERVER_EMAIL = "rishi@ireppm.ca";
 
 // Chuck serves N4, N5 and N1 notices from the Agent Portal: once the landlord signs, it's on his list; he
 // marks it delivered with the date and how; the portal records the service, fills the date and method into
@@ -380,5 +383,47 @@ export async function emailServe(sb, requestId, server) {
   } catch (err) {
     console.error("[serve] email certificate failed:", err?.message || err);
   }
+  await sb.from("staff_tasks").update({ status: "done", done_at: new Date().toISOString() }).eq("link", `/admin/signatures/${row.id}`).in("status", ["open", "waiting"]);
   return { ok: true, notice_id: noticeId, sent_to: elig.emails, certificate };
+}
+
+// A task for Rishi when a notice can be served by email: he opens it, clicks Email It to the Tenants, and signs.
+export async function emailServeTask(sb, row) {
+  try {
+    const { data: rishi } = await sb.from("profiles").select("id, full_name, email, role").eq("email", EMAIL_SERVER_EMAIL).maybeSingle();
+    const link = `/admin/signatures/${row.id}`;
+    const { data: existing } = await sb.from("staff_tasks").select("id").eq("link", link).in("status", ["open", "waiting"]).limit(1);
+    if (existing?.length) return;
+    const due = addDays(torontoToday(), 1);
+    const title = `Serve by email: ${row.title}`.slice(0, 200);
+    await sb.from("staff_tasks").insert({
+      kind: "follow_up",
+      title,
+      detail: "The tenants consented in writing to email service. Open it, type your name, click Email It to the Tenants, then sign the Certificate of Service DocuSign sends you.",
+      status: "open",
+      due_date: due,
+      tenancy_id: row.tenancy_id,
+      unit_id: row.unit_id,
+      property_id: row.property_id,
+      signature_request_id: row.id,
+      link,
+      source: "system",
+      created_by: null,
+      ...(rishi && ["staff", "admin"].includes(rishi.role) ? { assigned_to: rishi.id, assigned_at: new Date().toISOString() } : {}),
+    });
+    if (rishi?.email && mailConfigured()) {
+      const rows = [["Task", title], ["Due", due]];
+      const href = { href: `https://ireppm.ca${link}`, label: "Open the notice" };
+      await mailer().emails.send({
+        from: "IRep Property Management <alerts@ireppm.ca>",
+        to: [rishi.email],
+        replyTo: SITE.email,
+        subject: `New task for you: ${title}`.slice(0, 150),
+        html: renderEmail({ heading: "Serve by Email", intro: `Hi ${String(rishi.full_name || "").split(" ")[0] || "there"}, a signed ${row.kind} is ready to serve by email.`, rows, link: href }),
+        text: renderText({ heading: "Serve by Email", rows, link: href }),
+      });
+    }
+  } catch (err) {
+    console.error("[serve] email task failed:", err?.message || err);
+  }
 }

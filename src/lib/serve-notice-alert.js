@@ -24,8 +24,11 @@ export async function notifyNoticeReady(requestId) {
       .maybeSingle();
     if (!row || !FORMS[row.kind]) return { sent: false };
     // Tenants who consented to email service are served by email from the office: Chuck isn't needed.
-    const { emailEligibility } = await import("@/lib/serve-notice");
-    if ((await emailEligibility(sb, row.tenancy_id)).ok) return { sent: false, byEmail: true };
+    const { emailEligibility, emailServeTask } = await import("@/lib/serve-notice");
+    if ((await emailEligibility(sb, row.tenancy_id)).ok) {
+      await emailServeTask(sb, row);
+      return { sent: false, byEmail: true };
+    }
 
     let tenants = "";
     let place = "";
