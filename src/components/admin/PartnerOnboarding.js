@@ -35,17 +35,34 @@ async function loadUsage(sb) {
 function PracticeClear() {
   const [d, setD] = useState(null);
   const [busy, setBusy] = useState(false);
-  const call = async (method) => {
+  const [msg, setMsg] = useState("");
+  const call = async (method, body) => {
     const { data } = await getBrowserClient().auth.getSession();
-    const res = await fetch("/api/admin/practice", { method, headers: { Authorization: `Bearer ${data?.session?.access_token || ""}` } });
+    const res = await fetch("/api/admin/practice", {
+      method,
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${data?.session?.access_token || ""}` },
+      body: body ? JSON.stringify(body) : undefined,
+    });
     return res.json().catch(() => ({}));
   };
+  async function n4(mode) {
+    setBusy(true);
+    setMsg("");
+    const out = await call("POST", { action: "n4", mode });
+    setBusy(false);
+    setMsg(
+      out.error ||
+        (mode === "email"
+          ? "Practice N4 made. Rishi has a task: Email Service → Email It to the Tenants, then Review and Sign."
+          : "Practice N4 made. Chuck got the Ready to Serve email and a phone notification: Notices to Serve → I Delivered It, then sign the certificate in his email.")
+    );
+  }
   const load = useCallback(async () => setD(await call("GET")), []);
   useEffect(() => {
     load();
   }, [load]);
   if (!d?.ready) return null;
-  const total = d.requests + d.cash + d.vacancies;
+  const total = d.requests + d.cash + d.vacancies + 1; // notices aren't counted; the button always works
   return (
     <section className="boxed stack">
       <h2 className="sec-title">Practice Property</h2>
@@ -54,7 +71,13 @@ function PracticeClear() {
         {d.requests === 1 ? "" : "s"}, {d.cash} cash entr{d.cash === 1 ? "y" : "ies"}, {d.vacancies} vacanc{d.vacancies === 1 ? "y" : "ies"}. Don&apos;t approve
         practice jobs in Jobs Done: clear them here instead.
       </p>
-      <div className="req-actions">
+      <div className="req-actions" style={{ flexWrap: "wrap" }}>
+        <button type="button" className="btn primary sm" disabled={busy} onClick={() => n4("paper")}>
+          Practice N4 for Chuck (Paper)
+        </button>
+        <button type="button" className="btn ghost sm" disabled={busy} onClick={() => n4("email")}>
+          Practice N4 for Rishi (Email)
+        </button>
         <button
           type="button"
           className="btn ghost sm"
@@ -67,9 +90,14 @@ function PracticeClear() {
             load();
           }}
         >
-          {busy ? "Clearing…" : "Clear Practice Data"}
+          {busy ? "Working…" : "Clear Practice Data"}
         </button>
       </div>
+      <p className="small">
+        A practice N4 skips the landlord&apos;s signature and goes straight to serving. The Certificate of Service after it is a real DocuSign
+        envelope marked TEST (it uses one envelope); Clear Practice Data voids it if it&apos;s unsigned and removes the practice notice.
+      </p>
+      {msg ? <p className="small">{msg}</p> : null}
     </section>
   );
 }
