@@ -9,6 +9,7 @@ export const CHECKLIST = [
       ["signin", "Signs in at ireppm.ca/agent with chuck@ireppm.ca on his phone"],
       ["signin_email", "Finds the sign-in email in his Gmail"],
       ["home_screen", "IRep added to his phone's home screen"],
+      ["notifications", "Turns on Phone Notifications in the Agent Portal and gets the test notification"],
       ["portal_tour", "Can say what each part of the Agent Portal is for"],
       ["properties", "Checks his properties list (anything wrong goes to Rosie)"],
     ],
