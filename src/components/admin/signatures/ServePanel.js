@@ -25,7 +25,6 @@ export default function ServePanel({ row, tenancy, notice, certs, onServed }) {
 
   const tenants = tenancy?.tenancy_tenants || [];
   const property = tenancy?.unit?.property;
-  const isN1 = row.kind === "N1";
 
   if (row.notice_id) {
     return (
@@ -49,7 +48,10 @@ export default function ServePanel({ row, tenancy, notice, certs, onServed }) {
     setMessage({ text: "", tone: "" });
     try {
       const res = await docusignApi(`/requests/${row.id}/serve-email`);
-      setMessage({ text: `Emailed to ${res.sent_to.join(", ")} and recorded as served.`, tone: "ok" });
+      setMessage({
+        text: `Emailed to ${res.sent_to.join(", ")} and recorded as served. ${res.certificate ? "The Certificate of Service went to Rishi to sign." : "The Certificate of Service couldn't be sent to Rishi: send it below."}`,
+        tone: "ok",
+      });
       await onServed();
     } catch (err) {
       setMessage({ text: err.message, tone: "err" });
@@ -74,12 +76,11 @@ export default function ServePanel({ row, tenancy, notice, certs, onServed }) {
   }
 
   let emailBlock;
-  if (!isN1) {
-    emailBlock = (
-      <p className="small">
-        Serve N4/N5 by hand, mail slot or mail. The LTB consent form does not list notices to end a tenancy.
-      </p>
-    );
+  const noEmail = tenants.filter((t) => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(t.email || "").trim())).map((t) => t.full_name || "a tenant");
+  if (tenancy?.email_service_ok && /pre-?checked/i.test(tenancy.email_service_consent || "")) {
+    emailBlock = <p className="small">The only consent on file is a box pre-checked on IRep&apos;s old lease template, so Chuck serves it on paper.</p>;
+  } else if (tenancy?.email_service_ok && (noEmail.length || !tenants.length)) {
+    emailBlock = <p className="small">Consent to email service is on file, but there&apos;s no valid email for {noEmail.join(", ") || "the tenants"}, so Chuck serves it on paper.</p>;
   } else if (!tenancy?.email_service_ok) {
     emailBlock = (
       <p className="small">No written consent to email service on file ({tenancy?.email_service_consent || "none recorded"}).</p>
@@ -88,7 +89,7 @@ export default function ServePanel({ row, tenancy, notice, certs, onServed }) {
     emailBlock = (
       <div className="req-actions">
         <button type="button" className="btn primary sm" disabled={emailing} onClick={emailIt}>
-          {emailing ? "Emailing…" : "Email it to the tenants"}
+          {emailing ? "Emailing…" : "Email It to the Tenants"}
         </button>
         <span className="small">{tenants.map((t) => t.email).filter(Boolean).join(", ")}</span>
       </div>

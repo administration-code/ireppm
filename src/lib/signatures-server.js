@@ -323,7 +323,13 @@ async function completedAlert(row, result) {
     lines.push("It's ready to serve. Open it to record how and when it was served.");
     const { notifyNoticeReady } = await import("@/lib/serve-notice-alert");
     const r = await notifyNoticeReady(row.id);
-    lines.push(r.sent ? `${r.to} (Chuck) has been emailed the signed ${row.kind} to serve.` : `Chuck could not be emailed. Send him the signed ${row.kind} to serve.`);
+    lines.push(
+      r.byEmail
+        ? `The tenants consented to email service, so Chuck wasn't sent this one. Open it and click Email It to the Tenants; Rishi then gets the Certificate of Service to sign.`
+        : r.sent
+          ? `${r.to} (Chuck) has been emailed the signed ${row.kind} to serve.`
+          : `Chuck could not be emailed. Send him the signed ${row.kind} to serve.`
+    );
   } else if (row.terms?.type === "consent") {
     lines.push(result?.consent ? "The tenant agreed to email service." : "The tenant did not agree to email service.");
   }

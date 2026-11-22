@@ -1,5 +1,6 @@
 import "server-only";
 import { olderThanBusinessDays } from "@/lib/comms";
+import { emailEligibility } from "@/lib/serve-notice";
 
 // The start-of-day list: short plain lines, one page, for staff and the AI assistant.
 const T = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" });
@@ -207,18 +208,26 @@ export async function buildToday(sb) {
   // 9c. Notices Chuck hasn't delivered within 2 days of the landlord signing, and certificates he hasn't signed
   const twoDaysAgo = new Date(Date.now() - 2 * 86400000).toISOString();
   const [{ data: unserved }, { data: unsignedCerts }] = await Promise.all([
-    sb.from("signature_requests").select("id, kind, title, completed_at").in("kind", ["N1", "N4", "N5"]).eq("status", "completed").is("notice_id", null).lt("completed_at", twoDaysAgo).gte("completed_at", new Date(Date.now() - 120 * 86400000).toISOString()).order("completed_at"),
-    sb.from("signature_requests").select("title, sent_at").eq("kind", "certificate_of_service").in("status", ["sent", "delivered"]).lt("sent_at", twoDaysAgo).order("sent_at"),
+    sb.from("signature_requests").select("id, kind, title, completed_at, tenancy_id").in("kind", ["N1", "N4", "N5"]).eq("status", "completed").is("notice_id", null).lt("completed_at", twoDaysAgo).gte("completed_at", new Date(Date.now() - 120 * 86400000).toISOString()).order("completed_at"),
+    sb.from("signature_requests").select("title, sent_at, recipients").eq("kind", "certificate_of_service").in("status", ["sent", "delivered"]).lt("sent_at", twoDaysAgo).order("sent_at"),
   ]);
   const { data: certFor } = (unserved || []).length
     ? await sb.from("signature_requests").select("related_request_id").eq("kind", "certificate_of_service").in("status", ["sent", "delivered", "completed"]).in("related_request_id", unserved.map((r) => r.id))
     : { data: [] };
   const certDone = new Set((certFor || []).map((c) => c.related_request_id));
+  const openNotices = (unserved || []).filter((r) => !certDone.has(r.id));
+  const byEmail = await Promise.all(openNotices.map((r) => emailEligibility(sb, r.tenancy_id).then((e) => e.ok)));
   const serveLines = [
-    ...(unserved || []).filter((r) => !certDone.has(r.id)).map((r) => `Not delivered yet: ${r.title} (signed ${md(r.completed_at)})`),
-    ...(unsignedCerts || []).map((r) => `Chuck hasn't signed: ${r.title} (sent ${md(r.sent_at)})`),
+    ...openNotices.filter((r, i) => !byEmail[i]).map((r) => `Not delivered yet: ${r.title} (signed ${md(r.completed_at)})`),
+    ...(unsignedCerts || []).map((r) => `${String(r.recipients?.[0]?.email || "").startsWith("rishi") ? "Rishi" : "Chuck"} hasn't signed: ${r.title} (sent ${md(r.sent_at)})`),
   ];
-  if (serveLines.length) sections.push({ title: `Notices waiting on Chuck (${serveLines.length})`, lines: cap(serveLines, "Signatures") });
+  const emailReady = openNotices.filter((r, i) => byEmail[i]);
+  if (emailReady.length)
+    sections.push({
+      title: `Notices to serve by email (${emailReady.length})`,
+      lines: cap(emailReady.map((r) => `${r.title}: open it and click Email It to the Tenants (signed ${md(r.completed_at)})`), "Signatures"),
+    });
+  if (serveLines.length) sections.push({ title: `Notices waiting on Chuck or Rishi (${serveLines.length})`, lines: cap(serveLines, "Signatures") });
 
   // 10. Sensitive documents saved but the original still in an email or chat
   const { data: originals } = await sb.from("sensitive_documents").select("label, received_via, uploaded_at").is("original_deleted_at", null).order("uploaded_at");

@@ -2,8 +2,10 @@ import "server-only";
 import { buildCertificate, CERT_METHODS, dmy } from "@/lib/docusign-templates";
 import { createEnvelope, ds, getRecipients, lockRoleTabs, removeEmptyRecipients, resolveTemplates, sendDraftEnvelope } from "@/lib/docusign";
 import { alertStaff, SIGNED_BUCKET } from "@/lib/signatures-server";
-import { DEFAULT_DELIVERER } from "@/lib/lease-defaults";
+import { DEFAULT_DELIVERER, EMAIL_SERVER } from "@/lib/lease-defaults";
 import { SITE } from "@/lib/site";
+import { mailer, mailConfigured } from "@/lib/mailer";
+import { escapeHtml } from "@/lib/staff-alerts";
 
 // Chuck serves N4, N5 and N1 notices from the Agent Portal: once the landlord signs, it's on his list; he
 // marks it delivered with the date and how; the portal records the service, fills the date and method into
@@ -14,6 +16,22 @@ const ISO = /^\d{4}-\d{2}-\d{2}$/;
 const FORMS = ["N4", "N5", "N1"];
 const torontoToday = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" });
 const addDays = (d, n) => new Date(Date.parse(`${d}T12:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
+
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Can this tenancy's notice be served by email? Only with written consent to email service on file and a valid
+// email for every tenant named on the tenancy. Otherwise Chuck serves it on paper.
+export async function emailEligibility(sb, tenancyId) {
+  if (!tenancyId) return { ok: false, reason: "No tenancy on the notice." };
+  const { data: t } = await sb.from("tenancies").select("email_service_ok, email_service_consent, tenancy_tenants(full_name, email)").eq("id", tenancyId).maybeSingle();
+  if (!t?.email_service_ok) return { ok: false, reason: `No written consent to email service (${t?.email_service_consent || "none recorded"}).` };
+  // A box IRep's old lease template ticked in advance isn't the tenant's own choice: those are served on paper.
+  if (/pre-?checked/i.test(t.email_service_consent || "")) return { ok: false, reason: "The only consent is a box pre-checked on IRep's old lease template." };
+  const people = t.tenancy_tenants || [];
+  const missing = people.filter((p) => !EMAIL.test(String(p.email || "").trim())).map((p) => p.full_name || "a tenant");
+  if (!people.length || missing.length) return { ok: false, reason: `No valid email for ${missing.join(", ") || "the tenants"}.` };
+  return { ok: true, emails: [...new Set(people.map((p) => p.email.trim().toLowerCase()))], names: people.map((p) => p.full_name).filter(Boolean) };
+}
 
 export const isServer = (partner) => String(partner?.email || "").trim().toLowerCase() === DEFAULT_DELIVERER.email.toLowerCase();
 
@@ -47,6 +65,9 @@ export async function serveBoard(sb) {
     : { data: [] };
   const done = new Set((handled || []).map((h) => h.related_request_id));
   notices = (notices || []).filter((n) => !done.has(n.id));
+  // Tenants who consented to email service get it by email from the office, not from Chuck.
+  const elig = await Promise.all(notices.map((n) => emailEligibility(sb, n.tenancy_id)));
+  notices = notices.filter((n, i) => !elig[i].ok);
   const ids = [...new Set((notices || []).map((n) => n.tenancy_id).filter(Boolean))];
   const { data: ten } = ids.length
     ? await sb.from("tenancies").select("id, tenancy_tenants(full_name, is_primary, phone), unit:units(label, property:properties(address, city))").in("id", ids)
@@ -75,13 +96,14 @@ export async function serveBoard(sb) {
   });
   const { data: certs } = await sb
     .from("signature_requests")
-    .select("id, title, status, sent_at, terms")
+    .select("id, title, status, sent_at, terms, recipients")
     .eq("kind", "certificate_of_service")
     .in("status", ["sent", "delivered"])
     .order("sent_at");
+  const mine = (certs || []).filter((c) => (c.recipients || []).some((r) => String(r.email || "").toLowerCase() === DEFAULT_DELIVERER.email.toLowerCase()));
   return {
     toServe,
-    toSign: (certs || []).map((c) => ({ id: c.id, title: c.title, sent_on: String(c.sent_at || "").slice(0, 10), served_on: c.terms?.served_on || null })),
+    toSign: mine.map((c) => ({ id: c.id, title: c.title, sent_on: String(c.sent_at || "").slice(0, 10), served_on: c.terms?.served_on || null })),
   };
 }
 
@@ -246,4 +268,114 @@ export async function markDelivered(sb, partner, input) {
   ].filter(Boolean);
   await alertStaff(`${tooEarly ? "Check dates: " : ""}${n.kind} delivered: ${place}`, lines, n.id);
   return { ok: true, certificate: !certError, tooEarly, earliest };
+}
+
+// Serve a signed N4, N5 or N1 by email (tenants who consented in writing), record it, and send the Certificate of
+// Service to Rishi to sign. The blank certificate prepared for Chuck with the notice is discarded.
+export async function emailServe(sb, requestId) {
+  if (!mailConfigured()) return { error: "Email isn't set up." };
+  const { data: row } = await sb.from("signature_requests").select("*").eq("id", requestId).maybeSingle();
+  if (!row || !FORMS.includes(row.kind)) return { error: "Not found." };
+  if (row.status !== "completed" || !row.signed_file_path) return { error: "It isn't signed yet." };
+  if (row.notice_id) return { error: "This notice has already been served." };
+  const elig = await emailEligibility(sb, row.tenancy_id);
+  if (!elig.ok) return { error: `${elig.reason} Chuck serves this one on paper.` };
+
+  const { data: t } = await sb
+    .from("tenancies")
+    .select("id, unit:units(id, label, property:properties(id, address, city, postal_code)), tenancy_tenants(full_name, is_primary)")
+    .eq("id", row.tenancy_id)
+    .maybeSingle();
+  const property = t?.unit?.property;
+  const place = placeOf(t) || row.title.replace(/^[^:]*:\s*/, "");
+  const { data: file, error: dlError } = await sb.storage.from(SIGNED_BUCKET).download(row.signed_file_path);
+  if (dlError) return { error: `Couldn't load the signed PDF: ${dlError.message}` };
+  const pdf = Buffer.from(await file.arrayBuffer());
+
+  const FORM_NAME = { N1: "N1 Notice of Rent Increase", N4: "N4 Notice to End your Tenancy for Non-payment of Rent", N5: "N5 Notice to End your Tenancy" };
+  const lines = [
+    `Dear ${elig.names.join(", ") || "tenant"},`,
+    `Attached is your ${FORM_NAME[row.kind]} for ${place}. It is served on you by email because you agreed in writing to receive notices and documents by email.`,
+    `If you have questions about this notice, contact ${EMAIL_SERVER.name} at ${EMAIL_SERVER.phone} or ${SITE.email}.`,
+    `${SITE.name}\n${SITE.phone}`,
+  ];
+  const { error: sendError } = await mailer().emails.send({
+    from: `${SITE.name} <${SITE.email}>`,
+    to: elig.emails,
+    cc: [SITE.email],
+    replyTo: SITE.email,
+    subject: `${row.kind} notice for ${place}`,
+    text: lines.join("\n\n"),
+    html: `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#161616">${lines.map((l) => `<p style="margin:0 0 12px">${escapeHtml(l).replace(/\n/g, "<br>")}</p>`).join("")}</div>`,
+    attachments: [{ filename: `${row.kind} ${place}.pdf`.replace(/[^\w\- .]+/g, ""), content: pdf.toString("base64") }],
+  });
+  if (sendError) return { error: `Email failed: ${sendError.message}` };
+
+  const today = torontoToday();
+  const { data: noticeId, error: rpcError } = await sb.rpc("record_notice_service", { p_request_id: row.id, p_served_on: today, p_method: "email", p_served_by: EMAIL_SERVER.name });
+  if (rpcError) return { error: `Emailed, but couldn't record the service: ${rpcError.message}` };
+  const how = `By email to ${elig.emails.join(", ")} (written consent to email service on file)`;
+  await sb.from("notices").update({ notes: [row.terms?.notes, `Served by email from the office: ${elig.emails.join(", ")}.`].filter(Boolean).join(" ") }).eq("id", noticeId);
+
+  // The blank certificate prepared for Chuck isn't needed: discard it.
+  const { data: drafts } = await sb.from("signature_requests").select("id, envelope_id").eq("kind", "certificate_of_service").eq("related_request_id", row.id).eq("status", "draft");
+  for (const d of drafts || []) {
+    if (d.envelope_id) await ds("/folders/recyclebin", { method: "PUT", body: { envelopeIds: [d.envelope_id] } }).catch((err) => console.error("[serve] draft not discarded:", err?.message || err));
+    await sb.from("signature_requests").update({ status: "voided", void_reason: "Served by email instead; Rishi signs the certificate.", status_changed_at: new Date().toISOString() }).eq("id", d.id);
+  }
+
+  let certificate = false;
+  try {
+    const ids = await resolveTemplates(["certificate_of_service"]);
+    if (!ids.certificate_of_service) throw new Error("DocuSign template not found: certificate_of_service.");
+    const cf = {
+      related_request_id: row.id,
+      notice_form: row.kind,
+      street_address: property?.address || "",
+      unit_label: t?.unit?.label || "",
+      city: property?.city || "",
+      postal_code: property?.postal_code || "",
+      served_to: (t?.tenancy_tenants || []).slice().sort((a, b) => Number(b.is_primary) - Number(a.is_primary)).map((x) => x.full_name).filter(Boolean),
+      deliverer_name: EMAIL_SERVER.name,
+      deliverer_email: EMAIL_SERVER.email,
+      deliverer_phone: EMAIL_SERVER.phone,
+      served_by_name: EMAIL_SERVER.name,
+      date_served: today,
+      method: "other",
+      method_details: how.slice(0, 200),
+    };
+    const built = buildCertificate(cf, ids);
+    const title = `Certificate of Service (${row.kind}): ${place}`;
+    const { data: c, error } = await sb
+      .from("signature_requests")
+      .insert({
+        kind: "certificate_of_service",
+        title,
+        template_id: ids.certificate_of_service,
+        status: "draft",
+        tenancy_id: row.tenancy_id,
+        unit_id: row.unit_id || t?.unit?.id || null,
+        property_id: row.property_id || property?.id || null,
+        owner_id: row.owner_id || null,
+        related_request_id: row.id,
+        recipients: built.recipients,
+        prefill: built.prefill,
+        terms: { served_on: today, method: "email", notice_form: row.kind, method_details: how },
+        email_subject: `Please sign: ${title}`.slice(0, 100),
+        sent_by: row.sent_by,
+      })
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+    const env = await createEnvelope({ ...built.definition, emailSubject: `Please sign: ${title}`.slice(0, 100), status: "created" });
+    await removeEmptyRecipients(env.envelopeId);
+    await lockRoleTabs(env.envelopeId, /^Delivery By$/).catch(() => 0);
+    await sendDraftEnvelope(env.envelopeId);
+    const now = new Date().toISOString();
+    await sb.from("signature_requests").update({ envelope_id: env.envelopeId, status: "sent", sent_at: now, status_changed_at: now, error: null }).eq("id", c.id);
+    certificate = true;
+  } catch (err) {
+    console.error("[serve] email certificate failed:", err?.message || err);
+  }
+  return { ok: true, notice_id: noticeId, sent_to: elig.emails, certificate };
 }
