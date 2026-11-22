@@ -12,6 +12,8 @@ const head = { count: "exact", head: true };
 export async function loadNavCounts() {
   const sb = getBrowserClient();
   if (!sb) return {};
+  const { data: session } = await sb.auth.getSession();
+  const uid = session?.session?.user?.id || null;
   const queries = {
     showings: sb.from("showing_requests").select("id", head).eq("status", "requested"),
     applications: sb.from("applications").select("id", head).in("status", ["submitted", "reviewing"]),
@@ -34,7 +36,9 @@ export async function loadNavCounts() {
     emailsUnmatched: sb.from("inbound_emails").select("id", head).eq("party_kind", "unmatched").not("party_email", "is", null),
     intakeReview: sb.from("inbound_emails").select("id", head).eq("intake_status", "review"),
     emailDrafts: sb.from("email_drafts").select("id", head).eq("status", "draft"),
-    tasksOpen: sb.from("staff_tasks").select("id", head).eq("status", "open"),
+    tasksOpen: uid
+      ? sb.from("staff_tasks").select("id", head).eq("status", "open").or(`assigned_to.eq.${uid},assigned_to.is.null`)
+      : sb.from("staff_tasks").select("id", head).eq("status", "open"),
     onboardingOpen: sb.from("lease_onboarding").select("id", head).eq("status", "open"),
     invoicesUnpaid: sb.from("invoices").select("id", head).eq("status", "sent"),
     expensesToPay: sb.from("landlord_expenses").select("id", head).eq("status", "to_pay"),

@@ -13,6 +13,7 @@ const KIND = {
   follow_up: "Follow-up",
   draft_email: "Email draft",
   ai: "From the assistant",
+  dispute: "PM contract dispute",
   other: "Task",
 };
 const daysSince = (d) => (d ? Math.max(0, Math.round((Date.parse(todayISO()) - Date.parse(String(d).slice(0, 10))) / 86400000)) : null);
@@ -21,19 +22,46 @@ const daysSince = (d) => (d ? Math.max(0, Math.round((Date.parse(todayISO()) - D
 export default function Tasks() {
   const [rows, setRows] = useState(null);
   const [tab, setTab] = useState("open");
-  const [f, setF] = useState({ title: "", waiting_on: "", due_date: "" });
+  const [f, setF] = useState({ title: "", waiting_on: "", due_date: "", kind: "other", assigned_to: "" });
   const [msg, setMsg] = useState("");
+  const [staff, setStaff] = useState([]);
+  const [me, setMe] = useState(null);
+  const [who, setWho] = useState(null); // "mine" | "all" | "unassigned"
+  useEffect(() => {
+    (async () => {
+      const sb = getBrowserClient();
+      const [{ data: u }, { data: list }] = await Promise.all([sb.auth.getUser(), sb.rpc("staff_members")]);
+      const mine = (list || []).find((p) => p.id === u?.user?.id) || null;
+      setStaff(list || []);
+      setMe(mine);
+      setWho((w) => w || (mine?.role === "admin" ? "all" : "mine"));
+    })();
+  }, []);
+  const nameOf = (id) => {
+    const p = staff.find((x) => x.id === id);
+    return p ? p.full_name || p.email : "";
+  };
+  async function assign(id, to) {
+    const { data } = await getBrowserClient().auth.getSession();
+    const res = await fetch(`/api/admin/tasks/${id}/assign`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${data?.session?.access_token || ""}` },
+      body: JSON.stringify({ assigned_to: to || null }),
+    });
+    if (!res.ok) setMsg((await res.json().catch(() => ({}))).error || "Couldn't assign that task.");
+    refreshStaffCounts();
+    load();
+  }
 
   const load = useCallback(async () => {
+    if (!who) return;
     const statuses = tab === "open" ? ["open", "waiting"] : ["done", "dismissed"];
-    const { data } = await getBrowserClient()
-      .from("staff_tasks")
-      .select("*")
-      .in("status", statuses)
-      .order(tab === "open" ? "created_at" : "done_at", { ascending: false })
-      .limit(200);
+    let q = getBrowserClient().from("staff_tasks").select("*").in("status", statuses);
+    if (who === "mine" && me) q = q.eq("assigned_to", me.id);
+    if (who === "unassigned") q = q.is("assigned_to", null);
+    const { data } = await q.order(tab === "open" ? "created_at" : "done_at", { ascending: false }).limit(200);
     setRows(data || []);
-  }, [tab]);
+  }, [tab, who, me]);
   useEffect(() => {
     load();
   }, [load]);
@@ -52,7 +80,10 @@ export default function Tasks() {
   async function add(e) {
     e.preventDefault();
     if (!f.title.trim()) return setMsg("What needs doing?");
-    const { error } = await getBrowserClient()
+    // PM contract disputes go to the admin (Rosie) first to sort, unless someone is chosen.
+    const admin = staff.find((p) => p.role === "admin");
+    const to = f.assigned_to || (f.kind === "dispute" ? admin?.id : "") || "";
+    const { data: row, error } = await getBrowserClient()
       .from("staff_tasks")
       .insert({
         title: f.title.trim(),
@@ -60,10 +91,13 @@ export default function Tasks() {
         waiting_on: f.waiting_on.trim() || null,
         waiting_since: f.waiting_on.trim() ? todayISO() : null,
         due_date: f.due_date || null,
-        kind: f.waiting_on.trim() ? "follow_up" : "other",
-      });
+        kind: f.kind !== "other" ? f.kind : f.waiting_on.trim() ? "follow_up" : "other",
+      })
+      .select("id")
+      .single();
     if (error) return setMsg(error.message);
-    setF({ title: "", waiting_on: "", due_date: "" });
+    if (to) await assign(row.id, to);
+    setF({ title: "", waiting_on: "", due_date: "", kind: "other", assigned_to: "" });
     setMsg("");
     refreshStaffCounts();
     load();
@@ -89,6 +123,25 @@ export default function Tasks() {
           <label htmlFor="tk-due">Due (optional)</label>
           <input id="tk-due" type="date" value={f.due_date} onChange={(e) => setF((s) => ({ ...s, due_date: e.target.value }))} />
         </div>
+        <div className="field">
+          <label htmlFor="tk-kind">Type</label>
+          <select id="tk-kind" value={f.kind} onChange={(e) => setF((s) => ({ ...s, kind: e.target.value }))}>
+            <option value="other">Task</option>
+            <option value="dispute">PM contract dispute</option>
+            <option value="follow_up">Follow-up</option>
+          </select>
+        </div>
+        <div className="field">
+          <label htmlFor="tk-to">Assign to</label>
+          <select id="tk-to" value={f.assigned_to} onChange={(e) => setF((s) => ({ ...s, assigned_to: e.target.value }))}>
+            <option value="">{f.kind === "dispute" ? "Rosie to sort (default)" : "Nobody yet"}</option>
+            {staff.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.full_name || p.email}
+              </option>
+            ))}
+          </select>
+        </div>
         <div>
           <button type="submit" className="btn primary sm">
             Add Task
@@ -96,13 +149,26 @@ export default function Tasks() {
         </div>
       </form>
       {msg ? <div className="warnbox">{msg}</div> : null}
-      <div className="seg">
-        <button type="button" aria-pressed={tab === "open"} onClick={() => setTab("open")}>
-          Open
-        </button>
-        <button type="button" aria-pressed={tab === "done"} onClick={() => setTab("done")}>
-          Done
-        </button>
+      <div className="row" style={{ gap: 12, flexWrap: "wrap" }}>
+        <div className="seg">
+          <button type="button" aria-pressed={tab === "open"} onClick={() => setTab("open")}>
+            Open
+          </button>
+          <button type="button" aria-pressed={tab === "done"} onClick={() => setTab("done")}>
+            Done
+          </button>
+        </div>
+        <div className="seg">
+          <button type="button" aria-pressed={who === "mine"} onClick={() => setWho("mine")}>
+            Mine
+          </button>
+          <button type="button" aria-pressed={who === "unassigned"} onClick={() => setWho("unassigned")}>
+            Unassigned
+          </button>
+          <button type="button" aria-pressed={who === "all"} onClick={() => setWho("all")}>
+            Everyone
+          </button>
+        </div>
       </div>
       {rows === null ? (
         <p className="small">Loading…</p>
@@ -116,6 +182,7 @@ export default function Tasks() {
                 <b>{t.title}</b>
                 <span className="small">
                   {KIND[t.kind] || "Task"} · added {shortDate(String(t.created_at).slice(0, 10))}
+                  {t.assigned_to ? ` · ${nameOf(t.assigned_to) || "assigned"}` : " · unassigned"}
                   {t.due_date ? ` · due ${shortDate(t.due_date)}` : ""}
                 </span>
               </div>
@@ -165,6 +232,14 @@ export default function Tasks() {
                   <button type="button" className="link-btn small" onClick={() => update(t.id, { status: "dismissed" })}>
                     Dismiss
                   </button>
+                  <select aria-label="Assign to" value={t.assigned_to || ""} onChange={(e) => assign(t.id, e.target.value)} className="small">
+                    <option value="">Unassigned</option>
+                    {staff.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.full_name || p.email}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               ) : (
                 <span className="small">{t.status === "done" ? "Done" : "Dismissed"} {t.done_at ? shortDate(String(t.done_at).slice(0, 10)) : ""}</span>
