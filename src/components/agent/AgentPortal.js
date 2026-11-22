@@ -11,6 +11,7 @@ import { SITE } from "@/lib/site";
 import { GettingStarted } from "@/components/tenant/TenantCards";
 import AgentMaintenanceForm from "./AgentMaintenanceForm";
 import AgentJobDone from "./AgentJobDone";
+import PushToggle from "@/components/PushToggle";
 
 const longDay = (iso) =>
   iso ? new Date(`${iso}T12:00:00`).toLocaleDateString("en-CA", { weekday: "short", month: "long", day: "numeric" }) : "";
@@ -132,6 +133,8 @@ export default function AgentPortal() {
       </div>
 
       {tour.loaded ? <GettingStarted role="partner" dismissedAt={tour.dismissedAt} /> : null}
+
+      <PushToggle />
 
       <section className={`boxed stack${toAnswer.length ? " attention" : ""}`} aria-labelledby="ag-show">
         <h2 id="ag-show" className="sec-title">

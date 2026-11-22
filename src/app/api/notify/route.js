@@ -123,6 +123,17 @@ export async function POST(request) {
         console.error(`[notify] landlord/tenant emails for ${record.id} failed:`, err?.message || err);
       }
     }
+    // Showing requests: a phone notification for Chuck too, when he's the showing agent.
+    if (table === "showing_requests" && agents?.emails?.some((e) => /^chuck@ireppm\.ca$/i.test(e))) {
+      try {
+        const { pushTo, chuckPartnerId } = await import("@/lib/push");
+        const admin = getSupabaseAdmin();
+        const { data: l } = await admin.from("listings").select("address, unit").eq("id", record.listing_id).maybeSingle();
+        await pushTo(admin, { partnerId: await chuckPartnerId(admin) }, { title: "New showing request", body: `${[l?.address, l?.unit].filter(Boolean).join(", ")}: ${record.preferred_date} ${record.preferred_time || ""}. Approve, decline or suggest a time.`, url: "/agent", tag: `showing-${record.id}` });
+      } catch (err) {
+        console.error("[notify] showing push failed:", err?.message || err);
+      }
+    }
     if (error) throw new Error(`Email: ${error.name || ""} ${error.message || ""}`.trim());
 
     return NextResponse.json({ ok: true });

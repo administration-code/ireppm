@@ -81,6 +81,19 @@ export async function alertChuck(sb, record, { escalated = false } = {}) {
     if (error) console.error("[chuck-alert] email failed:", error.message || error.name);
     else sent.email = true;
   }
+  // Free phone notification (IRep app), unless Chuck logged it himself.
+  if (String(record.reporter_email || "").toLowerCase() !== DEFAULT_DELIVERER.email.toLowerCase()) {
+    const { pushTo, chuckPartnerId } = await import("@/lib/push");
+    const pid = await chuckPartnerId(sb);
+    const r = await pushTo(sb, { partnerId: pid }, {
+      title: escalated ? `Now ${urgency}: ${record.title}` : `${loud ? `${urgency}: ` : "New job: "}${record.title}`,
+      body: `${address}${unit?.label && unit.label !== "Whole property" ? ` (${unit.label})` : ""}${people[0]?.full_name ? ` · ${people[0].full_name}${people[0].phone ? ` ${people[0].phone}` : ""}` : ""}`,
+      url: "/agent",
+      urgent: loud,
+      tag: `job-${record.id}`,
+    });
+    sent.push = r.sent;
+  }
   sent.sms = await sendSms(
     `IRep ${loud ? urgency.toUpperCase() : "maintenance"}: ${record.title} at ${address}${unit?.label && unit.label !== "Whole property" ? ` (${unit.label})` : ""}. Tenant: ${
       people[0] ? [people[0].full_name, people[0].phone].filter(Boolean).join(" ") : "none on file"

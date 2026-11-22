@@ -76,6 +76,8 @@ export async function notifyNoticeReady(requestId) {
       attachments: attachments.length ? attachments : undefined,
     });
     if (error) throw new Error(error.message);
+    const { pushTo, chuckPartnerId } = await import("@/lib/push");
+    await pushTo(sb, { partnerId: await chuckPartnerId(sb) }, { title: `${row.kind} ready to serve`, body: `${place || row.title}: deliver within 2 days, then tap I Delivered It.`, url: "/agent/notices", tag: `serve-${row.id}` });
     return { sent: true, to };
   } catch (err) {
     console.error("[serve-notice-alert] failed:", err?.message || err);
