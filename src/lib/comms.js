@@ -95,14 +95,14 @@ const RULES = [
 ];
 
 // Rules first; Claude Haiku only when the rules find no label or more than one.
-export async function labelEmail(sb, email, party) {
+export async function labelEmail(sb, email, party, { ai = true } = {}) {
   const text = `${email.subject || ""}\n${String(email.body || email.snippet || "").slice(0, 3000)}`;
   const hits = RULES.filter(([, re]) => re.test(text)).map(([k]) => k);
   const subjectHits = RULES.filter(([, re]) => re.test(email.subject || "")).map(([k]) => k);
   if (hits.length === 1) return { category: hits[0], label_source: "rule" };
   if (subjectHits.length === 1) return { category: subjectHits[0], label_source: "rule" };
   if (!hits.length && party?.party_kind === "landlord") return { category: "landlord", label_source: "rule" };
-  if (aiConfigured()) {
+  if (ai && aiConfigured()) {
     try {
       const c = await classifyEmail(sb, { from: email.from_email || "", subject: email.subject, snippet: email.body || email.snippet });
       return { ...c, label_source: "ai", classified_at: new Date().toISOString() };

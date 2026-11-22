@@ -21,6 +21,11 @@
  *  3. Run "testConnection" (allow access). The log should say "Connected".
  *  4. Run "setup" to start the 10-minute check.
  *  (Already set up? Paste this file over the old one and Save. Nothing else changes.)
+ *
+ * Loading older mail (once): run "backfill". It files the last 90 days of received and sent mail in the portal
+ * as already handled: no auto-replies, no maintenance requests, no alerts, no photo uploads, and automated mail
+ * is skipped. It works in 5-minute chunks and carries on by itself every few minutes until the log says
+ * "Backfill finished". Running it again is safe: emails already in the portal are skipped.
  */
 // Goes through IRep's Supabase relay: Vercel challenges requests from Google's script servers.
 const ENDPOINT = 'https://xtmvfqnnmrbgucfelvtu.supabase.co/functions/v1/mail-relay?to=admin-mail';
@@ -163,4 +168,72 @@ function checkInbox() {
     });
   });
   props.setProperty('done', JSON.stringify(Array.from(done).slice(-5000)));
+}
+
+// One-time load of older mail (see the note at the top). Carries on by itself until done.
+const BACKFILL_DAYS = 90;
+function backfill() {
+  const props = PropertiesService.getScriptProperties();
+  if (!props.getProperty('BACKFILL_START')) props.setProperty('BACKFILL_START', '0');
+  ScriptApp.getProjectTriggers().filter((t) => t.getHandlerFunction() === 'backfillContinue_').forEach((t) => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger('backfillContinue_').timeBased().everyMinutes(5).create();
+  backfillContinue_();
+}
+function backfillContinue_() {
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(1000)) return; // the previous chunk is still running
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const started = Date.now();
+    const me = Session.getActiveUser().getEmail().toLowerCase();
+    const cutoff = Date.now() - BACKFILL_DAYS * 86400000;
+    const secret = secret_();
+    let start = Number(props.getProperty('BACKFILL_START') || 0);
+    let sent = Number(props.getProperty('BACKFILL_SENT') || 0);
+    while (Date.now() - started < 4.5 * 60 * 1000) {
+      const threads = GmailApp.search('newer_than:' + BACKFILL_DAYS + 'd -in:chats -in:spam -in:trash -from:interac.ca', start, 50);
+      if (!threads.length) {
+        ScriptApp.getProjectTriggers().filter((t) => t.getHandlerFunction() === 'backfillContinue_').forEach((t) => ScriptApp.deleteTrigger(t));
+        props.deleteProperty('BACKFILL_START');
+        console.log('Backfill finished: ' + sent + ' emails sent to the portal.');
+        props.deleteProperty('BACKFILL_SENT');
+        return;
+      }
+      const requests = [];
+      threads.forEach((thread) => {
+        thread.getMessages().forEach((msg) => {
+          if (msg.getDate().getTime() < cutoff) return;
+          const from = addr_(msg.getFrom());
+          if (INTERAC.test(from.email) || INTERAC.test(msg.getSubject())) return;
+          const files = msg.getAttachments({ includeInlineImages: false, includeAttachments: true }).slice(0, 12);
+          requests.push({
+            url: ENDPOINT, method: 'post', contentType: 'application/json', headers: { 'x-mail-secret': secret }, muteHttpExceptions: true,
+            payload: JSON.stringify({
+              backfill: true,
+              message_id: msg.getId(),
+              thread_id: thread.getId(),
+              direction: from.email === me ? 'out' : 'in',
+              draft_id: header_(msg, 'X-IRep-Draft'),
+              from_name: from.name,
+              from_email: from.email,
+              to_emails: list_(msg.getTo()).concat(list_(msg.getCc())),
+              subject: msg.getSubject(),
+              body: (msg.getPlainBody() || '').slice(0, 8000),
+              received_at: msg.getDate().toISOString(),
+              attachments: files.map((a) => ({ name: a.getName(), type: a.getContentType(), size: a.getSize() })),
+              automated: isAutomated_(msg, from.email),
+            }),
+          });
+        });
+      });
+      for (let i = 0; i < requests.length; i += 10) UrlFetchApp.fetchAll(requests.slice(i, i + 10));
+      sent += requests.length;
+      start += threads.length;
+      props.setProperty('BACKFILL_START', String(start));
+      props.setProperty('BACKFILL_SENT', String(sent));
+    }
+    console.log('Backfill: ' + sent + ' emails so far (' + start + ' conversations). It carries on by itself in a few minutes.');
+  } finally {
+    lock.releaseLock();
+  }
 }

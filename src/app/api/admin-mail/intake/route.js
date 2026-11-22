@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { redact } from "@/lib/ai";
 import { INTAKE_BUCKET, processInbound } from "@/lib/email-intake";
-import { idLikeAttachment, isAutoReply, labelEmail, matchParty, otherParty, skipLogging } from "@/lib/comms";
+import { idLikeAttachment, isAutomatedAddress, isAutoReply, labelEmail, matchParty, otherParty, skipLogging } from "@/lib/comms";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,6 +30,8 @@ const UUID = /^[0-9a-f-]{36}$/i;
 //       labelled), and for possible maintenance emails returns a signed upload URL per photo or video.
 //       Attachments that look like ID or licences are never uploaded or shown.
 //   POST { message_id, done: true } once the files are uploaded → runs maintenance intake.
+//   backfill: true (the one-time load of older mail) → filed only: saved as handled, labelled by rules (no AI),
+//     automated mail skipped, no photo uploads, no maintenance requests, no alerts.
 export async function POST(request) {
   if (!secretMatches(request.headers.get("x-mail-secret"))) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const body = await request.json().catch(() => null);
@@ -54,6 +56,8 @@ export async function POST(request) {
   // IRep's automatic "We've received your message" replies aren't kept: they'd clutter the timeline
   // and count as answering the tenant.
   if (direction === "out" && isAutoReply(body.subject)) return NextResponse.json({ ok: true, skipped: "auto-reply", uploads: [] });
+  const backfill = body.backfill === true;
+  if (backfill && (body.automated || isAutomatedAddress(fromEmail))) return NextResponse.json({ ok: true, skipped: "automated", uploads: [] });
   // DocuSign status mail, receipts and security codes aren't kept (approved by Rosie, Nov 21 2026).
   if (direction === "in") {
     const why = skipLogging({ from_email: fromEmail, subject: body.subject, automated: Boolean(body.automated) });
@@ -82,14 +86,14 @@ export async function POST(request) {
     snippet: text ? text.slice(0, 1500) : null,
     body: text,
     received_at: new Date(body.received_at || Date.now()).toISOString(),
-    status: direction === "out" ? "handled" : "new",
+    status: direction === "out" || backfill ? "handled" : "new",
   };
   const party = await matchParty(sb, otherParty(base));
-  const label = await labelEmail(sb, base, party);
+  const label = await labelEmail(sb, base, party, { ai: !backfill });
 
   const all = (Array.isArray(body.attachments) ? body.attachments : []).slice(0, 12);
   const hidden = all.filter(idLikeAttachment);
-  const maybeMaintenance = direction === "in" && (label.category === "maintenance" || (party.party_kind === "tenant" && label.category !== "rent"));
+  const maybeMaintenance = !backfill && direction === "in" && (label.category === "maintenance" || (party.party_kind === "tenant" && label.category !== "rent"));
   const files = maybeMaintenance
     ? all.filter((a) => !idLikeAttachment(a) && MEDIA.test(String(a?.type || "")) && Number(a?.size || 0) > 0 && Number(a.size) <= MAX_FILE).slice(0, 8)
     : [];
