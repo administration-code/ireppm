@@ -22,6 +22,16 @@ export default function AgentPortal() {
   const [state, setState] = useState({ loading: true, data: null });
   const [tour, setTour] = useState({ loaded: false, dismissedAt: null });
   const [cash, setCash] = useState(null);
+  const [serve, setServe] = useState(null);
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data } = await getBrowserClient().auth.getSession();
+      const res = await fetch("/api/agent/notices", { headers: { Authorization: `Bearer ${data?.session?.access_token || ""}` } }).catch(() => null);
+      const out = res ? await res.json().catch(() => null) : null;
+      if (out?.allowed) setServe({ count: out.toServe.length + out.toSign.length, late: out.toServe.some((n) => n.late) });
+    })();
+  }, [user]);
   useEffect(() => {
     if (!user) return;
     (async () => {
@@ -88,6 +98,11 @@ export default function AgentPortal() {
         <span className="eyebrow">Agent Portal</span>
         <h1 className="admin-title">Hi {String(d.partner.name || "").split(" ")[0]}</h1>
         <div className="req-actions">
+          {serve ? (
+            <Link className={`btn ${serve.count ? "primary" : "ghost"} sm`} href="/agent/notices">
+              {serve.count ? `Notices to Serve (${serve.count})${serve.late ? " · late" : ""}` : "Notices to Serve"}
+            </Link>
+          ) : null}
           {cash ? (
             <Link className="btn primary sm" href="/agent/cash">
               {cash.held ? `Cash (holding $${cash.total.toFixed(2)})` : "Log Cash"}

@@ -204,6 +204,22 @@ export async function buildToday(sb) {
       lines: cap(late.map((c) => `$${Number(c.amount).toFixed(2)} from ${(c.tenancy?.tenancy_tenants || []).find((t) => t.is_primary)?.full_name || c.tenancy?.tenancy_tenants?.[0]?.full_name || "a tenant"}, got ${md(c.collected_on)}`), "Cash from Chuck"),
     });
 
+  // 9c. Notices Chuck hasn't delivered within 2 days of the landlord signing, and certificates he hasn't signed
+  const twoDaysAgo = new Date(Date.now() - 2 * 86400000).toISOString();
+  const [{ data: unserved }, { data: unsignedCerts }] = await Promise.all([
+    sb.from("signature_requests").select("id, kind, title, completed_at").in("kind", ["N1", "N4", "N5"]).eq("status", "completed").is("notice_id", null).lt("completed_at", twoDaysAgo).gte("completed_at", new Date(Date.now() - 120 * 86400000).toISOString()).order("completed_at"),
+    sb.from("signature_requests").select("title, sent_at").eq("kind", "certificate_of_service").in("status", ["sent", "delivered"]).lt("sent_at", twoDaysAgo).order("sent_at"),
+  ]);
+  const { data: certFor } = (unserved || []).length
+    ? await sb.from("signature_requests").select("related_request_id").eq("kind", "certificate_of_service").in("status", ["sent", "delivered", "completed"]).in("related_request_id", unserved.map((r) => r.id))
+    : { data: [] };
+  const certDone = new Set((certFor || []).map((c) => c.related_request_id));
+  const serveLines = [
+    ...(unserved || []).filter((r) => !certDone.has(r.id)).map((r) => `Not delivered yet: ${r.title} (signed ${md(r.completed_at)})`),
+    ...(unsignedCerts || []).map((r) => `Chuck hasn't signed: ${r.title} (sent ${md(r.sent_at)})`),
+  ];
+  if (serveLines.length) sections.push({ title: `Notices waiting on Chuck (${serveLines.length})`, lines: cap(serveLines, "Signatures") });
+
   // 10. Sensitive documents saved but the original still in an email or chat
   const { data: originals } = await sb.from("sensitive_documents").select("label, received_via, uploaded_at").is("original_deleted_at", null).order("uploaded_at");
   if ((originals || []).length)

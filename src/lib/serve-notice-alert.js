@@ -54,11 +54,11 @@ export async function notifyNoticeReady(requestId) {
     }
 
     const heading = `${row.kind} Ready to Serve`;
-    const intro = `The landlord has signed the ${row.kind}. Please serve it on the tenants and let the office know how and when it was served, so we can send you the Certificate of Service to sign.`;
+    const intro = `The landlord has signed the ${row.kind}. Please deliver it to the tenants within 2 days. Then open Notices to Serve in your Agent Portal, tap I Delivered It and say how. Your Certificate of Service will come to you filled in, ready to sign.`;
     const extraHtml = attachments.length
       ? `<p style="margin:12px 0 0">The signed ${row.kind} is attached.</p>`
       : `<p style="margin:12px 0 0">The signed copy is in the staff portal under Signatures.</p>`;
-    const link = { href: `https://ireppm.ca/admin/signatures/${row.id}`, label: "Open in the staff portal" };
+    const link = { href: "https://ireppm.ca/agent/notices", label: "Open Notices to Serve" };
     const to = DEFAULT_DELIVERER.email;
     const { error } = await mailer().emails.send({
       from: "IRep Property Management <alerts@ireppm.ca>",

@@ -351,11 +351,13 @@ export const EXPECTED = {
 export const CERT_METHODS = {
   handed: { label: "Handed to the tenant", tab: "Method Handed To Person", notice: "in_person" },
   adult: { label: "Handed to an adult in the unit", tab: "Method Adult In Unit", notice: "in_person" },
+  employee: { label: "Handed to an employee authorized to accept it", tab: "Method Authorized Employee", notice: "in_person" },
   mail_slot: { label: "Under the door or through the mail slot", tab: "Method Under Door Or Mail Slot", notice: "mail_slot" },
   mailbox: { label: "In the tenant's mailbox", tab: "Method Mailbox", notice: "mail_slot" },
   mail: { label: "By mail", tab: "Method Mail", notice: "mail" },
   courier: { label: "By courier", tab: "Method Courier", notice: "courier" },
-  other: { label: "Other", tab: "Method Other", notice: "other" },
+  fax: { label: "By fax", tab: "Method Fax", notice: "other" },
+  other: { label: "Other (say how)", tab: "Method Other", notice: "other" },
 };
 
 // ---------------------------------------------------------------------------
@@ -1035,6 +1037,8 @@ export function buildCertificate(f, ids) {
     "Other Document Name": isN1 ? "N1 Notice of Rent Increase" : "",
     "Served To Names": joinNames(names),
     "Other Method Details": !blank && f.method === "other" ? f.method_details : "",
+    "Mail Address": !blank && f.method === "mail" ? f.mail_address : "",
+    "Fax Number": !blank && f.method === "fax" ? f.fax_number : "",
     "Signer First Name": d.first,
     "Signer Last Name": d.last,
     "Signer Phone": deliverer.phone,
