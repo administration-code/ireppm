@@ -4,6 +4,7 @@ import { useEffect, useId, useState } from "react";
 import { getBrowserClient } from "@/lib/supabase";
 import { CATEGORIES, URGENCY, URGENCY_HELP, estimateProblem } from "@/lib/maintenance";
 import TapPick from "./TapPick";
+import PriceInput from "./PriceInput";
 import CostEstimateFields from "@/components/admin/CostEstimateFields";
 import { SITE } from "@/lib/site";
 import PhotoPicker, { uploadPhotos } from "@/components/admin/PhotoPicker";
@@ -13,7 +14,7 @@ async function authHeader() {
   return { Authorization: `Bearer ${data?.session?.access_token || ""}` };
 }
 
-const EMPTY = { property_id: "", unit_id: "", category: "other", urgency: "routine", title: "", description: "", est_repair: "", est_replace: "", already_done: false, settled_direct: false, done_on: "", price: "", no_charge: false };
+const EMPTY = { property_id: "", unit_id: "", category: "other", urgency: "routine", title: "", description: "", est_repair: "", est_replace: "", already_done: false, settled_direct: false, done_on: "", price: "", no_charge: false, amount: "", mode: "before" };
 const todayISO = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" });
 
 // Partners log a problem they found at one of their properties. It goes to IRep staff as New.
@@ -54,7 +55,7 @@ export default function AgentMaintenanceForm({ userId, onLogged }) {
     const review = form.already_done && !form.settled_direct;
     const estProblem = review ? null : estimateProblem(form.est_repair, "repair estimate") || estimateProblem(form.est_replace, "replacement cost");
     if (estProblem) return setError(estProblem);
-    if (review && !form.no_charge && !(Number(form.price) > 0)) return setError("Enter your price before HST, or tick No charge.");
+    if (review && !form.no_charge && !(Number(form.price) > 0)) return setError("Enter your price, or tap No charge.");
     setBusy(true);
     const sb = getBrowserClient();
     let photos = [];
@@ -169,15 +170,8 @@ export default function AgentMaintenanceForm({ userId, onLogged }) {
                   <span className="small">Date you finished</span>
                   <input type="date" max={todayISO()} value={form.done_on || todayISO()} onChange={set("done_on")} />
                 </label>
-                <label className="stack" style={{ gap: 4 }}>
-                  <span className="small">Your price before HST</span>
-                  <input inputMode="decimal" disabled={form.no_charge} value={form.price} onChange={(e) => setForm((f) => ({ ...f, price: e.target.value.replace(/[^\d.]/g, "") }))} placeholder="0.00" style={{ width: 120 }} />
-                </label>
-                <label className="check-line">
-                  <input type="checkbox" checked={form.no_charge} onChange={(e) => setForm((f) => ({ ...f, no_charge: e.target.checked, price: "" }))} />
-                  No charge
-                </label>
               </div>
+              <PriceInput value={form} onChange={(v) => setForm((f) => ({ ...f, ...v }))} />
               <span className="small">IRep checks it and bills the landlord. Add after photos below.</span>
             </div>
           ) : null}

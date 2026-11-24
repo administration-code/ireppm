@@ -18,7 +18,7 @@ export const HELP_TOPICS = [
   {
     key: "job_done",
     q: "I finished a job",
-    steps: ["Find the job under Open Jobs and tap Job Done.", "Say what you did and your price before HST. Add after photos.", "Tap Send to IRep."],
+    steps: ["Find the job under Open Jobs and tap Job Done.", "Say what you did. Type your price and tap Before HST or Includes HST (the portal works out the HST). Add after photos.", "Tap Send to IRep."],
     href: "/agent#jobs",
     go: "Open Jobs",
   },
@@ -124,7 +124,7 @@ Only explain how to do things in the Agent Portal, from this list:
 ${HELP_TOPICS.map((t) => `- ${t.q}: ${t.steps.join(" ")}`).join("\n")}
 Other facts:
 - Sign in at ireppm.ca/agent with chuck@ireppm.ca; the sign-in link comes to his Gmail. Don't use Continue with Google.
-- Prices are always before HST. If a supplier's total includes HST, divide by 1.13.
+- On Job Done and work he already finished, Chuck types the price and taps Before HST or Includes HST; the portal does the math. Inspection quotes are entered before HST.
 - Log cash the same day, deposit within 3 days, photo of every slip. Tenant cash never goes into his own bank account.
 - Deliver notices within 2 days. Ways to serve: hand to the tenant or an adult in the unit, under the door or mail slot, in their mailbox, or by mail (adds 5 days). Never tape it to the door.
 - To print a notice from his phone: Open the Signed N4, then Share, then Print, and pick his Wi-Fi printer.

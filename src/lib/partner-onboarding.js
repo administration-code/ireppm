@@ -17,7 +17,7 @@ export const CHECKLIST = [
       ["sign_cert", "Signs the Certificate of Service that arrives", 10],
       ["unsigned_certs", "Signs the 7 certificates waiting since Nov 17–20", 20],
       ["open_n4s", "Answers about the 150 Curry and 1746 Buckingham N4s", 10],
-      ["job_done", "Marks a job done: date, what he did, price before HST (divide a supplier's HST total by 1.13), after photos", 20],
+      ["job_done", "Marks a job done: date, what he did, his price (taps Before HST or Includes HST; the portal does the math), after photos", 20],
       ["already_done", "Logs work he already finished (goes to IRep for review)", 10],
       ["vacancy", "Puts a vacancy up, adds photos, copies the Facebook text", 20],
       ["apply_link", "Replies to a Facebook enquiry with the apply link instead of collecting documents", 10],

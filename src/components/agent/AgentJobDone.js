@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { getBrowserClient } from "@/lib/supabase";
 import PhotoPicker, { uploadPhotos } from "@/components/admin/PhotoPicker";
+import PriceInput from "./PriceInput";
 
 const today = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" });
 
@@ -14,7 +15,7 @@ async function authHeader() {
 // One job in the Agent Portal: "Job Done" with the date, what he did, his price before HST and after photos.
 export default function AgentJobDone({ job, userId, done, onDone }) {
   const [open, setOpen] = useState(false);
-  const [f, setF] = useState({ done_on: today(), notes: "", price: "", no_charge: false });
+  const [f, setF] = useState({ done_on: today(), notes: "", price: "", no_charge: false, amount: "", mode: "before" });
   const [files, setFiles] = useState([]);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -32,7 +33,7 @@ export default function AgentJobDone({ job, userId, done, onDone }) {
   async function save(e) {
     e.preventDefault();
     if (f.notes.trim().length < 5) return setErr("Say what you did.");
-    if (!f.no_charge && !(Number(f.price) > 0)) return setErr("Enter your price before HST, or tick No charge.");
+    if (!f.no_charge && !(Number(f.price) > 0)) return setErr("Enter your price, or tap No charge.");
     setBusy(true);
     setErr("");
     const sb = getBrowserClient();
@@ -48,7 +49,14 @@ export default function AgentJobDone({ job, userId, done, onDone }) {
     const res = await fetch("/api/agent/maintenance/done", {
       method: "POST",
       headers: { "Content-Type": "application/json", ...(await authHeader()) },
-      body: JSON.stringify({ id: job.id, ...f, photos }),
+      body: JSON.stringify({
+        id: job.id,
+        done_on: f.done_on,
+        notes: f.mode === "includes" ? `${f.notes}\n(Price entered as $${f.amount} including HST.)` : f.notes,
+        price: f.price,
+        no_charge: f.no_charge,
+        photos,
+      }),
     });
     const out = await res.json().catch(() => ({}));
     setBusy(false);
@@ -64,16 +72,7 @@ export default function AgentJobDone({ job, userId, done, onDone }) {
         <input type="date" max={today()} value={f.done_on} onChange={(e) => setF((s) => ({ ...s, done_on: e.target.value }))} />
       </label>
       <textarea rows={3} placeholder="What you did (and any parts you used)" value={f.notes} onChange={(e) => setF((s) => ({ ...s, notes: e.target.value }))} />
-      <div className="req-actions" style={{ flexWrap: "wrap" }}>
-        <label className="stack" style={{ gap: 4 }}>
-          <span className="small">Your price before HST</span>
-          <input inputMode="decimal" disabled={f.no_charge} value={f.price} onChange={(e) => setF((s) => ({ ...s, price: e.target.value.replace(/[^\d.]/g, "") }))} placeholder="0.00" style={{ width: 120 }} />
-        </label>
-        <label className="check-line">
-          <input type="checkbox" checked={f.no_charge} onChange={(e) => setF((s) => ({ ...s, no_charge: e.target.checked, price: "" }))} />
-          No charge
-        </label>
-      </div>
+      <PriceInput value={f} onChange={(v) => setF((s) => ({ ...s, ...v }))} />
       <PhotoPicker id={`done-${job.id}`} files={files} setFiles={setFiles} onError={setErr} label="After photos" hint="Take photos of the finished work. They help IRep bill the landlord." />
       {err ? <p className="small err">{err}</p> : null}
       <div className="req-actions">
