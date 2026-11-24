@@ -1,31 +1,36 @@
 /**
- * IRep PM — Interac e-Transfer feed.
- * Runs inside the Gmail account that receives the Interac deposit emails
- * (ireppm@ireprealty.com: Interac sends the "Funds Deposited" notices for
- * payment@ireppm.ca there). Every 5 minutes it sends new deposits to
- * https://ireppm.ca/api/payments/interac, where they're matched to tenants.
+ * IRep PM — Interac e-Transfer feed (version 2, Dec 2026).
+ * Runs inside a Gmail mailbox that receives Interac e-Transfer emails and sends each new one to
+ * https://ireppm.ca/api/payments/interac, where it's matched to a tenant ("Rent Recorded").
  *
- * Setup (once, signed in to Google as ireppm@ireprealty.com):
- *  1. script.google.com → New project → paste this whole file → Save.
+ * The same file runs in two mailboxes. It works out its role from the mailbox it's in:
+ *  - administration@ireppm.ca (PRIMARY): Interac's notices for payment@ireppm.ca are delivered here.
+ *    Every deposit is sent to the website for matching.
+ *  - ireppm@ireprealty.com (LEGACY, through Dec 31, 2026 only): only e-Transfers sent to the OLD address
+ *    are sent, so staff are flagged and the tenant is reminded to use payment@ireppm.ca. Deposits to
+ *    payment@ireppm.ca are left to the primary mailbox. On Jan 1, 2027 it switches itself off.
+ *
+ * Setup (once in each mailbox, signed in to Google as that mailbox):
+ *  1. script.google.com → New project (or open the existing one) → paste this whole file → Save.
  *  2. Project Settings (gear) → Script Properties → Add property:
  *       Property: SECRET    Value: the same value as PAYMENTS_WEBHOOK_SECRET in Vercel
- *  3. Back in the editor, pick "testConnection" → Run → allow access.
- *     The log should say "Connected". If it says 401, the SECRET doesn't match Vercel.
- *  4. Pick "setup" → Run. This starts the 5-minute check and sends the backlog.
- * Safe to re-run: the website ignores an e-Transfer it has already recorded, and
- * links one staff already entered by hand (same amount, within two days).
+ *  3. Pick "testConnection" → Run → allow access. The log says "Connected" and which role it has.
+ *  4. Pick "setup" → Run. This starts the 5-minute check. Settings → e-Transfer Reader on the
+ *     website then shows this mailbox and when it last checked.
+ * Test: send a small e-Transfer to payment@ireppm.ca with IREP TEST in the message. It shows under
+ * "Last test" in Settings and is NOT recorded as rent.
  *
- * Also sends "sent you money" notices (e-Transfers to the old address that need to be
- * accepted by hand) as pending, so staff are alerted and the tenant is reminded to use
- * payment@ireppm.ca. This script only reads mail: it never replies to, forwards or
- * deletes an Interac email.
- *
- * Updating from an older version: paste this whole file over the old one, Save, then
- * run "setup" once.
+ * Every e-Transfer the website records gets the Gmail label "Rent Recorded" (and "Rent to Match" if
+ * it couldn't tell whose it is). This script only reads and labels mail: it never replies to,
+ * forwards or deletes an Interac email. Safe to re-run: the website ignores anything already recorded.
  */
+const VERSION = '2';
+const LEGACY_UNTIL = '2026-12-31';
 // Goes through IRep's Supabase relay: Vercel challenges requests from Google's script servers.
 const ENDPOINT = 'https://xtmvfqnnmrbgucfelvtu.supabase.co/functions/v1/mail-relay?to=interac';
 const START_DATE = '2026/10/19'; // e-Transfers before this are already in the website
+const LEGACY = /ireprealty\.com/i;
+const NEW_ADDRESS = /payment@ireppm\.ca/i;
 
 function secret_() {
   const s = PropertiesService.getScriptProperties().getProperty('SECRET');
@@ -33,7 +38,19 @@ function secret_() {
   return s;
 }
 
+function mailbox_() {
+  return String(Session.getEffectiveUser().getEmail() || '').toLowerCase();
+}
+function isLegacy_() {
+  return LEGACY.test(mailbox_());
+}
+function torontoToday_() {
+  return Utilities.formatDate(new Date(), 'America/Toronto', 'yyyy-MM-dd');
+}
+
 function post_(payload) {
+  payload.mailbox = mailbox_();
+  payload.version = VERSION;
   return UrlFetchApp.fetch(ENDPOINT, {
     method: 'post',
     contentType: 'application/json',
@@ -46,7 +63,8 @@ function post_(payload) {
 function testConnection() {
   const res = post_({ ping: true });
   const code = res.getResponseCode();
-  if (code === 200) console.log('Connected: the website accepted the secret.');
+  if (code === 200)
+    console.log('Connected as ' + mailbox_() + ' (' + (isLegacy_() ? 'legacy: old-address e-Transfers only, through ' + LEGACY_UNTIL : 'primary') + ').');
   else if (code === 401) console.error('401: the SECRET script property does not match PAYMENTS_WEBHOOK_SECRET in Vercel.');
   else console.error('Unexpected ' + code + ': ' + res.getContentText().slice(0, 200));
   const n = GmailApp.search('from:notify@payments.interac.ca deposited after:' + START_DATE, 0, 100).length;
@@ -59,7 +77,18 @@ function setup() {
   checkInterac();
 }
 
+function label_(name) {
+  return GmailApp.getUserLabelByName(name) || GmailApp.createLabel(name);
+}
+
 function checkInterac() {
+  // The old mailbox is read only through Dec 31: then this switches itself off.
+  if (isLegacy_() && torontoToday_() > LEGACY_UNTIL) {
+    ScriptApp.getProjectTriggers().forEach((t) => ScriptApp.deleteTrigger(t));
+    console.log('Past ' + LEGACY_UNTIL + ': the old-address reader is switched off.');
+    return;
+  }
+  post_({ ping: true }); // heartbeat for Settings → e-Transfer Reader
   const props = PropertiesService.getScriptProperties();
   const done = new Set(JSON.parse(props.getProperty('done') || '[]'));
   const query = 'from:notify@payments.interac.ca deposited after:' + START_DATE + ' newer_than:60d';
@@ -74,8 +103,19 @@ function checkInterac() {
       if (done.has(id)) return;
       const p = parseInterac(msg);
       if (!p) { done.add(id); return; } // not a deposit notice
+      // Old mailbox: only e-Transfers sent to the old address; payment@ireppm.ca is handled by the primary reader.
+      if (isLegacy_() && !p.pending && NEW_ADDRESS.test(p.to + ' ' + p.sent_to)) { done.add(id); return; }
       const res = post_(p);
-      if (res.getResponseCode() === 200) { done.add(id); sent.push(p.reference); }
+      if (res.getResponseCode() === 200) {
+        done.add(id);
+        sent.push(p.reference);
+        let out = {};
+        try { out = JSON.parse(res.getContentText()); } catch (e) {}
+        if (out.recorded) {
+          thread.addLabel(label_('Rent Recorded'));
+          if (out.matched === false) thread.addLabel(label_('Rent to Match'));
+        }
+      }
       else { failed++; console.warn('Failed ' + id + ': ' + res.getResponseCode() + ' ' + res.getContentText().slice(0, 200)); }
     });
   });

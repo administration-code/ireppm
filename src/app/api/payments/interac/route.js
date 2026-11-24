@@ -86,8 +86,13 @@ export async function POST(request) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  // Connection test from the Apps Script ("testConnection"): the secret matched.
-  if (body?.ping) return NextResponse.json({ ok: true, ping: true });
+  const sb0 = getSupabaseAdmin();
+  const feed = await noteFeed(sb0, body);
+
+  // Connection test / heartbeat from the Apps Script: the secret matched.
+  if (body?.ping) return NextResponse.json({ ok: true, ping: true, role: feed.role, retired: feed.retired });
+  // The old mailbox is read only through Dec 31, 2026.
+  if (feed.retired) return NextResponse.json({ ok: true, retired: true });
 
   const amount = Math.round(Number(body?.amount) * 100) / 100;
   const reference = clip(body?.reference, 100);
@@ -99,7 +104,25 @@ export async function POST(request) {
   }
 
   const receivedOn = torontoDate(body.received_at);
-  const sb = getSupabaseAdmin();
+  const sb = sb0;
+
+  // Test e-Transfer ("IREP TEST" in the message): log which mailbox got it, don't record it as rent.
+  if (/irep\s*test/i.test(String(body.message || ""))) {
+    if (feed.mailbox)
+      await sb
+        .from("mail_feed_status")
+        .update({ last_test_at: new Date(body.received_at || Date.now()).toISOString(), last_test_amount: amount, last_test_from: clip(body.sent_from, 200) })
+        .eq("mailbox", feed.mailbox);
+    return NextResponse.json({ ok: true, test: true, recorded: true });
+  }
+
+  // Seen already (the same notice can reach both mailboxes while they run side by side).
+  const [{ data: seenPay }, { data: seenPend }] = await Promise.all([
+    sb.from("payments").select("id, status").eq("reference", reference).limit(1),
+    sb.from("etransfer_pending").select("id").eq("reference", reference).limit(1),
+  ]);
+  if (seenPay?.length) return NextResponse.json({ ok: true, duplicate: true, recorded: true, matched: seenPay[0].status === "matched" });
+  if (seenPend?.length && body.pending) return NextResponse.json({ ok: true, duplicate: true, pending: true });
   // Only the address the e-Transfer was sent to (never the mailbox the notice arrived in).
   const sentTo = clip(body.sent_to, 200);
 
@@ -151,7 +174,7 @@ export async function POST(request) {
     .limit(1);
   if (manual?.length) {
     const { error: linkErr } = await sb.from("payments").update({ reference }).eq("id", manual[0].id);
-    if (!linkErr || linkErr.code === "23505") return NextResponse.json({ ok: true, duplicate: true, linked: manual[0].id });
+    if (!linkErr || linkErr.code === "23505") return NextResponse.json({ ok: true, duplicate: true, recorded: true, linked: manual[0].id });
     console.error("[interac] linking to hand-entered payment failed:", linkErr.message);
   }
   const { data: payment, error } = await sb
@@ -170,7 +193,7 @@ export async function POST(request) {
     .select("id, status, tenancy_id, amount, payer_name, memo, reference, received_on")
     .single();
 
-  if (error?.code === "23505") return NextResponse.json({ ok: true, duplicate: true });
+  if (error?.code === "23505") return NextResponse.json({ ok: true, duplicate: true, recorded: true });
   if (error) {
     console.error("[interac] insert failed:", error.message);
     return NextResponse.json({ error: "Could not save payment" }, { status: 500 });
@@ -191,7 +214,32 @@ export async function POST(request) {
   if (matched && isOldAddress(sentTo) && payment.tenancy_id) {
     await remindOldAddress(sb, payment.tenancy_id, "e-Transfer sent to the old address").catch(() => null);
   }
-  return NextResponse.json({ ok: true, matched });
+  return NextResponse.json({ ok: true, recorded: true, matched });
+}
+
+// The old ireppm@ireprealty.com mailbox is read in parallel through this date only.
+const LEGACY_UNTIL = "2026-12-31";
+const LEGACY = /ireprealty\.com/i;
+
+// Records which mailbox the reader is running in (shown under Settings → e-Transfer Reader).
+async function noteFeed(sb, body) {
+  const mailbox = clip(String(body?.mailbox || "").toLowerCase(), 200);
+  const role = mailbox && LEGACY.test(mailbox) ? "legacy" : "primary";
+  const retired = role === "legacy" && torontoDate() > LEGACY_UNTIL;
+  if (!mailbox) return { mailbox: null, role, retired };
+  const now = new Date().toISOString();
+  const { data: cur } = await sb.from("mail_feed_status").select("items_total").eq("mailbox", mailbox).maybeSingle();
+  const item = !body?.ping;
+  await sb.from("mail_feed_status").upsert({
+    mailbox,
+    feed: "interac",
+    role,
+    version: clip(body?.version, 40),
+    last_seen_at: now,
+    ...(item ? { last_item_at: now, items_total: (cur?.items_total || 0) + 1 } : {}),
+    updated_at: now,
+  });
+  return { mailbox, role, retired };
 }
 
 async function alertPending(p) {

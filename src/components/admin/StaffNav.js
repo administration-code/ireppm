@@ -108,6 +108,7 @@ export const NAV_GROUPS = [
       { key: "rates", label: "Add-Ons & Rates", href: "/admin/rates" },
       { key: "ai", label: "AI Settings", href: "/admin/ai" },
       { key: "push", label: "Phone Notifications", href: "/admin/settings/push" },
+      { key: "etransfer-reader", label: "e-Transfer Reader", href: "/admin/settings/etransfer-reader" },
       { key: "privacy-breaches", label: "Privacy Breach Record", href: "/admin/privacy-breaches" },
     ],
   },
