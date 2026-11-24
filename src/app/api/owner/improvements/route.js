@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { ownerIdsFromRequest } from "@/lib/server-auth";
-import { loadReport } from "@/lib/inspection-reports";
+import { loadReport, reportPhotoPaths } from "@/lib/inspection-reports";
+import { PHOTO_BUCKET } from "@/lib/maintenance";
 import { mailer, mailConfigured } from "@/lib/mailer";
 import { renderEmail, renderText } from "@/lib/staff-alerts";
 
@@ -21,11 +22,13 @@ function forOwner(r) {
       furnace_filter_swapped: r.furnace_filter_swapped,
       water_valve_set: r.water_valve_set,
       gutter_condition: r.gutter_condition,
+      roof_condition: r.roof_condition || null,
       pests: r.pests,
       pests_note: r.pests_note,
+      photos: r.photos || {},
     },
     notes: r.notes,
-    units: r.units.map((u) => ({ label: u.unit?.label, stove: u.stove, fridge: u.fridge, washer: u.washer, dryer: u.dryer, notes: u.notes })),
+    units: r.units.map((u) => ({ label: u.unit?.label, stove: u.stove, fridge: u.fridge, washer: u.washer, dryer: u.dryer, notes: u.notes, photos: u.photos || {} })),
     items: r.items.map((i) => ({
       id: i.id,
       description: i.description,
@@ -35,6 +38,7 @@ function forOwner(r) {
       decided_at: i.decided_at,
       owner_note: i.owner_note,
       price: i.price,
+      photos: i.photos || [],
     })),
   };
 }
@@ -54,7 +58,15 @@ export async function GET(request) {
   if (id) {
     if (!UUID.test(id)) return NextResponse.json({ error: "Invalid report." }, { status: 400 });
     const r = await ownedReport(sb, ownerIds, id);
-    return r ? NextResponse.json({ report: forOwner(r) }) : NextResponse.json({ error: "Report not found." }, { status: 404 });
+    if (!r) return NextResponse.json({ error: "Report not found." }, { status: 404 });
+    // Viewing links for the report's photos (valid a day).
+    const paths = reportPhotoPaths(r);
+    let urls = {};
+    if (paths.length) {
+      const { data } = await sb.storage.from(PHOTO_BUCKET).createSignedUrls(paths, 86400);
+      urls = Object.fromEntries((data || []).filter((d) => d.signedUrl).map((d) => [d.path, d.signedUrl]));
+    }
+    return NextResponse.json({ report: { ...forOwner(r), photo_urls: urls } });
   }
   const { data: props } = await sb.from("properties").select("id").in("owner_id", ownerIds);
   const pids = (props || []).map((p) => p.id);

@@ -6,7 +6,7 @@ import { getBrowserClient } from "@/lib/supabase";
 import { shortDate } from "@/lib/rent";
 import { money } from "@/lib/format";
 import { SITE } from "@/lib/site";
-import InspectionChecks from "@/components/InspectionChecks";
+import InspectionChecks, { PhotoStrip } from "@/components/InspectionChecks";
 import InspectionLetter, { normalizeOwnerReport } from "@/components/InspectionLetter";
 
 async function authHeader() {
@@ -113,6 +113,7 @@ export default function OwnerImprovements({ id }) {
                   </b>
                   {i.unit ? <span className="small"> · {i.unit}</span> : null}
                   {i.details ? <span className="small sub-line">{i.details}</span> : null}
+                  <PhotoStrip photos={i.photos} urls={report.photo_urls || {}} />
                   {i.price != null && i.decision === "approved" ? (
                     <span className="small sub-line">
                       Price: {money(i.price)} + HST ({money(Math.round(Number(i.price) * 113) / 100)})
@@ -161,7 +162,7 @@ export default function OwnerImprovements({ id }) {
         <h2 id="oi-checks" className="sec-title">
           What We Checked
         </h2>
-        <InspectionChecks checks={report.checks} units={report.units} />
+        <InspectionChecks checks={report.checks} units={report.units} urls={report.photo_urls || {}} />
         {report.notes ? <p className="req-note pre-line">{report.notes}</p> : null}
       </section>
       <p className="small">Questions? Call {SITE.phone} or email {SITE.email}.</p>

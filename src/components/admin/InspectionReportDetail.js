@@ -5,9 +5,10 @@ import Link from "next/link";
 import { getBrowserClient } from "@/lib/supabase";
 import { money } from "@/lib/format";
 import { shortDate } from "@/lib/rent";
-import { DECISION, REPORT_STATUS, loadReport } from "@/lib/inspection-reports";
+import { DECISION, REPORT_STATUS, loadReport, reportPhotoPaths } from "@/lib/inspection-reports";
+import { PHOTO_BUCKET } from "@/lib/maintenance";
 import { ensureSpecialUnit } from "@/lib/maintenance-units";
-import InspectionChecks from "@/components/InspectionChecks";
+import InspectionChecks, { PhotoStrip } from "@/components/InspectionChecks";
 
 async function bearer() {
   const { data } = await getBrowserClient().auth.getSession();
@@ -28,6 +29,15 @@ export default function InspectionReportDetail({ id }) {
   const [prices, setPrices] = useState({});
 
   const reload = useCallback(() => loadReport(getBrowserClient(), id).then((data) => setR(data)), [id]);
+  const [photoUrls, setPhotoUrls] = useState({});
+  useEffect(() => {
+    const paths = r ? reportPhotoPaths(r) : [];
+    if (!paths.length) return;
+    getBrowserClient()
+      .storage.from(PHOTO_BUCKET)
+      .createSignedUrls(paths, 3600)
+      .then(({ data }) => setPhotoUrls(Object.fromEntries((data || []).filter((d) => d.signedUrl).map((d) => [d.path, d.signedUrl]))));
+  }, [r]);
   useEffect(() => {
     reload();
   }, [reload]);
@@ -158,7 +168,8 @@ export default function InspectionReportDetail({ id }) {
         </h2>
         <InspectionChecks
           checks={r}
-          units={r.units.map((u) => ({ label: u.unit?.label, stove: u.stove, fridge: u.fridge, washer: u.washer, dryer: u.dryer, notes: u.notes }))}
+          urls={photoUrls}
+          units={r.units.map((u) => ({ label: u.unit?.label, stove: u.stove, fridge: u.fridge, washer: u.washer, dryer: u.dryer, notes: u.notes, photos: u.photos }))}
         />
         {r.notes ? <p className="req-note pre-line">{r.notes}</p> : null}
       </section>
@@ -187,6 +198,7 @@ export default function InspectionReportDetail({ id }) {
                       <b>{i.description}</b>
                       {i.unit?.label && i.unit.label !== "Whole property" ? <span className="small"> · {i.unit.label}</span> : null}
                       {i.details ? <span className="small sub-line">{i.details}</span> : null}
+                      <PhotoStrip photos={i.photos} urls={photoUrls} />
                       {i.added_by ? <span className="small sub-line">Added by {i.added_by}</span> : null}
                     </td>
                     <td>

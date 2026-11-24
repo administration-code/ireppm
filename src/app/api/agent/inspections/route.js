@@ -8,6 +8,10 @@ import { renderEmail, renderText } from "@/lib/staff-alerts";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const countPhotos = (f) =>
+  Object.values(f.photos || {}).flat().length +
+  (f.units || []).reduce((n, u) => n + Object.values(u.photos || {}).flat().length, 0) +
+  (f.items || []).reduce((n, i) => n + (i.photos || []).length, 0);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // GET: the vendor's properties and units, for the form.
@@ -36,6 +40,7 @@ export async function POST(request) {
     unit_id: String(i?.unit_id || ""),
     description: String(i?.description || ""),
     details: String(i?.details || ""),
+    photos: Array.isArray(i?.photos) ? i.photos : [],
   }));
   const problem = reportProblem(form);
   if (problem) return NextResponse.json({ error: problem }, { status: 400 });
@@ -50,6 +55,7 @@ export async function POST(request) {
       inspectedBy: partner.name,
       createdBy: partner.userId,
       allowedUnitIds: property.units.map((u) => u.id),
+      photoPrefix: `${partner.userId}/`, // only photos this partner uploaded
     });
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });
@@ -64,6 +70,7 @@ export async function POST(request) {
       ["Inspected by", partner.name],
       ["Date", form.inspected_on],
       ["Recommended improvements", String(items)],
+      ["Photos", String(countPhotos(form))],
     ];
     const link = { href: `https://ireppm.ca/admin/inspection-reports/${id}`, label: "Review the report" };
     const heading = "New Inspection Report";
