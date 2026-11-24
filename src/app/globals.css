@@ -1294,3 +1294,4 @@ fieldset.boxed:disabled input, fieldset.boxed:disabled select, fieldset.boxed:di
 .secure-mark { position: absolute; inset: -50%; display: flex; flex-wrap: wrap; gap: 48px 64px; align-content: space-around; justify-content: space-around; transform: rotate(-24deg); pointer-events: none; }
 .secure-mark span { color: var(--red); opacity: .22; font-weight: 700; font-size: 1.25rem; white-space: nowrap; }
 @media print { .secure-view { display: none !important; } }
+.admin-table tr.attention td { background: #fbebeb; }

@@ -9,6 +9,9 @@ import {
   PAYMENT_KIND_LABEL,
   checkAmount,
   countUnmatched,
+  methodText,
+  monthLabel,
+  shortDate,
   loadTenancyOptions,
   periodOf,
   primaryTenant,
@@ -34,6 +37,9 @@ const blank = (tenancyId = "") => ({
   key: "",
 });
 
+const splitTotalOf = (f) => ["first", "last", "key"].reduce((sum, k) => sum + (Number(f[k]) || 0), 0);
+const SOURCE = { interac_email: "e-Transfer email", manual: "Entered by hand", import: "Tracker import", payprop: "PayProp" };
+
 const num = (v) => (v === null || v === undefined || v === "" ? "" : String(Number(v)));
 
 export default function RecordPayment({ tenancyId = "" }) {
@@ -44,6 +50,8 @@ export default function RecordPayment({ tenancyId = "" }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(null);
+  const [history, setHistory] = useState(null); // { paid: [...], waiting: [...] } for the chosen tenancy
+  const [dupOk, setDupOk] = useState(false); // "Save Anyway" after a possible duplicate
 
   useEffect(() => {
     let alive = true;
@@ -60,12 +68,53 @@ export default function RecordPayment({ tenancyId = "" }) {
     };
   }, []);
 
-  const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
+  // Payments already recorded for the chosen tenancy, so nothing gets entered twice.
+  useEffect(() => {
+    setDupOk(false);
+    if (!form.tenancyId) return setHistory(null);
+    let alive = true;
+    const sb = getBrowserClient();
+    const since = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10);
+    Promise.all([
+      sb
+        .from("payments")
+        .select("id, received_on, amount, method, kind, period, source, payer_name, reference, parent_id")
+        .eq("tenancy_id", form.tenancyId)
+        .neq("status", "ignored")
+        .gte("received_on", since)
+        .order("received_on", { ascending: false })
+        .limit(15),
+      sb
+        .from("payments")
+        .select("id, received_on, amount, method, payer_name")
+        .eq("suggested_tenancy_id", form.tenancyId)
+        .is("tenancy_id", null)
+        .eq("status", "unmatched")
+        .order("received_on", { ascending: false })
+        .limit(5),
+    ]).then(([p, w]) => alive && setHistory({ paid: p.data || [], waiting: w.data || [] }));
+    return () => {
+      alive = false;
+    };
+  }, [form.tenancyId, saved]);
+
+  // Same amount within 7 days of the date received: probably already recorded.
+  const amountNow = form.kind === "first_last" ? splitTotalOf(form) : Number(form.amount) || 0;
+  const near = (d) => form.date && Math.abs(Date.parse(d) - Date.parse(form.date)) <= 7 * 86400000;
+  const possibleDupes = (history ? [...history.paid, ...history.waiting] : []).filter(
+    (p) => amountNow > 0 && near(p.received_on) && Math.round(Number(p.amount) * 100) === Math.round(amountNow * 100)
+  );
+
+  const set = (key) => (e) => {
+    setDupOk(false);
+    setForm((f) => ({ ...f, [key]: e.target.value }));
+  };
   const firstLast = form.kind === "first_last";
-  const splitTotal = ["first", "last", "key"].reduce((sum, k) => sum + (Number(form[k]) || 0), 0);
+  const splitTotal = splitTotalOf(form);
 
   // First and last: fill the split from the tenancy (rent, last month's deposit, key deposit, start month).
   function fillSplit(tenancyId, kind) {
+    setDupOk(false);
     const t = tenancies.find((x) => x.id === (tenancyId ?? form.tenancyId));
     setForm((f) => ({
       ...f,
@@ -87,6 +136,14 @@ export default function RecordPayment({ tenancyId = "" }) {
     setError("");
     if (!form.tenancyId) return setError("Choose the tenancy this payment is for.");
     if (!form.date) return setError("Add the date the payment was received.");
+    if (possibleDupes.length && !dupOk) {
+      setDupOk(true);
+      return setError(
+        `This looks like it's already recorded: ${possibleDupes
+          .map((p) => `${money(p.amount)} on ${shortDate(p.received_on)}`)
+          .join(", ")}. Check the list below. If it really is a separate payment, click Save Anyway.`
+      );
+    }
     if (firstLast) {
       if (!(Number(form.first) > 0) && !(Number(form.last) > 0)) return setError("Add the first month's rent and the last month's deposit.");
       const bad = ["first", "last", "key"].map((k) => (form[k] ? checkAmount(form[k]) : "")).find(Boolean);
@@ -250,10 +307,79 @@ export default function RecordPayment({ tenancyId = "" }) {
         ) : null}
         <div className="req-actions">
           <button type="submit" className="btn primary" disabled={busy}>
-            {busy ? "Saving…" : "Save payment"}
+            {busy ? "Saving…" : dupOk && possibleDupes.length ? "Save Anyway" : "Save Payment"}
           </button>
         </div>
       </form>
+
+      {form.tenancyId ? <RecordedHistory history={history} dupes={possibleDupes} /> : null}
     </div>
+  );
+}
+
+function RecordedHistory({ history, dupes }) {
+  const flagged = new Set(dupes.map((d) => d.id));
+  return (
+    <section className="boxed stack" aria-labelledby="rp-history">
+      <h2 id="rp-history" className="sec-title">
+        Already Recorded for This Tenancy
+      </h2>
+      {history === null ? (
+        <p className="small">Loading…</p>
+      ) : (
+        <>
+          {history.waiting.length ? (
+            <div className="warnbox">
+              {history.waiting.length === 1 ? "An e-Transfer that looks like this tenant's is" : `${history.waiting.length} e-Transfers that look like this tenant's are`} waiting
+              on the To Match page:{" "}
+              {history.waiting.map((w) => `${money(w.amount)} on ${shortDate(w.received_on)}${w.payer_name ? ` from ${w.payer_name}` : ""}`).join("; ")}.{" "}
+              <Link href="/admin/rent/match">Match it there</Link> instead of recording it again.
+            </div>
+          ) : null}
+          {!history.paid.length ? (
+            <p className="small">Nothing recorded in the last 12 months.</p>
+          ) : (
+            <div className="table-scroll">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Received</th>
+                    <th scope="col" className="r">
+                      Amount
+                    </th>
+                    <th scope="col">For</th>
+                    <th scope="col">Method</th>
+                    <th scope="col">How it got here</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {history.paid.map((p) => (
+                    <tr key={p.id} className={flagged.has(p.id) ? "attention" : undefined}>
+                      <td>
+                        {shortDate(p.received_on)}
+                        {flagged.has(p.id) ? <span className="small sub-line">⚠ Same amount, close date</span> : null}
+                      </td>
+                      <td className="r num">{money(p.amount)}</td>
+                      <td>
+                        {PAYMENT_KIND_LABEL[p.kind] || p.kind}
+                        {p.period ? <span className="small sub-line">{monthLabel(p.period)}</span> : null}
+                      </td>
+                      <td>{methodText(p.method)}</td>
+                      <td className="small">
+                        {SOURCE[p.source] || p.source}
+                        {p.payer_name ? <span className="sub-line">{p.payer_name}</span> : null}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <p className="small" style={{ margin: 0 }}>
+            Last 12 months, newest first.
+          </p>
+        </>
+      )}
+    </section>
   );
 }
