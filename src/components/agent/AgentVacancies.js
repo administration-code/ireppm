@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import TapPick from "./TapPick";
 import { useAuth } from "@/components/AuthProvider";
 import { getBrowserClient } from "@/lib/supabase";
 import { shortDate } from "@/lib/rent";
@@ -88,36 +89,13 @@ function Fields({ f, setF }) {
           <span className="small">Available</span>
           <input type="date" value={f.available_on} onChange={set("available_on")} />
         </label>
-        <label className="stack" style={{ gap: 4 }}>
-          <span className="small">Type</span>
-          <select value={f.property_type} onChange={set("property_type")}>
-            {TYPES.map((t) => (
-              <option key={t}>{t}</option>
-            ))}
-          </select>
-        </label>
-        {f.property_type !== "Room" ? (
-          <label className="stack" style={{ gap: 4 }}>
-            <span className="small">Bedrooms</span>
-            <input inputMode="numeric" value={f.beds} onChange={set("beds")} style={{ width: 70 }} />
-          </label>
-        ) : null}
-        <label className="stack" style={{ gap: 4 }}>
-          <span className="small">Bathrooms</span>
-          <input inputMode="decimal" value={f.baths} onChange={set("baths")} style={{ width: 70 }} />
-        </label>
       </div>
-      <label className="stack" style={{ gap: 4 }}>
-        <span className="small">Utilities</span>
-        <select value={f.utilities} onChange={set("utilities")}>
-          <option value="">Choose…</option>
-          {Object.entries(UTILS).map(([k, v]) => (
-            <option key={k} value={k}>
-              {v}
-            </option>
-          ))}
-        </select>
-      </label>
+      <TapPick label="Type" options={TYPES.map((t) => [t, t])} value={f.property_type} onChange={(v) => setF((s) => ({ ...s, property_type: v }))} />
+      {f.property_type !== "Room" ? (
+        <TapPick label="Bedrooms" options={["0", "1", "2", "3", "4", "5"].map((n) => [n, n === "0" ? "Studio" : n])} value={f.beds} onChange={(v) => setF((s) => ({ ...s, beds: v }))} />
+      ) : null}
+      <TapPick label="Bathrooms" options={["1", "1.5", "2", "2.5", "3"].map((n) => [n, n])} value={f.baths} onChange={(v) => setF((s) => ({ ...s, baths: v }))} />
+      <TapPick label="Utilities" options={UTILS} value={f.utilities} onChange={(v) => setF((s) => ({ ...s, utilities: v }))} />
       <textarea rows={3} placeholder="A few words about it (optional): parking, laundry, what's nearby" value={f.description} onChange={set("description")} />
       <label className="check-line">
         <input type="checkbox" checked={f.visibility === "public"} onChange={(e) => setF((s) => ({ ...s, visibility: e.target.checked ? "public" : "link" }))} />
@@ -317,17 +295,7 @@ export default function AgentVacancies() {
         <h2 id="vac-new" className="sec-title">
           Put a Unit Up
         </h2>
-        <label className="stack" style={{ gap: 4 }}>
-          <span className="small">Unit</span>
-          <select value={f.unit_id} onChange={(e) => setF((s) => ({ ...s, unit_id: e.target.value }))}>
-            <option value="">Choose the unit…</option>
-            {free.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.place} ({u.state})
-              </option>
-            ))}
-          </select>
-        </label>
+        <TapPick label="Unit" grid options={free.map((u) => [u.id, `${u.place} (${u.state})`])} value={f.unit_id} onChange={(v) => setF((s) => ({ ...s, unit_id: v }))} />
         <Fields f={f} setF={setF} />
         <div className="req-actions">
           <button type="submit" className="btn primary" disabled={busy}>

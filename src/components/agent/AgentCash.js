@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import TapPick from "./TapPick";
 import { useAuth } from "@/components/AuthProvider";
 import { getBrowserClient } from "@/lib/supabase";
 import { money } from "@/lib/format";
@@ -108,54 +109,27 @@ export default function AgentCash() {
         <h2 id="cash-log" className="sec-title">
           I Got Cash
         </h2>
-        <label className="stack" style={{ gap: 4 }}>
-          <span className="small">From</span>
-          <select
-            value={f.tenancy_id}
-            onChange={(e) => {
-              const t = byId.get(e.target.value);
-              setF((s) => ({ ...s, tenancy_id: e.target.value, amount: s.amount || (t?.rent ? String(t.rent) : "") }));
-            }}
-          >
-            <option value="">Choose the tenant…</option>
-            {cashFirst.length ? (
-              <optgroup label="Usually pay cash">
-                {cashFirst.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {label(t)}
-                  </option>
-                ))}
-              </optgroup>
-            ) : null}
-            <optgroup label="Everyone else">
-              {others.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {label(t)}
-                </option>
-              ))}
-            </optgroup>
-          </select>
-        </label>
+        <TenantPick
+          cashFirst={cashFirst}
+          others={others}
+          label={label}
+          value={f.tenancy_id}
+          onChange={(v) => {
+            const t = byId.get(v);
+            setF((s) => ({ ...s, tenancy_id: v, amount: s.amount || (t?.rent ? String(t.rent) : "") }));
+          }}
+        />
         <div className="req-actions" style={{ flexWrap: "wrap" }}>
           <label className="stack" style={{ gap: 4 }}>
             <span className="small">Amount</span>
             <input inputMode="decimal" value={f.amount} onChange={(e) => setF((s) => ({ ...s, amount: e.target.value.replace(/[^\d.]/g, "") }))} placeholder="0.00" style={{ width: 120 }} />
           </label>
           <label className="stack" style={{ gap: 4 }}>
-            <span className="small">For</span>
-            <select value={f.kind} onChange={(e) => setF((s) => ({ ...s, kind: e.target.value }))}>
-              {Object.entries(KINDS).map(([k, v]) => (
-                <option key={k} value={k}>
-                  {v}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="stack" style={{ gap: 4 }}>
             <span className="small">Date you got it</span>
             <input type="date" max={today()} value={f.collected_on} onChange={(e) => setF((s) => ({ ...s, collected_on: e.target.value }))} />
           </label>
         </div>
+        <TapPick label="For" options={KINDS} value={f.kind} onChange={(v) => setF((s) => ({ ...s, kind: v }))} />
         <input placeholder="Note (optional)" value={f.note} onChange={(e) => setF((s) => ({ ...s, note: e.target.value }))} />
         <div className="req-actions">
           <button type="submit" className="btn primary" disabled={busy}>
@@ -191,13 +165,12 @@ export default function AgentCash() {
               })}
             </ul>
             <div className="req-actions" style={{ flexWrap: "wrap" }}>
-              <label className="stack" style={{ gap: 4 }}>
-                <span className="small">How</span>
-                <select value={dep.method} onChange={(e) => setDep((s) => ({ ...s, method: e.target.value }))}>
-                  <option value="bank_deposit">Deposited at the bank</option>
-                  <option value="etransfer">e-Transferred to IRep</option>
-                </select>
-              </label>
+              <TapPick
+                label="How"
+                options={[["bank_deposit", "Deposited at the bank"], ["etransfer", "e-Transferred to IRep"]]}
+                value={dep.method}
+                onChange={(v) => setDep((s) => ({ ...s, method: v }))}
+              />
               <label className="stack" style={{ gap: 4 }}>
                 <span className="small">Date</span>
                 <input type="date" max={today()} value={dep.deposited_on} onChange={(e) => setDep((s) => ({ ...s, deposited_on: e.target.value }))} />
@@ -238,6 +211,31 @@ export default function AgentCash() {
           </ul>
         </section>
       ) : null}
+    </div>
+  );
+}
+
+// Tenants who usually pay cash as big buttons; everyone else behind a search box.
+function TenantPick({ cashFirst, others, label, value, onChange }) {
+  const [q, setQ] = useState("");
+  const [more, setMore] = useState(false);
+  const chosenOther = others.find((t) => t.id === value);
+  const found = q.trim().length >= 2 ? others.filter((t) => label(t).toLowerCase().includes(q.trim().toLowerCase())).slice(0, 12) : [];
+  return (
+    <div className="stack" style={{ gap: 8 }}>
+      <TapPick label="From" grid options={cashFirst.map((t) => [t.id, label(t)])} value={value} onChange={onChange} />
+      {chosenOther ? (
+        <TapPick options={[[chosenOther.id, label(chosenOther)]]} value={value} onChange={onChange} clearable />
+      ) : more ? (
+        <div className="stack" style={{ gap: 6 }}>
+          <input autoFocus placeholder="Type the tenant's name or street" value={q} onChange={(e) => setQ(e.target.value)} />
+          {found.length ? <TapPick grid options={found.map((t) => [t.id, label(t)])} value={value} onChange={(v) => (onChange(v), setMore(false), setQ(""))} /> : null}
+        </div>
+      ) : (
+        <button type="button" className="link-btn small" style={{ width: "fit-content" }} onClick={() => setMore(true)}>
+          Someone else
+        </button>
+      )}
     </div>
   );
 }

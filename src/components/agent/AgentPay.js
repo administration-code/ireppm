@@ -246,16 +246,11 @@ export default function AgentPay() {
             Yearly Statement for Your Taxes
           </h2>
           <span className="req-actions">
-            <label htmlFor="ap-y" className="visually-hidden">
-              Year
-            </label>
-            <select id="ap-y" value={year} onChange={(e) => setYear(Number(e.target.value))}>
-              {years.map((yy) => (
-                <option key={yy} value={yy}>
-                  {yy}
-                </option>
-              ))}
-            </select>
+            {years.map((yy) => (
+              <button key={yy} type="button" aria-pressed={year === yy} className={`btn ${year === yy ? "primary" : "ghost"} sm`} onClick={() => setYear(yy)}>
+                {yy}
+              </button>
+            ))}
             <button type="button" className="btn primary sm" onClick={print}>
               Print / Save as PDF
             </button>

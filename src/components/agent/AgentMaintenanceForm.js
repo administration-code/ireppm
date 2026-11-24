@@ -3,6 +3,7 @@
 import { useEffect, useId, useState } from "react";
 import { getBrowserClient } from "@/lib/supabase";
 import { CATEGORIES, URGENCY, URGENCY_HELP, estimateProblem } from "@/lib/maintenance";
+import TapPick from "./TapPick";
 import CostEstimateFields from "@/components/admin/CostEstimateFields";
 import { SITE } from "@/lib/site";
 import PhotoPicker, { uploadPhotos } from "@/components/admin/PhotoPicker";
@@ -114,56 +115,29 @@ export default function AgentMaintenanceForm({ userId, onLogged }) {
         <p className="small">IRep hasn&apos;t assigned you to any properties yet, so there&apos;s nowhere to log a request.</p>
       ) : (
         <form className="stack" onSubmit={submit} noValidate>
-          <div className="row2">
-            <div className="field">
-              <label htmlFor={`${id}-p`}>Property</label>
-              <select id={`${id}-p`} value={form.property_id} onChange={set("property_id")}>
-                <option value="">Choose…</option>
-                {props.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.address}
-                    {p.city ? `, ${p.city}` : ""}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="field">
-              <label htmlFor={`${id}-u`}>Where</label>
-              <select id={`${id}-u`} value={form.unit_id} onChange={set("unit_id")} disabled={!property}>
-                <option value="">Whole property (outside or shared areas)</option>
-                {(property?.units || []).map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.label || "Main unit"}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <div className="row2">
-            <div className="field">
-              <label htmlFor={`${id}-c`}>Category</label>
-              <select id={`${id}-c`} value={form.category} onChange={set("category")}>
-                {Object.entries(CATEGORIES).map(([k, v]) => (
-                  <option key={k} value={k}>
-                    {v}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="field">
-              <label htmlFor={`${id}-urg`}>How urgent</label>
-              <select id={`${id}-urg`} value={form.urgency} onChange={set("urgency")} aria-describedby={`${id}-urg-hint`}>
-                {Object.entries(URGENCY).map(([k, v]) => (
-                  <option key={k} value={k}>
-                    {v}
-                  </option>
-                ))}
-              </select>
-              <span className="small" id={`${id}-urg-hint`}>
-                {URGENCY_HELP[form.urgency]}
-              </span>
-            </div>
-          </div>
+          <TapPick
+            label="Property"
+            grid
+            options={props.map((p) => [p.id, p.address])}
+            value={form.property_id}
+            onChange={(v) => setForm((f) => ({ ...f, property_id: v, unit_id: "" }))}
+          />
+          {property ? (
+            <TapPick
+              label="Where"
+              options={[["", "Whole property (outside or shared)"], ...(property.units || []).map((u) => [u.id, u.label || "Main unit"])]}
+              value={form.unit_id}
+              onChange={(v) => setForm((f) => ({ ...f, unit_id: v }))}
+            />
+          ) : null}
+          <TapPick label="What kind of problem" options={CATEGORIES} value={form.category} onChange={(v) => setForm((f) => ({ ...f, category: v }))} />
+          <TapPick
+            label="How urgent"
+            options={URGENCY}
+            value={form.urgency}
+            onChange={(v) => setForm((f) => ({ ...f, urgency: v }))}
+            hint={URGENCY_HELP[form.urgency]}
+          />
           <div className="field">
             <label htmlFor={`${id}-t`}>Title</label>
             <input id={`${id}-t`} value={form.title} onChange={set("title")} maxLength={120} placeholder="Leak under kitchen sink" />
