@@ -63,6 +63,7 @@ export const NAV_GROUPS = [
     items: [
       { key: "maintenance", label: "Requests", href: "/admin/maintenance", count: "maintenanceNew", note: "new" },
       { key: "jobs-done", label: "Jobs Done", href: "/admin/maintenance/done", count: "jobsDone", note: "to review" },
+      { key: "visits", label: "Lawn and Snow Visits", href: "/admin/visits" },
       { key: "email-intake", label: "Review Email Intake", href: "/admin/maintenance/intake", count: "intakeReview", note: "to review" },
       { key: "work-orders", label: "Work Orders", href: "/admin/work-orders" },
       { key: "inspection-reports", label: "Inspection Reports", href: "/admin/inspection-reports", count: "inspectionReportsToReview", note: "to review" },

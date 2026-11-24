@@ -50,6 +50,7 @@ function Review({ r, onDone }) {
   const [cost, setCost] = useState(() => billedFor(r.vendor_price, r.charge_to || "owner").toFixed(2));
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
+  const [invoiceReady, setInvoiceReady] = useState(false);
   const needsOk = r.owner_approval === "pending" && Number(cost) > 250;
   async function approve() {
     if (!(Number(cost) >= 0)) return setMsg("Enter the amount to charge.");
@@ -68,7 +69,24 @@ function Review({ r, onDone }) {
     setBusy(false);
     if (error) return setMsg(/locked/i.test(error.message || "") ? "That month is locked. Unlock it or change the date." : "That didn't save. Try again.");
     refreshStaffCounts();
+    // Billed separately (approved inspection work): the invoice is drafted from his price; send it from here.
+    if (chargeTo === "owner_invoice") return setInvoiceReady(true);
     onDone();
+  }
+  if (invoiceReady) {
+    return (
+      <div className="okbox stack" style={{ gap: 8 }}>
+        <span>Completed. The landlord&apos;s invoice is ready: his price plus HST, billed separately from rent.</span>
+        <div className="req-actions">
+          <Link className="btn primary sm" href={`/admin/maintenance/${r.id}/invoice`}>
+            Review and Email the Invoice
+          </Link>
+          <button type="button" className="link-btn small" onClick={onDone}>
+            Later
+          </button>
+        </div>
+      </div>
+    );
   }
   return (
     <div className="stack" style={{ gap: 8 }}>

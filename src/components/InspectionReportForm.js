@@ -113,7 +113,9 @@ function Part({ title, children }) {
 // photos are uploaded first and passed as { path, name }.
 // Optional: initial (a saved draft's form), onSaveDraft(form) → { saved_at } (turns on autosave and
 // "Save and Finish Later"), onLater() after a manual save, and sendLabel for the final button on the quote step.
-export default function InspectionReportForm({ properties, onSubmit, submitLabel = "Submit Report", initial = null, onSaveDraft = null, onLater = null }) {
+// lastByProperty (optional): { [property_id]: { inspected_on, gutter_condition, roof_condition, units: { [unit_id]: {...} }, items: [...] } }
+// from the property's last inspection, for "Start From Last Time".
+export default function InspectionReportForm({ properties, onSubmit, submitLabel = "Submit Report", initial = null, onSaveDraft = null, onLater = null, lastByProperty = null }) {
   const id = useId();
   const [step, setStep] = useState("checks");
   const [save, setSave] = useState({ state: "", at: initial?._saved_at || null, error: "" });
@@ -149,8 +151,29 @@ export default function InspectionReportForm({ properties, onSubmit, submitLabel
   const property = properties.find((p) => p.id === form.property_id);
 
   const pickProperty = (pid) => {
+    setCopied(false);
     const p = properties.find((x) => x.id === pid);
     setForm((f) => ({ ...f, property_id: pid, units: p ? p.units.map(blankUnit) : [], items: f.items.map((i) => ({ ...i, unit_id: "" })) }));
+  };
+  // Copies the answers that usually stay the same (gutters, roof, appliances, open improvements) from last time.
+  // Filter, water valve and pests are left blank: they're checked fresh every visit. No photos are copied.
+  const [copied, setCopied] = useState(false);
+  const last = form.property_id ? lastByProperty?.[form.property_id] : null;
+  const copyLast = () => {
+    if (!last) return;
+    setForm((f) => ({
+      ...f,
+      gutter_condition: last.gutter_condition || f.gutter_condition,
+      roof_condition: last.roof_condition || f.roof_condition,
+      units: f.units.map((u) => {
+        const l = last.units?.[u.unit_id];
+        return l ? { ...u, stove: l.stove || "", fridge: l.fridge || "", washer: l.washer || "", dryer: l.dryer || "" } : u;
+      }),
+      items: last.items?.length
+        ? last.items.map((i) => ({ ...blankItem(), unit_id: f.units.some((u) => u.unit_id === i.unit_id) ? i.unit_id : "", description: i.description, details: i.details || "" }))
+        : f.items,
+    }));
+    setCopied(true);
   };
   const setUnit = (unitId, k, v) => setForm((f) => ({ ...f, units: f.units.map((u) => (u.unit_id === unitId ? { ...u, [k]: v } : u)) }));
   const setUnitPhotos = (unitId, k, files) =>
@@ -203,7 +226,8 @@ export default function InspectionReportForm({ properties, onSubmit, submitLabel
       setSave({ state: "saved", at: out?.saved_at || new Date().toISOString(), error: "" });
       return true;
     } catch (err) {
-      setSave((s) => ({ ...s, state: "error", error: err.message || "Not saved." }));
+      const offline = typeof navigator !== "undefined" && navigator.onLine === false;
+      setSave((s) => ({ ...s, state: offline ? "offline" : "error", error: err.message || "Not saved." }));
       if (manual) setError(err.message || "That didn't save. Try again.");
       return false;
     } finally {
@@ -214,6 +238,14 @@ export default function InspectionReportForm({ properties, onSubmit, submitLabel
       }
     }
   }
+  // No signal (basements): keep going; everything stays on the phone and saves when the signal is back.
+  useEffect(() => {
+    if (!onSaveDraft) return;
+    const back = () => saveDraft();
+    window.addEventListener("online", back);
+    return () => window.removeEventListener("online", back);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   useEffect(() => {
     if (first.current) {
       first.current = false;
@@ -284,7 +316,9 @@ export default function InspectionReportForm({ properties, onSubmit, submitLabel
         <p className="small" role="status" style={{ margin: 0, color: save.state === "error" ? "var(--red, #B41710)" : undefined }}>
           {save.state === "saving"
             ? "Saving…"
-            : save.state === "error"
+            : save.state === "offline"
+              ? "No signal right now. Keep going: your answers and photos stay on this phone and save when you're back online. Don't close this page."
+              : save.state === "error"
               ? `Not saved yet: ${save.error}`
               : save.at
                 ? `✓ Saved ${timeOf(save.at)}. It saves as you go.`
@@ -319,6 +353,20 @@ export default function InspectionReportForm({ properties, onSubmit, submitLabel
           <label htmlFor={`${id}-date`}>Inspection date</label>
           <input id={`${id}-date`} type="date" value={form.inspected_on} onChange={(e) => set("inspected_on", e.target.value)} />
         </div>
+        {last && !initial ? (
+          copied ? (
+            <p className="small" role="status" style={{ margin: 0 }}>
+              ✓ Filled in from {last.inspected_on}. Change anything that&apos;s different. The furnace filter, water valve and pests are blank: check those fresh.
+            </p>
+          ) : (
+            <div className="stack" style={{ gap: 6 }}>
+              <button type="button" className="btn ghost" style={{ minHeight: 48 }} onClick={copyLast}>
+                Start From Last Time ({last.inspected_on})
+              </button>
+              <span className="small">Fills in the gutters, roof, appliances and open improvements from the last inspection.</span>
+            </div>
+          )
+        ) : null}
       </section>
 
       {property ? (

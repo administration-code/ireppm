@@ -36,13 +36,48 @@ async function myDrafts(sb, partnerId) {
   return (data || []).map((d) => ({ id: d.id, property_id: d.property_id, address: d.property?.address, updated_at: d.updated_at, form: d.draft }));
 }
 
+// The last finished inspection of each property, shaped for "Start From Last Time".
+async function lastInspections(sb, propertyIds) {
+  if (!propertyIds.length) return {};
+  const { data: reports } = await sb
+    .from("inspection_reports")
+    .select("id, property_id, inspected_on, gutter_condition, roof_condition")
+    .in("property_id", propertyIds)
+    .in("status", ["submitted", "sent", "closed"])
+    .order("inspected_on", { ascending: false })
+    .limit(200);
+  const latest = {};
+  for (const r of reports || []) if (!latest[r.property_id]) latest[r.property_id] = r;
+  const ids = Object.values(latest).map((r) => r.id);
+  if (!ids.length) return {};
+  const [{ data: units }, { data: items }] = await Promise.all([
+    sb.from("inspection_report_units").select("report_id, unit_id, stove, fridge, washer, dryer").in("report_id", ids),
+    sb.from("improvement_items").select("report_id, unit_id, description, details, decision, sort").in("report_id", ids).order("sort"),
+  ]);
+  const out = {};
+  for (const r of Object.values(latest)) {
+    out[r.property_id] = {
+      inspected_on: r.inspected_on,
+      gutter_condition: r.gutter_condition || "",
+      roof_condition: r.roof_condition || "",
+      units: Object.fromEntries((units || []).filter((u) => u.report_id === r.id).map((u) => [u.unit_id, { stove: u.stove, fridge: u.fridge, washer: u.washer, dryer: u.dryer }])),
+      // Approved items are already jobs; only the ones still open or turned down come forward.
+      items: (items || [])
+        .filter((i) => i.report_id === r.id && i.decision !== "approved")
+        .map((i) => ({ unit_id: i.unit_id || "", description: i.description, details: i.details || "" })),
+    };
+  }
+  return out;
+}
+
 // GET: the vendor's managed properties and units for the form, and any reports saved to finish later.
 export async function GET(request) {
   const sb = getSupabaseAdmin();
   const partner = await partnerFromRequest(sb, request);
   if (!partner) return NextResponse.json({ error: "Partner sign-in required." }, { status: 401 });
   const [properties, drafts] = await Promise.all([managedProperties(sb, partner.id), myDrafts(sb, partner.id)]);
-  return NextResponse.json({ properties, drafts });
+  const last = await lastInspections(sb, properties.map((p) => p.id)).catch(() => ({}));
+  return NextResponse.json({ properties, drafts, last });
 }
 
 function cleanForm(form) {

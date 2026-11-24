@@ -16,6 +16,7 @@ export default function AgentInspection() {
   const { user, ready, openSignIn } = useAuth();
   const [props, setProps] = useState(null);
   const [drafts, setDrafts] = useState([]);
+  const [last, setLast] = useState({});
   const [done, setDone] = useState(null); // { sent, to, later }
   const [open, setOpen] = useState(null); // draft being finished: { id, form, updated_at } or "new"
   const draftId = useRef(null);
@@ -26,6 +27,7 @@ export default function AgentInspection() {
     const json = await res.json().catch(() => ({}));
     setProps(res.ok ? json.properties || [] : []);
     setDrafts(res.ok ? json.drafts || [] : []);
+    setLast(res.ok ? json.last || {} : {});
   }
   useEffect(() => {
     if (user) load();
@@ -138,6 +140,7 @@ export default function AgentInspection() {
         <InspectionReportForm
           key={open === "new" ? "new" : open.id}
           properties={props}
+          lastByProperty={last}
           initial={open === "new" ? null : open.form}
           submitLabel="Inspection Complete: Send to Landlord"
           onSaveDraft={saveDraft}

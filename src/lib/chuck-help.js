@@ -23,10 +23,43 @@ export const HELP_TOPICS = [
     go: "Open Jobs",
   },
   {
+    key: "visits",
+    q: "I cut a lawn or cleared snow",
+    steps: [
+      "Tap Lawn and Snow on your portal.",
+      "Tap Lawn or Snow, tap the property, take a photo.",
+      "Tap Log Visit. The photo is your proof if anyone says it wasn't done.",
+    ],
+    href: "/agent/visits",
+    go: "Lawn and Snow",
+  },
+  {
+    key: "showed",
+    q: "I showed a unit",
+    steps: [
+      "Open Vacancies and tap I Showed It on that unit. One tap per showing.",
+      "Tapped it by mistake? Tap Undo.",
+      "Want a sign for the window? Tap Print a QR Sign. People scan it to see photos and apply.",
+    ],
+    href: "/agent/vacancies",
+    go: "Vacancies",
+  },
+  {
+    key: "book",
+    q: "A landlord approved work",
+    steps: [
+      "It's on your Open Jobs with an Email the Landlord to Book It button.",
+      "Tap it: the email is already written. Add two times that work for you and send.",
+      "When it's done, use Job Done. IRep sends the landlord the invoice. It's billed separately, not taken off rent.",
+    ],
+    href: "/agent#jobs",
+    go: "Open Jobs",
+  },
+  {
     key: "inspection",
     q: "I'm doing an inspection",
     steps: [
-      "Tap Inspection report and pick the property. Tap an answer for each part and add photos under it.",
+      "Tap Inspection Report and pick the property. Been there before? Tap Start From Last Time. Tap an answer for each part and add photos under it.",
       "Tap Next: Quote the Repairs. Put your price before HST on each item; the total with HST adds up at the bottom.",
       "Tap Inspection Complete: Send to Landlord. It goes straight to them. It saves as you go, or tap Save and Finish Later.",
       "Approved items show up under Open Jobs. Email the landlord to book it. It's billed on a separate invoice, not taken off rent.",

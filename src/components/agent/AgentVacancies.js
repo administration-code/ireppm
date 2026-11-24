@@ -175,11 +175,20 @@ export default function AgentVacancies() {
     setEdit(null);
     load();
   }
+  const [justShowed, setJustShowed] = useState(null);
   async function close(v, rented) {
     if (!window.confirm(rented ? `Mark ${v.address}${v.unit ? `, ${v.unit}` : ""} as rented and take it down?` : "Take this vacancy down?")) return;
     setBusy(true);
     await call("POST", { action: "close", id: v.id, rented });
     setBusy(false);
+    load();
+  }
+  async function showed(v, undo = false) {
+    setBusy(true);
+    const out = await call("POST", { action: "showed", id: v.id, undo });
+    setBusy(false);
+    if (out.error) return setMsg(out.error);
+    setJustShowed(undo ? null : v.id);
     load();
   }
   async function copy(text, key) {
@@ -272,6 +281,27 @@ export default function AgentVacancies() {
                       <button type="button" className="link-btn small" onClick={() => close(v, false)} disabled={busy}>
                         Take down
                       </button>
+                    </div>
+                    <div className="stack" style={{ gap: 6, borderTop: "1px solid var(--line)", paddingTop: 10 }}>
+                      <div className="req-actions" style={{ flexWrap: "wrap", alignItems: "center" }}>
+                        <button type="button" className="btn primary" style={{ minHeight: 48 }} onClick={() => showed(v)} disabled={busy}>
+                          I Showed It
+                        </button>
+                        <Link className="btn ghost sm" style={{ minHeight: 44 }} href={`/agent/vacancies/sign?id=${v.id}`}>
+                          Print a QR Sign
+                        </Link>
+                      </div>
+                      <span className="small">
+                        {v.shown ? `Shown ${v.shown} time${v.shown === 1 ? "" : "s"}${v.lastShown ? `, last on ${shortDate(v.lastShown)}` : ""}.` : "Tap I Showed It each time you show it."}
+                        {justShowed === v.id ? (
+                          <>
+                            {" "}✓ Logged.{" "}
+                            <button type="button" className="link-btn small" onClick={() => showed(v, true)} disabled={busy}>
+                              Undo
+                            </button>
+                          </>
+                        ) : null}
+                      </span>
                     </div>
                     <Photos v={v} onChange={load} />
                     <span className="small">Up since {shortDate(String(v.created_at).slice(0, 10))}</span>

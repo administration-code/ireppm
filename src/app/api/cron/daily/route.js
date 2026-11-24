@@ -6,6 +6,7 @@ import { oldAddressReminders } from "@/lib/etransfer-reminders";
 import { buildToday } from "@/lib/today";
 import { SITE } from "@/lib/site";
 import { activateMoveIns } from "@/lib/move-ins";
+import { chuckWeekly } from "@/lib/chuck-weekly";
 import { autoLeasingFees } from "@/lib/auto-leasing-fee";
 import { drawDigest } from "@/lib/payprop-draw";
 import { mailer, mailConfigured } from "@/lib/mailer";
@@ -194,6 +195,7 @@ export async function GET(request) {
   for (const [key, job] of [
     ["moveIns", activateMoveIns],
     ["leasingFees", autoLeasingFees],
+    ["chuckWeekly", chuckWeekly],
     ["insurance", insuranceReminders],
     ["leaseEnd", leaseEndPrompts],
     ["showings", showingReminders],

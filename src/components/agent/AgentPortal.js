@@ -26,6 +26,7 @@ export default function AgentPortal() {
   const [cash, setCash] = useState(null);
   const [serve, setServe] = useState(null);
   const [doneJobs, setDoneJobs] = useState([]);
+  const [bookings, setBookings] = useState({});
   useEffect(() => {
     if (!user) return;
     (async () => {
@@ -33,6 +34,7 @@ export default function AgentPortal() {
       const res = await fetch("/api/agent/maintenance/done", { headers: { Authorization: `Bearer ${data?.session?.access_token || ""}` } }).catch(() => null);
       const out = res ? await res.json().catch(() => null) : null;
       if (Array.isArray(out?.done)) setDoneJobs(out.done);
+      if (out?.bookings) setBookings(out.bookings);
     })();
   }, [user]);
   useEffect(() => {
@@ -127,7 +129,10 @@ export default function AgentPortal() {
             Vacancies
           </Link>
           <Link className="btn primary sm" href="/agent/inspection">
-            Inspection report
+            Inspection Report
+          </Link>
+          <Link className="btn primary sm" href="/agent/visits">
+            Lawn and Snow
           </Link>
           <Link className="btn ghost sm" href="/agent/pay">
             Your pay and tax statement
@@ -209,6 +214,18 @@ export default function AgentPortal() {
                       : "Arrange a time with the tenant first."}
                   {j.access_notes ? ` ${j.access_notes}` : ""}
                 </span>
+                {bookings[j.id] && !doneJobs.includes(j.id) ? (
+                  <div className="stack" style={{ gap: 4, margin: "8px 0" }}>
+                    <span className="small">Landlord approved this. Separate invoice, not taken off rent.</span>
+                    <a
+                      className="btn primary sm"
+                      style={{ minHeight: 44, width: "fit-content" }}
+                      href={`mailto:${encodeURIComponent(bookings[j.id].email)}?cc=${encodeURIComponent(SITE.email)}&subject=${encodeURIComponent(bookings[j.id].subject)}&body=${encodeURIComponent(bookings[j.id].body)}`}
+                    >
+                      Email the Landlord to Book It
+                    </a>
+                  </div>
+                ) : null}
                 <AgentJobDone job={j} userId={user.id} done={doneJobs.includes(j.id)} onDone={(id) => setDoneJobs((l) => [...l, id])} />
               </li>
             ))}

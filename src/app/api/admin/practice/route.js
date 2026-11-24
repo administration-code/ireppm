@@ -106,6 +106,7 @@ export async function POST(request) {
   }
   await sb.from("maintenance_requests").delete().in("unit_id", unitIds);
   await sb.from("inspection_reports").delete().eq("property_id", PROPERTY); // units and items go with it
+  await sb.from("service_visits").delete().eq("property_id", PROPERTY);
   if (tenancyIds.length) {
     // Practice notices, their certificates (unsigned ones are voided in DocuSign), tasks and service records.
     const { data: sigs } = await sb.from("signature_requests").select("id, envelope_id, status, signed_file_path").in("tenancy_id", tenancyIds);

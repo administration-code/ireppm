@@ -21,6 +21,8 @@ export const CHECKLIST = [
       ["already_done", "Logs work he already finished (goes to IRep for review)", 10],
       ["vacancy", "Puts a vacancy up, adds photos, copies the Facebook text", 20],
       ["apply_link", "Replies to a Facebook enquiry with the apply link instead of collecting documents", 10],
+      ["showed_it", "Taps I Showed It after each showing he set up himself", 2],
+      ["book_landlord", "Uses Email the Landlord to Book It on an approved inspection job", 5],
       ["joel", "Joel Propheth's $350: was the Oct 8 $250 his, and where's the $100?", 10],
     ],
   },
@@ -37,14 +39,17 @@ export const CHECKLIST = [
     ],
   },
   {
-    day: "Low: If There's Time (about 35 min)",
+    day: "Low: If There's Time (about 50 min)",
     note: "Mostly self-explanatory; fine to skip and let him find it.",
     items: [
       ["cash_log", "Logs a cash payment with Log Cash", 5],
       ["cash_deposit", "Ticks cash off as deposited, with the date", 5],
       ["deposit_photo", "Takes a photo of every deposit slip", 2],
       ["properties", "Checks his properties list (anything wrong goes to Rosie)", 5],
-      ["inspection", "Does an inspection: taps each part, adds photos, prices each repair, sends it to the landlord", 15],
+      ["inspection", "Does an inspection: taps each part, adds photos, prices each repair, sends it to the landlord (Start From Last Time fills in the rest)", 15],
+      ["visits", "Logs a lawn or snow visit with a photo (Lawn and Snow)", 5],
+      ["qr_sign", "Prints a QR For Rent sign for a vacancy", 5],
+      ["weekly", "Knows the Monday morning summary lists his week", 2],
     ],
   },
   {

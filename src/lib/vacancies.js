@@ -73,6 +73,9 @@ export async function vacancyBoard(sb, partnerId) {
       .in("id", listingIds)
       .eq("status", "available");
     const live = ls || [];
+    const { data: logged } = live.length
+      ? await sb.from("vacancy_showings").select("listing_id, shown_on").in("listing_id", live.map((l) => l.id))
+      : { data: [] };
     const [{ data: apps }, { data: shows }] = await Promise.all([
       live.length ? sb.from("applications").select("listing_id, status").in("listing_id", live.map((l) => l.id)) : { data: [] },
       live.length ? sb.from("showing_requests").select("listing_id, status").in("listing_id", live.map((l) => l.id)) : { data: [] },
@@ -84,6 +87,8 @@ export async function vacancyBoard(sb, partnerId) {
       post: postText(l),
       applications: (apps || []).filter((a) => a.listing_id === l.id && !["withdrawn"].includes(a.status)).length,
       showings: (shows || []).filter((s) => s.listing_id === l.id && ["requested", "rescheduled", "confirmed"].includes(s.status)).length,
+      shown: (logged || []).filter((s) => s.listing_id === l.id).length,
+      lastShown: (logged || []).filter((s) => s.listing_id === l.id).map((s) => s.shown_on).sort().pop() || null,
     }));
   }
   const liveIds = new Set(vacancies.map((v) => v.id));
@@ -157,6 +162,28 @@ export async function updateVacancy(sb, partner, input) {
 }
 
 // Take it down: rented, or no longer available. Applications already in stay with IRep.
+// "I Showed It": one tap per showing Chuck set up himself. undo removes his last one from today.
+export async function logShowing(sb, partner, input) {
+  const v = await ownVacancy(sb, partner, String(input?.id || ""));
+  if (!v) return { error: "That vacancy wasn't found." };
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" });
+  if (input?.undo) {
+    const { data: lastOne } = await sb
+      .from("vacancy_showings")
+      .select("id")
+      .eq("listing_id", v.id)
+      .eq("partner_id", partner.id)
+      .eq("shown_on", today)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (lastOne) await sb.from("vacancy_showings").delete().eq("id", lastOne.id);
+    return { ok: true };
+  }
+  const { error } = await sb.from("vacancy_showings").insert({ listing_id: v.id, partner_id: partner.id, shown_on: today });
+  return error ? { error: "Logging showings isn't switched on yet. Tell Rosie." } : { ok: true };
+}
+
 export async function closeVacancy(sb, partner, input) {
   const v = await ownVacancy(sb, partner, String(input?.id || ""));
   if (!v) return { error: "That vacancy wasn't found." };

@@ -84,3 +84,48 @@ export async function jobDoneAlert(partner, j) {
     })
     .catch((err) => console.error("[job-done] alert failed:", err?.message || err));
 }
+
+// Approved inspection work (billed on a separate invoice): the landlord's email and a ready-made
+// booking email for each of the vendor's open jobs. Returns { [jobId]: { name, email, subject, body } }.
+export async function landlordBookings(sb, partnerId, partnerName = "") {
+  const { data: jobs } = await sb
+    .from("maintenance_requests")
+    .select("id, title, estimated_cost, unit:units(label, property:properties(address, owner:owners(name, email)))")
+    .eq("partner_id", partnerId)
+    .eq("charge_to", "owner_invoice")
+    .not("status", "in", "(completed,cancelled)");
+  const out = {};
+  const byPlace = {};
+  for (const j of jobs || []) {
+    const owner = j.unit?.property?.owner;
+    if (!owner?.email) continue;
+    const address = j.unit?.property?.address || "your property";
+    (byPlace[address] ||= { owner, jobs: [] }).jobs.push(j);
+  }
+  const money = (n) => `$${Number(n).toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  for (const [address, { owner, jobs: list }] of Object.entries(byPlace)) {
+    const first = String(owner.name || "").split(" ")[0] || "there";
+    const lines = list.map((j) => {
+      const where = j.unit?.label && j.unit.label !== "Whole property" ? ` (${j.unit.label})` : "";
+      return `- ${j.title}${where}${j.estimated_cost != null ? `: ${money(j.estimated_cost)} + HST` : ""}`;
+    });
+    const body = [
+      `Hi ${first},`,
+      "",
+      `Thank you for approving the work at ${address}:`,
+      ...lines,
+      "",
+      "I'd like to book a time to get it done. Would any of these work for you?",
+      "- ",
+      "- ",
+      "",
+      "The amounts above are estimates; I'll let you know before anything changes.",
+      "",
+      "Thank you,",
+      partnerName || "Chuck",
+      "IRep Property Management",
+    ].join("\n");
+    for (const j of list) out[j.id] = { name: owner.name || "", email: owner.email, subject: `Booking the approved work at ${address}`, body };
+  }
+  return out;
+}

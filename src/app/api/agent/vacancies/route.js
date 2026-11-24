@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { partnerFromRequest } from "@/lib/server-auth";
-import { addPhotos, closeVacancy, photoUploadLinks, removePhoto, startVacancy, updateVacancy, vacancyBoard } from "@/lib/vacancies";
+import { addPhotos, closeVacancy, logShowing, photoUploadLinks, removePhoto, startVacancy, updateVacancy, vacancyBoard } from "@/lib/vacancies";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -37,6 +37,8 @@ export async function POST(request) {
               ? await addPhotos(sb, partner, body)
               : body.action === "photo-remove"
                 ? await removePhoto(sb, partner, body)
-                : { error: "Unknown action." };
+                : body.action === "showed"
+                  ? await logShowing(sb, partner, body)
+                  : { error: "Unknown action." };
   return NextResponse.json(out, { status: out.error ? 400 : 200 });
 }
