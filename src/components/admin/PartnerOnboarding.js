@@ -68,7 +68,7 @@ function PracticeClear() {
       <h2 className="sec-title">Practice Property</h2>
       <p className="small">
         Chuck can try things at 1 Practice St (TEST) without touching real tenants or money. Logged there now: {d.requests} request
-        {d.requests === 1 ? "" : "s"}, {d.cash} cash entr{d.cash === 1 ? "y" : "ies"}, {d.vacancies} vacanc{d.vacancies === 1 ? "y" : "ies"}. Don&apos;t approve
+        {d.requests === 1 ? "" : "s"}, {d.cash} cash entr{d.cash === 1 ? "y" : "ies"}, {d.vacancies} vacanc{d.vacancies === 1 ? "y" : "ies"}, {d.inspections || 0} inspection{d.inspections === 1 ? "" : "s"}. Don&apos;t approve
         practice jobs in Jobs Done: clear them here instead.
       </p>
       <div className="req-actions" style={{ flexWrap: "wrap" }}>

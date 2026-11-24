@@ -77,12 +77,13 @@ export async function GET(request) {
   if (!(await staffFromRequest(sb, request))) return NextResponse.json({ error: "Staff sign-in required." }, { status: 401 });
   const { unitIds, listingIds, tenancyIds } = await practiceIds(sb);
   if (!unitIds.length) return NextResponse.json({ ready: false });
-  const [m, c, l] = await Promise.all([
+  const [m, c, l, ins] = await Promise.all([
     sb.from("maintenance_requests").select("id", { count: "exact", head: true }).in("unit_id", unitIds),
     tenancyIds.length ? sb.from("cash_collections").select("id", { count: "exact", head: true }).in("tenancy_id", tenancyIds) : { count: 0 },
     listingIds.length ? sb.from("listings").select("id", { count: "exact", head: true }).in("id", listingIds) : { count: 0 },
+    sb.from("inspection_reports").select("id", { count: "exact", head: true }).eq("property_id", PROPERTY),
   ]);
-  return NextResponse.json({ ready: true, requests: m.count || 0, cash: c.count || 0, vacancies: l.count || 0 });
+  return NextResponse.json({ ready: true, requests: m.count || 0, cash: c.count || 0, vacancies: l.count || 0, inspections: ins.count || 0 });
 }
 
 export async function POST(request) {
@@ -104,6 +105,7 @@ export async function POST(request) {
     await sb.from("payments").delete().in("tenancy_id", tenancyIds);
   }
   await sb.from("maintenance_requests").delete().in("unit_id", unitIds);
+  await sb.from("inspection_reports").delete().eq("property_id", PROPERTY); // units and items go with it
   if (tenancyIds.length) {
     // Practice notices, their certificates (unsigned ones are voided in DocuSign), tasks and service records.
     const { data: sigs } = await sb.from("signature_requests").select("id, envelope_id, status, signed_file_path").in("tenancy_id", tenancyIds);
