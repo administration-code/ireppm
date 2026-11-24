@@ -2,6 +2,7 @@
 
 import { longDate, money } from "@/lib/format";
 import { SITE } from "@/lib/site";
+import { QUOTE_DISCLAIMER, quoteTotals } from "@/lib/inspection-reports";
 import { IRepMark } from "@/components/Brand";
 import { APPLIANCES, CONDITION, DECISION, GUTTER, yesNo } from "@/lib/inspection-reports";
 
@@ -32,13 +33,13 @@ export function normalizeOwnerReport(r) {
     inspected_by: "",
     checks: r.checks,
     units: r.units.map((u, n) => ({ ...u, id: u.id || n })),
-    items: r.items.map((i) => ({ ...i, where: i.unit, price: i.decision === "approved" ? i.price : null })),
+    items: r.items.map((i) => ({ ...i, where: i.unit })),
     notes: r.notes,
   };
 }
 
 export default function InspectionLetter({ report: r, opts = {} }) {
-  const anyPrice = r.items.some((i) => i.price != null && i.decision !== "declined");
+  const anyPrice = r.items.some((i) => i.price != null);
   const c = r.checks || {};
   return (
     <article className="receipt letter" aria-label="Inspection report">
@@ -135,7 +136,7 @@ export default function InspectionLetter({ report: r, opts = {} }) {
                 <th>Improvement</th>
                 <th>Where</th>
                 {opts.decisions ? <th>Decision</th> : null}
-                {opts.prices && anyPrice ? <th className="r">Price (before HST)</th> : null}
+                {opts.prices && anyPrice ? <th className="r">Estimate (before HST)</th> : null}
               </tr>
             </thead>
             <tbody>
@@ -159,7 +160,7 @@ export default function InspectionLetter({ report: r, opts = {} }) {
                   <td>{unitName(i.where)}</td>
                   {opts.decisions ? <td>{DECISION[i.decision]}</td> : null}
                   {opts.prices && anyPrice ? (
-                    <td className="r num">{i.price != null && i.decision !== "declined" ? money(i.price) : "—"}</td>
+                    <td className="r num">{i.price != null ? money(i.price) : "—"}</td>
                   ) : null}
                 </tr>
               ))}
@@ -168,6 +169,12 @@ export default function InspectionLetter({ report: r, opts = {} }) {
         ) : (
           <p>None recommended.</p>
         )}
+        {opts.prices && anyPrice ? <LetterTotals items={r.items} /> : null}
+        {opts.prices && anyPrice ? (
+          <p className="receipt-note" style={{ marginTop: 12 }}>
+            <b>Disclaimer.</b> {QUOTE_DISCLAIMER}
+          </p>
+        ) : null}
       </section>
 
       {r.notes ? (
@@ -177,7 +184,35 @@ export default function InspectionLetter({ report: r, opts = {} }) {
         </section>
       ) : null}
 
-      <p className="receipt-note">Questions? Call {SITE.phone} or email {SITE.email}.</p>
+      <p className="receipt-note">
+        {opts.contact ? `Questions about this report or the work? Email ${opts.contact}.` : `Questions? Call ${SITE.phone} or email ${SITE.email}.`}
+      </p>
     </article>
+  );
+}
+
+function LetterTotals({ items }) {
+  const t = quoteTotals(items.map((i) => i.price));
+  return (
+    <table className="letter-table" style={{ marginTop: 8, maxWidth: 320, marginLeft: "auto" }}>
+      <tbody>
+        <tr>
+          <td>Subtotal</td>
+          <td className="r num">{money(t.subtotal)}</td>
+        </tr>
+        <tr>
+          <td>HST (13%)</td>
+          <td className="r num">{money(t.hst)}</td>
+        </tr>
+        <tr>
+          <td>
+            <b>Estimated total</b>
+          </td>
+          <td className="r num">
+            <b>{money(t.total)}</b>
+          </td>
+        </tr>
+      </tbody>
+    </table>
   );
 }

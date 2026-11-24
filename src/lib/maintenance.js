@@ -62,6 +62,7 @@ export const CHARGE_TO = {
   owner: "Owner",
   tenant: "Tenant",
   irep: "IRep",
+  owner_invoice: "Owner (separate invoice)",
 };
 
 const URGENCY_RANK = { emergency: 0, urgent: 1, routine: 2 };

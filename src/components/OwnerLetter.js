@@ -263,7 +263,9 @@ function PropertyBlock({ p, invoiceHref }) {
                 w.completed_on ? shortDate(w.completed_on) : "—",
                 w.charge_to === "owner" && w.cost != null
                   ? money(w.cost)
-                  : w.charge_to && w.charge_to !== "owner"
+                  : w.charge_to === "owner_invoice"
+                    ? "Separate invoice"
+                    : w.charge_to && w.charge_to !== "owner"
                     ? `${CHARGE_TO[w.charge_to] || w.charge_to} pays`
                     : "—",
               ],

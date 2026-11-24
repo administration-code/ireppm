@@ -5,7 +5,7 @@ import Link from "next/link";
 import { getBrowserClient } from "@/lib/supabase";
 import { money } from "@/lib/format";
 import { shortDate } from "@/lib/rent";
-import { DECISION, REPORT_STATUS, loadReport, reportPhotoPaths } from "@/lib/inspection-reports";
+import { DECISION, REPORT_STATUS, loadReport, reportPhotoPaths, itemCategory } from "@/lib/inspection-reports";
 import { PHOTO_BUCKET } from "@/lib/maintenance";
 import { ensureSpecialUnit } from "@/lib/maintenance-units";
 import InspectionChecks, { PhotoStrip } from "@/components/InspectionChecks";
@@ -24,7 +24,6 @@ export default function InspectionReportDetail({ id }) {
   const [msg, setMsg] = useState({ kind: "", text: "" });
   const [sending, setSending] = useState(false);
   const [note, setNote] = useState("");
-  const [cc, setCc] = useState(true);
   const [newItem, setNewItem] = useState({ description: "", details: "", unit_id: "" });
   const [prices, setPrices] = useState({});
 
@@ -91,7 +90,7 @@ export default function InspectionReportDetail({ id }) {
         .insert({
           unit_id: unitId,
           source: "inspection",
-          category: "other",
+          category: itemCategory(item),
           title: item.description,
           description: [item.details, `From the inspection on ${r.inspected_on}. Landlord approved ${shortDate(String(item.decided_at || "").slice(0, 10))}.`]
             .filter(Boolean)
@@ -101,7 +100,9 @@ export default function InspectionReportDetail({ id }) {
           estimated_cost: item.price,
           estimate_plus_hst: item.price != null,
           owner_approval: "approved",
-          charge_to: "owner",
+          partner_id: r.partner_id || null,
+          // Billed on a separate invoice, not deducted from the rent payout (0090).
+          charge_to: "owner_invoice",
         })
         .select("id")
         .single();
@@ -120,7 +121,7 @@ export default function InspectionReportDetail({ id }) {
     const res = await fetch(`/api/inspection-reports/${r.id}/send`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${await bearer()}` },
-      body: JSON.stringify({ message: note, cc_office: cc }),
+      body: JSON.stringify({ message: note }),
     });
     const json = await res.json().catch(() => ({}));
     setSending(false);
@@ -289,7 +290,7 @@ export default function InspectionReportDetail({ id }) {
           <>
             <p className="small" style={{ margin: 0 }}>
               Emails {owner.name || "the landlord"} ({owner.email}) and puts the report in their landlord portal, where they can approve or decline
-              each improvement and download the report as a PDF. They don&apos;t see who inspected, or prices until you add them.
+              each improvement and download the report as a PDF. They don&apos;t see who inspected. Any estimates Chuck added are shown with the HST, total and disclaimer.
               {!r.items.length ? " There are no improvements, so it goes as a report for their records." : ""}
               {r.sent_at ? " You can send it again after adding items." : ""}
             </p>
@@ -297,10 +298,7 @@ export default function InspectionReportDetail({ id }) {
               <label htmlFor="ir-msg">Message (optional)</label>
               <textarea id="ir-msg" rows={3} value={note} onChange={(e) => setNote(e.target.value)} placeholder="We inspected the property on…" />
             </div>
-            <label className="check-line">
-              <input type="checkbox" checked={cc} onChange={(e) => setCc(e.target.checked)} />
-              Send a copy to administration@ireppm.ca
-            </label>
+            <p className="small" style={{ margin: 0 }}>A copy always goes to administration@ireppm.ca.</p>
             <div className="req-actions">
               <button type="button" className="btn primary sm" onClick={send} disabled={sending}>
                 {sending ? "Sending…" : r.sent_at ? "Send again" : `Send to ${owner.email}`}

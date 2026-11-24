@@ -201,7 +201,7 @@ export default function WorkOrderInvoice({ id, backHref, backLabel, staff = fals
               <dt>Date</dt>
               <dd>{inv.completed_on ? shortDate(inv.completed_on) : "Not completed yet"}</dd>
             </div>
-            {inv.charge_to && inv.charge_to !== "owner" ? (
+            {inv.charge_to && !["owner", "owner_invoice"].includes(inv.charge_to) ? (
               <div>
                 <dt>Paid by</dt>
                 <dd>{CHARGE_TO[inv.charge_to] || inv.charge_to}</dd>
@@ -291,7 +291,9 @@ export default function WorkOrderInvoice({ id, backHref, backLabel, staff = fals
         <p className="receipt-note">
           {inv.charge_to === "owner"
             ? "This amount is deducted from your monthly rent payout. Nothing needs to be paid separately."
-            : "Not charged to you; shown for your records."}{" "}
+            : inv.charge_to === "owner_invoice"
+              ? "This invoice is billed separately and is not deducted from your rent payout. Please email us for payment options."
+              : "Not charged to you; shown for your records."}{" "}
           Questions? Call {SITE.phone} or email {SITE.email}.
         </p>
       </article>

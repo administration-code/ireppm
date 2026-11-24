@@ -9,7 +9,7 @@ import { DEFAULT_HST_PERCENT } from "@/lib/admin-properties";
 import { JOB_SELECT, LEDGER_KIND_LABEL, PAY_METHODS, contractorPay, monthLabel, statementFeeEntries } from "@/lib/contractor-pay";
 
 const today = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" });
-const CHARGE_LABEL = { owner: "Owner", tenant: "Tenant", irep: "IRep" };
+const CHARGE_LABEL = { owner: "Owner", tenant: "Tenant", irep: "IRep", owner_invoice: "Owner (separate invoice)" };
 const feeLabel = (d) => String(d || "").replace(/^Leasing fee:\s*/i, "");
 
 async function load(id) {

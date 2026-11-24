@@ -23,6 +23,18 @@ export const HELP_TOPICS = [
     go: "Open Jobs",
   },
   {
+    key: "inspection",
+    q: "I'm doing an inspection",
+    steps: [
+      "Tap Inspection report and pick the property. Tap an answer for each part and add photos under it.",
+      "Tap Next: Quote the Repairs. Put your price before HST on each item; the total with HST adds up at the bottom.",
+      "Tap Inspection Complete: Send to Landlord. It goes straight to them. It saves as you go, or tap Save and Finish Later.",
+      "Approved items show up under Open Jobs. Email the landlord to book it. It's billed on a separate invoice, not taken off rent.",
+    ],
+    href: "/agent/inspection",
+    go: "Inspection Report",
+  },
+  {
     key: "found",
     q: "I found something that needs fixing",
     steps: ["Tap Log a request.", "Pick the property and unit, say what's wrong, add photos.", "Tap Send. If you already fixed it, tick This work is already done."],

@@ -6,6 +6,7 @@ import { getBrowserClient } from "@/lib/supabase";
 import { shortDate } from "@/lib/rent";
 import { money } from "@/lib/format";
 import { SITE } from "@/lib/site";
+import { QUOTE_DISCLAIMER, quoteTotals } from "@/lib/inspection-reports";
 import InspectionChecks, { PhotoStrip } from "@/components/InspectionChecks";
 import InspectionLetter, { normalizeOwnerReport } from "@/components/InspectionLetter";
 
@@ -59,7 +60,12 @@ export default function OwnerImprovements({ id }) {
     if (!res.ok) return setMsg({ kind: "err", text: json.error || "That didn't save. Try again." });
     setReport(json.report);
     setChoices({});
-    setMsg({ kind: "ok", text: "Thanks, we have your answers. We'll send you a price for each approved item before any work starts." });
+    setMsg({
+      kind: "ok",
+      text: report.priced
+        ? `Thank you, we have your answers. ${report.contact?.name || "We"} will contact you by email to schedule the approved work.`
+        : "Thanks, we have your answers. We'll send you a price for each approved item before any work starts.",
+    });
   }
 
   const hasItems = report.items.length > 0;
@@ -75,7 +81,7 @@ export default function OwnerImprovements({ id }) {
   return (
     <>
     <div className="print-only">
-      <InspectionLetter report={normalizeOwnerReport(report)} opts={{ decisions: true, prices: true }} />
+      <InspectionLetter report={normalizeOwnerReport(report)} opts={{ decisions: true, prices: true, contact: report.contact?.email }} />
     </div>
     <div className="stack no-print" style={{ gap: 20 }}>
       <div style={{ display: "grid", gap: 6 }}>
@@ -83,7 +89,7 @@ export default function OwnerImprovements({ id }) {
           ← Your portal
         </Link>
         <span className="eyebrow">Owner Portal</span>
-        <h1 className="admin-title">{hasItems ? "Recommended Improvements" : "Inspection Report"}</h1>
+        <h1 className="admin-title">{hasItems ? (report.priced ? "Repairs and Improvements: Estimates" : "Recommended Improvements") : "Inspection Report"}</h1>
         <p className="small" style={{ margin: 0 }}>
           {report.property.address} · inspected {shortDate(report.inspected_on)}
         </p>
@@ -100,7 +106,9 @@ export default function OwnerImprovements({ id }) {
           Approve or Decline Each Item
         </h2>
         <p className="small" style={{ margin: 0 }}>
-          Nothing is done or charged yet. We&apos;ll price each item you approve and confirm with you before work starts.
+          {report.priced
+            ? `Nothing is done or charged yet. Please approve the items you would like completed. ${report.contact?.name || "We"} will contact you by email to schedule the approved work.`
+            : "Nothing is done or charged yet. We'll price each item you approve and confirm with you before work starts."}
         </p>
         <ul className="plain-list stack" style={{ gap: 0 }}>
           {report.items.map((i, n) => {
@@ -114,10 +122,12 @@ export default function OwnerImprovements({ id }) {
                   {i.unit ? <span className="small"> · {i.unit}</span> : null}
                   {i.details ? <span className="small sub-line">{i.details}</span> : null}
                   <PhotoStrip photos={i.photos} urls={report.photo_urls || {}} />
-                  {i.price != null && i.decision === "approved" ? (
-                    <span className="small sub-line">
-                      Price: {money(i.price)} + HST ({money(Math.round(Number(i.price) * 113) / 100)})
+                  {i.price != null ? (
+                    <span className="sub-line">
+                      Estimate: <b>{money(i.price)}</b> + HST <span className="small">({money(Math.round(Number(i.price) * 113) / 100)} with HST)</span>
                     </span>
+                  ) : report.priced ? (
+                    <span className="small sub-line">Price to be confirmed</span>
                   ) : null}
                 </div>
                 <div className="req-actions">
@@ -125,11 +135,11 @@ export default function OwnerImprovements({ id }) {
                     Approve
                   </button>
                   <button type="button" className={`btn sm ${current === "declined" ? "primary" : "ghost"}`} aria-pressed={current === "declined"} onClick={() => pick(i.id, "declined")}>
-                    Decline
+                    {report.priced ? "Not Now" : "Decline"}
                   </button>
                   {i.decision !== "pending" && !choices[i.id] ? (
                     <span className="small">
-                      You {i.decision} this{i.decided_at ? ` on ${shortDate(String(i.decided_at).slice(0, 10))}` : ""}.
+                      You {i.decision === "declined" && report.priced ? "chose Not now for" : i.decision} this{i.decided_at ? ` on ${shortDate(String(i.decided_at).slice(0, 10))}` : ""}.
                     </span>
                   ) : null}
                 </div>
@@ -143,6 +153,7 @@ export default function OwnerImprovements({ id }) {
             );
           })}
         </ul>
+        {report.priced ? <QuoteTotals items={report.items} /> : null}
         {msg.text ? (
           <div className={msg.kind === "err" ? "warnbox" : "okbox"} role={msg.kind === "err" ? "alert" : "status"}>
             {msg.text}
@@ -165,8 +176,35 @@ export default function OwnerImprovements({ id }) {
         <InspectionChecks checks={report.checks} units={report.units} urls={report.photo_urls || {}} />
         {report.notes ? <p className="req-note pre-line">{report.notes}</p> : null}
       </section>
-      <p className="small">Questions? Call {SITE.phone} or email {SITE.email}.</p>
+      {report.priced ? (
+        <p className="small" style={{ margin: 0 }}>
+          <b>Disclaimer.</b> {QUOTE_DISCLAIMER}
+        </p>
+      ) : null}
+      <p className="small">
+        Questions about this report or the work? Email {report.contact?.name && report.contact.name !== "IRep" ? `${report.contact.name} at ` : ""}
+        <a href={`mailto:${report.contact?.email || SITE.email}`}>{report.contact?.email || SITE.email}</a>.
+      </p>
     </div>
     </>
+  );
+}
+
+function QuoteTotals({ items }) {
+  const t = quoteTotals(items.map((i) => i.price));
+  const approved = quoteTotals(items.filter((i) => i.decision === "approved").map((i) => i.price));
+  const row = (label, v, strong) => (
+    <div style={{ display: "flex", justifyContent: "space-between", fontWeight: strong ? 600 : 400, fontSize: strong ? "1.1rem" : undefined }}>
+      <span>{label}</span>
+      <span className="num">{money(v)}</span>
+    </div>
+  );
+  return (
+    <div className="stack" style={{ gap: 4, borderTop: "1px solid var(--line)", paddingTop: 10, maxWidth: 420, marginLeft: "auto", width: "100%" }}>
+      {row("Subtotal", t.subtotal)}
+      {row("HST (13%)", t.hst)}
+      {row("Estimated total", t.total, true)}
+      {approved.priced ? <span className="small">You&apos;ve approved {money(approved.total)} with HST so far.</span> : null}
+    </div>
   );
 }

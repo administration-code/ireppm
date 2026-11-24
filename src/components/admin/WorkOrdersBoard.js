@@ -20,7 +20,7 @@ const VIEWS = [
   { key: "all", label: "All", test: () => true },
 ];
 const money = (n) => (n == null || n === "" ? "—" : `$${Number(n).toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
-const CHARGE = { owner: "Landlord", tenant: "Tenant", irep: "IRep" };
+const CHARGE = { owner: "Landlord", tenant: "Tenant", irep: "IRep", owner_invoice: "Landlord (separate invoice)" };
 const monthKey = (d) => (d ? String(d).slice(0, 7) : "");
 const monthName = (m) => new Date(`${m}-15T12:00:00`).toLocaleDateString("en-CA", { month: "long", year: "numeric" });
 

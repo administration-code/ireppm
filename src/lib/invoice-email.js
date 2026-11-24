@@ -25,7 +25,9 @@ export function workOrderInvoiceEmail(inv, ownerName, ownerEmail, message) {
   const note = String(message || "").trim();
   const deducted = owner
     ? "This amount is deducted from your monthly rent payout, so nothing needs to be paid separately."
-    : "This work wasn't charged to you; it's shown for your records.";
+    : inv.charge_to === "owner_invoice"
+      ? `This invoice is billed separately and is not deducted from your rent payout. Please email ${SITE.email} for payment options.`
+      : "This work wasn't charged to you; it's shown for your records.";
 
   const cell = `padding:8px 6px;border-bottom:1px solid ${LINE};font-size:14px;vertical-align:top;`;
   const rows = lines

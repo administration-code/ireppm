@@ -34,8 +34,8 @@ export function InspectionReportsList() {
           <span className="eyebrow">Staff · Landlords</span>
           <h1 className="admin-title">Inspection Reports</h1>
           <p className="small">
-            Property checks, appliances and recommended improvements. Vendors submit them from the Agent Portal; review each one and send the
-            improvements to the landlord to approve or decline.
+            Property checks, appliances, repairs and improvements with estimates. Chuck&apos;s reports go straight to the landlord when he taps
+            Inspection Complete; approved items become jobs on his list, billed on a separate invoice. &ldquo;Being written&rdquo; means he saved it to finish later.
           </p>
         </div>
         <Link className="btn primary sm" href="/admin/inspection-reports/new">

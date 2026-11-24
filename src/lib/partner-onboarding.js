@@ -37,14 +37,14 @@ export const CHECKLIST = [
     ],
   },
   {
-    day: "Low: If There's Time (about 30 min)",
+    day: "Low: If There's Time (about 35 min)",
     note: "Mostly self-explanatory; fine to skip and let him find it.",
     items: [
       ["cash_log", "Logs a cash payment with Log Cash", 5],
       ["cash_deposit", "Ticks cash off as deposited, with the date", 5],
       ["deposit_photo", "Takes a photo of every deposit slip", 2],
       ["properties", "Checks his properties list (anything wrong goes to Rosie)", 5],
-      ["inspection", "Knows the inspection report form", 10],
+      ["inspection", "Does an inspection: taps each part, adds photos, prices each repair, sends it to the landlord", 15],
     ],
   },
   {

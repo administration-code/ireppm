@@ -21,7 +21,67 @@ export const APPLIANCES = [
   ["dryer", "Dryer"],
 ];
 export const DECISION = { pending: "Waiting for landlord", approved: "Approved", declined: "Declined" };
-export const REPORT_STATUS = { submitted: "Ready to review", sent: "Sent to landlord", closed: "Closed" };
+export const REPORT_STATUS = { draft: "Being written", submitted: "Ready to review", sent: "Sent to landlord", closed: "Closed" };
+
+// Quotes on the inspection (0090): Chuck prices each repair and improvement; the landlord approves each one.
+export const HST_PERCENT = 13;
+export const QUOTE_CONTACT = { name: "Chuck", email: "chuck@ireppm.ca" };
+export const QUOTE_DISCLAIMER =
+  "The amounts above are good-faith estimates based on a visual inspection of accessible areas on the date of this report. " +
+  "They are not a fixed quote or a guarantee of final cost. Final pricing may vary with labour time, materials and finishes selected, " +
+  "site conditions, and any concealed or pre-existing deficiencies identified once work begins. No work will proceed without your " +
+  "written approval, and any change to the approved estimate will be confirmed with you in writing before additional costs are incurred. " +
+  "Approved work is completed by IRep Property Management's contractor and billed on a separate invoice; it is not deducted from rent " +
+  "collected. All amounts are in Canadian dollars; HST is charged at 13%.";
+
+// "850", "$1,200.50" → 850 / 1200.5; anything else → null.
+export function priceValue(v) {
+  if (v === null || v === undefined || v === "") return null;
+  const n = Number(String(v).replace(/[$,\s]/g, ""));
+  return Number.isFinite(n) && n >= 0 && n < 1000000 ? Math.round(n * 100) / 100 : null;
+}
+export function quoteTotals(prices) {
+  const cents = prices.map(priceValue).filter((n) => n !== null).reduce((a, n) => a + Math.round(n * 100), 0);
+  const hst = Math.round((cents * HST_PERCENT) / 100);
+  return { subtotal: cents / 100, hst: hst / 100, total: (cents + hst) / 100, priced: prices.filter((p) => priceValue(p) !== null).length };
+}
+
+const APPLIANCE_CATEGORY = "appliance";
+// The checks marked as needing work become quote lines, ahead of the improvements.
+// Returns [{ key, source: "check", description, unit_id, unit_label, photos, category }].
+export function checkItems(form) {
+  const out = [];
+  const ph = form.photos || {};
+  if (form.gutter_condition === "needs_replacement")
+    out.push({ key: "gutters", description: "Gutters: replace", unit_id: "", photos: ph.gutters || [], category: "roof_structure" });
+  if (form.roof_condition === "needs_repair")
+    out.push({ key: "roof", description: "Roof repair", unit_id: "", photos: ph.roof || [], category: "roof_structure" });
+  if (form.pests === "yes")
+    out.push({ key: "pests", description: "Pest control", unit_id: "", photos: ph.pests || [], category: "pests", note: form.pests_note || "" });
+  for (const u of form.units || []) {
+    for (const [k, l] of APPLIANCES) {
+      if (u[k] === "needs_replacement")
+        out.push({
+          key: `unit:${u.unit_id}:${k}`,
+          description: `${l}: replace`,
+          unit_id: u.unit_id,
+          unit_label: u.label,
+          photos: u.photos?.[k] || [],
+          category: APPLIANCE_CATEGORY,
+        });
+    }
+  }
+  return out.map((i) => ({ ...i, source: "check" }));
+}
+
+// Maintenance category for an approved line.
+export function itemCategory(item) {
+  const k = String(item?.source_key || "");
+  if (k === "gutters" || k === "roof") return "roof_structure";
+  if (k === "pests") return "pests";
+  if (k.startsWith("unit:")) return "appliance";
+  return "other";
+}
 
 export const SUGGESTIONS = [
   "Kitchen update",
@@ -112,22 +172,48 @@ export async function saveReport(sb, form, { partnerId = null, inspectedBy = nul
       notes: text(u.notes, 2000),
       ...(hasPhotos ? { photos: cleanPhotoMap(u.photos, UNIT_PHOTO_KEYS, photoPrefix) } : {}),
     }));
-  const items = (form.items || [])
+  const prices = form.prices || {};
+  const checkDetails = form.check_details || {};
+  const checks = checkItems(form).map((c) => ({
+    unit_id: c.unit_id && ok(c.unit_id) ? c.unit_id : null,
+    description: c.description,
+    details: text(checkDetails[c.key], 2000) || text(c.note, 2000),
+    price: priceValue(prices[c.key]),
+    photos: c.photos,
+    source: "check",
+    source_key: c.key,
+  }));
+  const improvements = (form.items || [])
     .filter((i) => i.description.trim())
-    .map((i, n) => ({
-      report_id: report.id,
-      property_id: form.property_id,
+    .map((i) => ({
       unit_id: i.unit_id && ok(i.unit_id) ? i.unit_id : null,
-      sort: n,
       description: i.description.trim().slice(0, 200),
       details: text(i.details, 2000),
-      added_by: text(inspectedBy, 120),
-      ...(hasPhotos ? { photos: cleanPhotos(i.photos, photoPrefix) } : {}),
+      price: priceValue(prices[i.key]),
+      photos: i.photos,
+      source: "improvement",
+      source_key: null,
     }));
-  const [u, it] = await Promise.all([
-    units.length ? sb.from("inspection_report_units").insert(units) : { error: null },
-    items.length ? sb.from("improvement_items").insert(items) : { error: null },
-  ]);
+  let items = [...checks, ...improvements].map((i, n) => ({
+    report_id: report.id,
+    property_id: form.property_id,
+    unit_id: i.unit_id,
+    sort: n,
+    description: i.description,
+    details: i.details,
+    added_by: text(inspectedBy, 120),
+    price: i.price,
+    ...(hasPhotos ? { photos: cleanPhotos(i.photos, photoPrefix) } : {}),
+    source: i.source,
+    source_key: i.source_key,
+  }));
+  const u = units.length ? await sb.from("inspection_report_units").insert(units) : { error: null };
+  let it = items.length ? await sb.from("improvement_items").insert(items) : { error: null };
+  // Before migration 0090 there's no source column: save without it (check lines still save as items).
+  if (it.error && /source/.test(it.error.message || "")) {
+    items = items.map(({ source, source_key, ...rest }) => rest);
+    it = await sb.from("improvement_items").insert(items);
+  }
   if (u.error || it.error) {
     await sb.from("inspection_reports").delete().eq("id", report.id);
     throw new Error("The report didn't save. Try again.");
@@ -137,7 +223,7 @@ export async function saveReport(sb, form, { partnerId = null, inspectedBy = nul
 
 export const REPORT_SELECT = `*,
   property:properties(id, address, city, postal_code, owner:owners(id, name, email)),
-  partner:partners(name, company),
+  partner:partners(name, company, email),
   units:inspection_report_units(*, unit:units(label)),
   items:improvement_items(*, unit:units(label))`;
 
@@ -162,4 +248,12 @@ export function reportPhotoPaths(r) {
   (r?.units || []).forEach((u) => Object.values(u?.photos || {}).forEach(add));
   (r?.items || []).forEach((i) => add(i?.photos));
   return [...new Set(paths)];
+}
+
+// Drafts (0090): the unfinished form, saved as the vendor goes. Photos are already uploaded ({ path, name }).
+export function draftForm(form) {
+  const keep = { ...form };
+  const json = JSON.stringify(keep);
+  if (json.length > 400000) throw new Error("This report is too big to save. Try removing some photos.");
+  return JSON.parse(json);
 }
