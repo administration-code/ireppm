@@ -2,6 +2,7 @@ import "server-only";
 import { sendMail, staffEmails, SITE_URL } from "@/lib/application-review";
 import { PAYMENT_INFO } from "@/lib/payment-info";
 import { SITE } from "@/lib/site";
+import { getLetter, letterAttachment, letterTenants, listLetters, markLetterSent } from "@/lib/payprop-letters";
 
 // Automatic emails: welcome letters, tenant insurance reminders and lease-end choices
 // (migration 0033). Each job marks what it sent so it never repeats.
@@ -17,7 +18,7 @@ const money = (n) => `$${Number(n || 0).toLocaleString("en-CA", { minimumFractio
 const today = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" });
 
 const TENANCY_SELECT =
-  "id, status, start_date, end_date, rent, rent_due_day, collects_rent, insurance_due, insurance_reminded_at, insurance_overdue_alerted_at, renewal_choice, renewal_prompted_at, renewal_reminded_at, unit:units(label, property:properties(address, city, owner:owners(name, email))), tenancy_tenants(full_name, email)";
+  "id, status, start_date, end_date, rent, rent_due_day, collects_rent, insurance_due, insurance_reminded_at, insurance_overdue_alerted_at, renewal_choice, renewal_prompted_at, renewal_reminded_at, unit:units(label, property:properties(address, city, owner:owners(name, email))), tenancy_tenants(id, full_name, email)";
 
 const placeOf = (t) => [t.unit?.property?.address, t.unit?.label].filter(Boolean).join(", ");
 const tenantEmails = (t) => (t.tenancy_tenants || []).map((p) => p.email).filter(Boolean);
@@ -37,11 +38,12 @@ export async function sendWelcome(sb, tenancyId, { remindStaff = true } = {}) {
   if (!t || !tenantEmails(t).length) return { sent: false };
   const due = t.insurance_due || addDays(t.start_date, 7);
   // If staff already uploaded the PayProp welcome letter, attach it.
+  // Only a letter for everyone on the tenancy goes with the welcome email; per-tenant letters are
+  // emailed to their own tenants from the unit page.
   let attachments;
-  if (t.payprop_letter_path) {
-    const { data: file } = await sb.storage.from("tenancy-documents").download(t.payprop_letter_path);
-    if (file) attachments = [{ filename: t.payprop_letter_name || "PayProp welcome letter.pdf", content: Buffer.from(await file.arrayBuffer()).toString("base64") }];
-  }
+  const everyone = (await listLetters(sb, t.id)).filter((l) => l.for_all);
+  if (everyone.length === 1) attachments = [await letterAttachment(sb, everyone[0]).catch(() => null)].filter(Boolean);
+  if (!attachments?.length) attachments = undefined;
   const r = await sendMail({
     attachments,
     to: tenantEmails(t),
@@ -67,7 +69,7 @@ export async function sendWelcome(sb, tenancyId, { remindStaff = true } = {}) {
     link: PORTAL,
     linkLabel: "Open your account",
   });
-  if (attachments && r.sent) await sb.from("tenancies").update({ payprop_letter_sent_at: new Date().toISOString() }).eq("id", t.id);
+  if (attachments && r.sent) await markLetterSent(sb, everyone[0], tenantEmails(t));
   // PayProp's welcome letter needs the tenant set up there first: remind staff (unless it's already attached).
   if (!attachments && remindStaff && t.collects_rent !== false) await sendMail({
     to: staffEmails(),
@@ -80,38 +82,59 @@ export async function sendWelcome(sb, tenancyId, { remindStaff = true } = {}) {
   return r;
 }
 
-// PayProp welcome letter (uploaded by staff on the tenancy): email it to the tenants as an
-// attachment, and point them to their account where it stays available.
-export async function emailPaypropLetter(sb, tenancyId) {
-  const { data: t } = await sb
-    .from("tenancies")
-    .select(`${TENANCY_SELECT}, payprop_letter_path, payprop_letter_name`)
-    .eq("id", tenancyId)
-    .maybeSingle();
+// PayProp welcome letters (uploaded by staff on the unit page). A tenancy can have several, one per
+// tenant or sub-unit; each is only ever emailed to its own tenant(s).
+//   letterId: one letter; to: the chosen recipients (must be that letter's tenants).
+//   personId (no letterId): the letter(s) for that tenant, to that letter's tenants.
+//   Neither: every assigned letter on the tenancy, each to its own tenants.
+export async function emailPaypropLetter(sb, tenancyId, { letterId, to, personId } = {}) {
+  let letters;
+  if (letterId) {
+    const one = await getLetter(sb, letterId);
+    if (!one) throw new Error("Letter not found.");
+    tenancyId = one.tenancy_id;
+    letters = [one];
+  }
+  const { data: t } = await sb.from("tenancies").select(TENANCY_SELECT).eq("id", tenancyId).maybeSingle();
   if (!t) throw new Error("Tenancy not found.");
-  if (!t.payprop_letter_path) throw new Error("Upload the PayProp welcome letter first.");
-  if (!tenantEmails(t).length) throw new Error("No tenant email on file.");
-  const { data: file, error } = await sb.storage.from("tenancy-documents").download(t.payprop_letter_path);
-  if (error || !file) throw new Error("We couldn't read the uploaded letter.");
-  const content = Buffer.from(await file.arrayBuffer()).toString("base64");
-  const r = await sendMail({
-    to: tenantEmails(t),
-    subject: `Your PayProp welcome letter: ${placeOf(t)}`,
-    lines: [
-      `Hi ${firstNames(t)},`,
-      `Attached is your PayProp welcome letter for ${placeOf(t)}. PayProp is how we collect rent: it has your sign-up details and the payment reference for your home.`,
-      "What to do:\n• Find your Bill Payment Reference ID in the attached letter\n• In your online or mobile banking, set up a bill payment to the payee shown in the letter, using that reference ID as the account number (or pay at your branch, or sign up for pre-authorized debit)\n• Keep the letter: it's also saved in your IRep account any time you need it",
-      `Rent: ${money(t.rent)} a month, due on day ${t.rent_due_day || 1}.`,
-      `Monthly draw: ${PAYMENT_INFO.draw}`,
-      `Questions? Reply to this email or call ${SITE.phone}.`,
-    ],
-    link: PORTAL,
-    linkLabel: "Open your account",
-    attachments: [{ filename: t.payprop_letter_name || "PayProp welcome letter.pdf", content }],
-  });
-  if (!r.sent) throw new Error("The email didn't send. Try again in a minute.");
-  await sb.from("tenancies").update({ payprop_letter_sent_at: new Date().toISOString() }).eq("id", t.id);
-  return { sent: true, to: tenantEmails(t) };
+  const people = t.tenancy_tenants || [];
+  if (!letters) {
+    letters = await listLetters(sb, t.id);
+    if (personId) letters = letters.filter((l) => letterTenants(l, people).some((p) => p.id === personId));
+  }
+  letters = letters.filter((l) => letterTenants(l, people).length);
+  if (!letters.length) throw new Error(personId ? "There's no PayProp letter for this tenant yet. Upload it on the unit page." : "Upload the PayProp welcome letter first, and choose who it's for.");
+
+  const results = [];
+  for (const letter of letters) {
+    const own = letterTenants(letter, people);
+    const allowed = own.map((p) => String(p.email || "").trim().toLowerCase()).filter(Boolean);
+    const wanted = Array.isArray(to) ? to.map((e) => String(e).trim().toLowerCase()).filter(Boolean) : allowed;
+    const recipients = [...new Set(wanted.filter((e) => allowed.includes(e)))];
+    if (wanted.some((e) => !allowed.includes(e))) throw new Error("A letter can only go to the tenant(s) it's for.");
+    if (!recipients.length) throw new Error(`No email on file for ${own.map((p) => p.full_name).join(" or ")}.`);
+    const names = own.filter((p) => recipients.includes(String(p.email || "").trim().toLowerCase()));
+    const greet = names.map((p) => String(p.full_name || "").split(" ")[0]).filter(Boolean).join(" and ") || "there";
+    const r = await sendMail({
+      to: recipients,
+      subject: `Your PayProp welcome letter: ${placeOf(t)}`,
+      lines: [
+        `Hi ${greet},`,
+        `Attached is your PayProp welcome letter for ${placeOf(t)}${letter.label ? ` (${letter.label})` : ""}. PayProp is how we collect rent: it has your sign-up details and your own payment reference.`,
+        "What to do:\n• Find your Bill Payment Reference ID in the attached letter\n• In your online or mobile banking, set up a bill payment to the payee shown in the letter, using that reference ID as the account number (or pay at your branch, or sign up for pre-authorized debit)\n• Keep the letter: it's also saved in your IRep account any time you need it",
+        letter.for_all ? `Rent: ${money(t.rent)} a month, due on day ${t.rent_due_day || 1}.` : `Rent is due on day ${t.rent_due_day || 1} of each month.`,
+        `Monthly draw: ${PAYMENT_INFO.draw}`,
+        `Questions? Reply to this email or call ${SITE.phone}.`,
+      ],
+      link: PORTAL,
+      linkLabel: "Open your account",
+      attachments: [await letterAttachment(sb, letter)],
+    });
+    if (!r.sent) throw new Error("The email didn't send. Try again in a minute.");
+    await markLetterSent(sb, letter, recipients);
+    results.push({ letter: letter.label || letter.file_name || "Letter", to: recipients });
+  }
+  return { sent: true, results, to: results.flatMap((x) => x.to) };
 }
 
 // ---------------------------------------------------------------------------

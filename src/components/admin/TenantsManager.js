@@ -398,7 +398,7 @@ function TenantPanel({ person, all, tenancies, onChanged, onRemoved }) {
   const leaseEnd = () =>
     run("leaseEnd", () => staffApi("/api/admin/tenants", { action: "lease-end", tenancyId: t.id }), "Lease-end email sent to everyone on this tenancy.");
   const letter = () =>
-    run("letter", () => staffApi("/api/tenancy/payprop-letter", { tenancy: t.id }), "PayProp letter emailed to everyone on this tenancy.", { reload: false });
+    run("letter", () => staffApi("/api/tenancy/payprop-letter", { tenancy: t.id, person: person.id }), `${person.full_name}'s PayProp letter emailed to the tenant(s) it's for.`, { reload: false });
 
   const canInvite = invitable(person);
 

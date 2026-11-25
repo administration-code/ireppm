@@ -17,32 +17,38 @@ async function authHeader() {
 }
 
 function PaypropLetterLink({ tenancyId, label }) {
-  const [available, setAvailable] = useState(false);
+  const [letters, setLetters] = useState([]);
   const [err, setErr] = useState("");
   useEffect(() => {
     let alive = true;
     (async () => {
-      const res = await fetch(`/api/tenancy/payprop-letter?tenancy=${tenancyId}&check=1`, { headers: await authHeader() });
+      const res = await fetch(`/api/tenancy/payprop-letter?mine=1&tenancy=${tenancyId}`, { headers: await authHeader() });
       const json = await res.json().catch(() => ({}));
-      if (alive) setAvailable(Boolean(json.available));
+      if (alive) setLetters(json.letters || []);
     })();
     return () => {
       alive = false;
     };
   }, [tenancyId]);
-  if (!available) return null;
-  async function open() {
+  if (!letters.length) return null;
+  async function open(id) {
     setErr("");
-    const res = await fetch(`/api/tenancy/payprop-letter?tenancy=${tenancyId}`, { headers: await authHeader() });
+    const win = window.open("", "_blank");
+    const res = await fetch(`/api/tenancy/payprop-letter?letter=${encodeURIComponent(id)}`, { headers: await authHeader() });
     const json = await res.json().catch(() => ({}));
-    if (json.url) window.open(json.url, "_blank", "noopener");
-    else setErr(json.error || "We couldn't open it. Try again.");
+    if (json.url && win) win.location = json.url;
+    else {
+      win?.close();
+      setErr(json.error || "We couldn't open it. Try again.");
+    }
   }
   return (
     <div className="row" style={{ gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-      <button type="button" className="btn ghost sm" onClick={open}>
-        Your PayProp welcome letter{label ? ` (${label})` : ""}
-      </button>
+      {letters.map((l) => (
+        <button key={l.id} type="button" className="btn ghost sm" onClick={() => open(l.id)}>
+          Your PayProp welcome letter{[label, l.label].filter(Boolean).length ? ` (${[label, l.label].filter(Boolean).join(", ")})` : ""}
+        </button>
+      ))}
       {err ? <span className="err">{err}</span> : null}
     </div>
   );

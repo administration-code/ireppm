@@ -35,7 +35,7 @@ export default function PaypropLetterBulk() {
   useEffect(() => {
     getBrowserClient()
       .from("tenancies")
-      .select("id, status, payprop_letter_path, unit:units(label, property:properties(address)), tenancy_tenants(full_name)")
+      .select("id, status, payprop_letter_path, unit:units(label, property:properties(address)), tenancy_tenants(id, full_name)")
       .in("status", ["upcoming", "active", "notice"])
       .then(({ data }) => setTenancies(data || []));
   }, []);
@@ -58,6 +58,7 @@ export default function PaypropLetterBulk() {
     const next = [...list].map((file) => {
       const key = norm(nameFromFile(file.name));
       let best = null;
+      let bestPerson = null;
       let bestScore = 0;
       for (const o of options)
         for (const p of o.people) {
@@ -65,9 +66,10 @@ export default function PaypropLetterBulk() {
           if (sc > bestScore) {
             bestScore = sc;
             best = o.id;
+            bestPerson = p.id;
           }
         }
-      return { file, tenancyId: bestScore >= 2 ? best : "", guess: bestScore >= 2 ? "match" : bestScore ? "maybe" : "none", status: "" };
+      return { file, tenancyId: bestScore >= 2 ? best : "", personId: bestScore >= 2 ? bestPerson : null, guess: bestScore >= 2 ? "match" : bestScore ? "maybe" : "none", status: "" };
     });
     setRows((r) => [...r, ...next]);
   }
@@ -88,16 +90,20 @@ export default function PaypropLetterBulk() {
         out[i] = { ...r, status: "Upload failed" };
         continue;
       }
-      const { error } = await sb
-        .from("tenancies")
-        .update({
-          payprop_letter_path: path,
-          payprop_letter_name: r.file.name,
-          payprop_letter_sent_at: alreadySent ? new Date().toISOString() : null,
-        })
-        .eq("id", r.tenancyId);
-      const old = options.find((o) => o.id === r.tenancyId)?.oldPath;
-      if (!error && old && old !== path) await sb.storage.from("tenancy-documents").remove([old]);
+      // A new letter never replaces another one on the same tenancy. When the tenancy already has a
+      // letter, or this batch has more than one for it, the letter is for the tenant it's named after.
+      const { count } = await sb.from("payprop_letters").select("id", { count: "exact", head: true }).eq("tenancy_id", r.tenancyId);
+      const several = (count || 0) > 0 || out.filter((x) => x.tenancyId === r.tenancyId).length > 1;
+      const sentAt = alreadySent ? new Date().toISOString() : null;
+      const { error } = await sb.from("payprop_letters").insert({
+        tenancy_id: r.tenancyId,
+        path,
+        file_name: r.file.name,
+        for_all: !(several && r.personId),
+        tenant_ids: several && r.personId ? [r.personId] : [],
+        sent_at: sentAt,
+      });
+      if (!error) await sb.from("tenancies").update({ payprop_letter_path: path, payprop_letter_name: r.file.name, payprop_letter_sent_at: sentAt }).eq("id", r.tenancyId);
       out[i] = { ...r, status: error ? "Saved file, but couldn't attach it" : "done" };
       if (!error) ok += 1;
       setRows([...out]);
@@ -155,7 +161,7 @@ export default function PaypropLetterBulk() {
                             <option key={o.id} value={o.id}>{o.label}{o.has ? " (has a letter)" : ""}</option>
                           ))}
                         </select>
-                        {chosen?.has && r.status !== "done" ? <div className="small">This replaces the letter already on file.</div> : null}
+                        {chosen?.has && r.status !== "done" ? <div className="small">This tenancy already has a letter. This one is added as a second letter for the tenant it's named after; check it on the unit page.</div> : null}
                       </td>
                       <td>
                         {r.status === "done" ? (
