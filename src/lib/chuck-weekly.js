@@ -74,7 +74,6 @@ export async function chuckWeekly(sb, { force = false } = {}) {
     const { error } = await mailer().emails.send({
       from: "IRep Property Management <alerts@ireppm.ca>",
       to: [partner.email],
-      cc: ["administration@ireppm.ca"],
       subject: `Your week: ${lines.map(([k, v]) => `${v.split(" ")[0]} ${k.toLowerCase()}`).slice(0, 3).join(", ")}`,
       html: renderEmail({ heading, intro, rows: lines, link }),
       text: renderText({ heading, rows: lines, link }),

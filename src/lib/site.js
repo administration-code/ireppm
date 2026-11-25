@@ -65,7 +65,7 @@ export const PACKAGES = [
     featured: true,
     items: [
       "Everything in Standard",
-      "Lawn and snow maintenance (lots up to 4,500 sq ft)",
+      "Lawn and snow maintenance (lots under 4,500 sq ft; larger lots priced by size)",
       "Annual gutter cleaning",
       "Yard storm clean-up",
       "Unclogging drains and toilets",
@@ -143,7 +143,7 @@ export const CALC = {
   hst: 13,
   leasingMonths: 0.5,
   addons: [
-    { key: "snow_lawn", name: "Lawn & snow (lots up to 4,500 sq ft)", amount: 50, includedIn: ["maintenance", "protection"] },
+    { key: "snow_lawn", name: "Lawn & snow (lots under 4,500 sq ft; $75 under 12,500 sq ft; larger quoted)", amount: 50, includedIn: ["maintenance", "protection"] },
     { key: "plumbing", name: "Plumbing coverage", amount: 40, includedIn: [] },
     { key: "appliance", name: "Appliance coverage", amount: 50, includedIn: ["protection"] },
     { key: "surveillance", name: "Surveillance ($100 one-time install)", amount: 15, includedIn: ["protection"] },

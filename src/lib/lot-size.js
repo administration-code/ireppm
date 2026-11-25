@@ -26,11 +26,14 @@ export function lookupLot(address) {
   return null;
 }
 
+// Lawn and snow plan by lot size: under 4,500 sq ft $50/month; under 12,500 sq ft $75/month; larger: custom rate.
+export const LAWN_TIERS = [
+  { max: 4500, monthly: 50, label: "Lot under 4,500 sq ft" },
+  { max: 12500, monthly: 75, label: "Lot under 12,500 sq ft" },
+];
 export function lawnSnowAdvice(lot) {
   if (!lot) return "Lot size not in the City's data: measure or check the survey.";
-  if (lot <= 4500) return "Standard lot (up to 4,500 sq ft): standard $50/month lawn & snow.";
-  if (lot <= 10000) return "Over the 4,500 sq ft standard: keep at $50 or quote a custom price.";
-  if (lot <= 20000) return "Large lot: custom lawn & snow quote (e.g. $75/month on a 1-year term).";
-  return "Very large lot: custom lawn & snow quote (e.g. $125/month on a 1-year term).";
+  if (lot < 4500) return "Under 4,500 sq ft: $50/month lawn & snow.";
+  if (lot < 12500) return "Under 12,500 sq ft: $75/month lawn & snow.";
+  return "12,500 sq ft or more: custom lawn & snow rate.";
 }
-

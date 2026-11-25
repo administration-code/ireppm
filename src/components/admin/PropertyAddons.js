@@ -98,8 +98,9 @@ export default function PropertyAddons({ propertyId }) {
       </div>
       <p className="small">
         Monthly add-ons are added to the monthly fee. Adding or removing one changes the fee from the next statement. Lawn/snow
-        is passed on to the contractor. Large lot? Set its price here: on a plan, Snow/Lawn with the higher monthly price; not on
-        a plan, &ldquo;Snow/Lawn (per visit)&rdquo; with the higher per-visit price. Chuck and the landlord both see it, plus HST.
+        is passed on to the contractor. Lawn and snow plan by lot size: $50/month under 4,500 sq ft, $75/month under 12,500 sq ft, a custom rate above that.
+        Set the price on Snow/Lawn (blank = $50). Not on a plan: &ldquo;Snow/Lawn (per visit)&rdquo;, with a custom per-visit price for big lots.
+        Chuck and the landlord both see it, plus HST.
       </p>
 
       {error ? <div className="warnbox">{error}</div> : null}

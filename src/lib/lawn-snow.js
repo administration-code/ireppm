@@ -8,6 +8,9 @@ export const INCLUDED_PACKAGES = ["maintenance", "protection"];
 // tenants call Chuck. Properties not on the plan: snow is the tenant's or landlord's job unless the
 // city issues a notice; lawn and snow visits happen only when the landlord (or IRep) asks.
 export const LAWN_MAX_DAYS = 40;
+// Plan price by lot size: $50 under 4,500 sq ft, $75 under 12,500 sq ft, custom rate above.
+export const tierLabel = (amount) =>
+  amount === 50 ? "Lot under 4,500 sq ft" : amount === 75 ? "Lot under 12,500 sq ft" : "Custom rate (lot 12,500 sq ft or more)";
 export const LAWN_SEASON = { from: "04-15", to: "10-31" };
 export const SNOW_NOTE = {
   included: "Snow: as needed. Tenants call Chuck to arrange it.",
@@ -70,10 +73,10 @@ export async function lawnSnowBoard(sb, properties) {
             ? {
                 amount: Number(addon.monthly_price ?? monthly),
                 per: "month",
-                label: addon.monthly_price != null && Number(addon.monthly_price) > monthly ? "Large lot" : "Lawn and snow plan",
+                label: tierLabel(Number(addon.monthly_price ?? monthly)),
               }
             : { amount: null, per: "month", label: "Included in the package" }
-          : { amount: visitPrice, per: "visit", label: visitPrice > visit ? "Large lot, billed to the landlord per visit" : "Billed to the landlord per visit" },
+          : { amount: visitPrice, per: "visit", label: visitPrice > visit ? "Custom rate (larger lot), billed to the landlord per visit" : "Billed to the landlord per visit" },
         lastLawn: last("lawn") && { on: last("lawn").visited_on, photos: (last("lawn").photos || []).length },
         lastSnow: last("snow") && { on: last("snow").visited_on, photos: (last("snow").photos || []).length },
         requests: requests.filter((r) => r.property_id === p.id).map((r) => ({ id: r.id, kind: r.kind, note: r.note, on: r.created_at.slice(0, 10) })),

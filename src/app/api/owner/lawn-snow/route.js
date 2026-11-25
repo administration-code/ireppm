@@ -66,7 +66,6 @@ export async function POST(request) {
       .emails.send({
         from: "IRep Property Management <alerts@ireppm.ca>",
         to: [chuck?.email || "administration@ireppm.ca"],
-        cc: ["administration@ireppm.ca"],
         subject: `Landlord asked for a ${what}: ${prop?.address}`,
         html: renderEmail({ heading, intro: `The landlord asked for a ${what}. Log it on Lawn and Snow when it's done; they're billed per visit.`, rows, link }),
         text: renderText({ heading, rows, link }),

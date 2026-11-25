@@ -67,7 +67,6 @@ export async function alertChuck(sb, record, { escalated = false } = {}) {
     const { error } = await mailer().emails.send({
       from: FROM,
       to: [DEFAULT_DELIVERER.email],
-      cc: [SITE.email],
       replyTo: SITE.email,
       subject,
       html: renderEmail({ heading, intro: `Hi Chuck, ${escalated ? "this request was just raised to " + urgency.toLowerCase() : "a new request was just logged"}.`, rows, link, extraHtml: details + photoHtml }),

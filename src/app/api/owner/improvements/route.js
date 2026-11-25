@@ -177,7 +177,6 @@ export async function POST(request) {
         .emails.send({
           from: "IRep Property Management <alerts@ireppm.ca>",
           to: [chuckEmail],
-          cc: ["administration@ireppm.ca"],
           subject: `Approved work: ${place}`,
           html: renderEmail({
             heading,

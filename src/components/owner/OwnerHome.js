@@ -76,7 +76,7 @@ function LawnCell({ l, propertyId, onAsked }) {
   return (
     <>
       <b>{l.included ? "Included" : "Per visit, when you ask"}</b>: {price}
-      {l.fee.label.startsWith("Large lot") ? " (large lot)" : ""}
+      {l.fee.label && l.fee.label !== "Included in the package" ? <span className="sub-line">{l.fee.label}</span> : null}
       {lastVisit ? <span className="sub-line">Last visit: {lastVisit}</span> : null}
       {l.included ? (
         <span className="sub-line">Snow is cleared as needed; your tenants call our contractor to arrange it.</span>
