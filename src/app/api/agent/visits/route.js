@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { partnerFromRequest, partnerProperties } from "@/lib/server-auth";
 import { cleanPhotos } from "@/lib/inspection-reports";
 import { PHOTO_BUCKET } from "@/lib/maintenance";
+import { lawnSnowBoard } from "@/lib/lawn-snow";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,27 +11,15 @@ export const dynamic = "force-dynamic";
 const KINDS = ["lawn", "snow"];
 
 // Agent Portal: lawn and snow visits.
-//   GET → { properties, visits (last 30 days, with photo links) }
+//   GET → { included: [...], alaCarte: [...], rates } (each property with its fee and last lawn and snow visits)
 //   POST { property_id, kind: "lawn" | "snow", photos: [{ path, name }], note }   POST { action: "delete", id } (today's own only)
 export async function GET(request) {
   const sb = getSupabaseAdmin();
   const partner = await partnerFromRequest(sb, request);
   if (!partner) return NextResponse.json({ error: "Partner sign-in required." }, { status: 401 });
   const properties = await partnerProperties(sb, partner.id);
-  const since = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
-  const { data, error } = await sb
-    .from("service_visits")
-    .select("id, property_id, kind, visited_on, photos, note, created_at, property:properties(address)")
-    .eq("partner_id", partner.id)
-    .gte("visited_on", since)
-    .order("visited_on", { ascending: false })
-    .order("created_at", { ascending: false })
-    .limit(60);
-  return NextResponse.json({
-    ready: !error,
-    properties: properties.map((p) => ({ id: p.id, address: p.address })),
-    visits: (data || []).map((v) => ({ id: v.id, kind: v.kind, visited_on: v.visited_on, address: v.property?.address, photos: (v.photos || []).length, note: v.note })),
-  });
+  const board = await lawnSnowBoard(sb, properties);
+  return NextResponse.json(board);
 }
 
 export async function POST(request) {

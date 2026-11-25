@@ -27,8 +27,8 @@ export const HELP_TOPICS = [
     q: "I cut a lawn or cleared snow",
     steps: [
       "Tap Lawn and Snow on your portal.",
-      "Tap Lawn or Snow, tap the property, take a photo.",
-      "Tap Log Visit. The photo is your proof if anyone says it wasn't done.",
+      "Find the property. Included ones are at the top; Not on a Plan ones are billed per visit.",
+      "Tap Log Lawn or Log Snow, take a photo, tap Save Visit. The photo is your proof if anyone says it wasn't done.",
     ],
     href: "/agent/visits",
     go: "Lawn and Snow",
