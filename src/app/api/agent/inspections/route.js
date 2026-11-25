@@ -4,6 +4,7 @@ import { partnerFromRequest, partnerProperties } from "@/lib/server-auth";
 import { draftForm, reportProblem, saveReport } from "@/lib/inspection-reports";
 import { sendReportToOwner } from "@/lib/inspection-send";
 import { inspectionsDue, recordInspectionPay } from "@/lib/inspection-due";
+import { cancelInspection, markVisitDone, propertyTenantEmails, scheduleInspection } from "@/lib/inspection-visits";
 import { mailer, mailConfigured } from "@/lib/mailer";
 import { renderEmail, renderText } from "@/lib/staff-alerts";
 
@@ -114,6 +115,21 @@ export async function POST(request) {
   }
   const draftId = UUID.test(String(body?.draft_id || "")) ? body.draft_id : null;
 
+  // Schedule (or move) an inspection and email the tenants the 24-hour notice.
+  if (body?.action === "schedule" || body?.action === "cancel" || body?.action === "recipients") {
+    const property = (await managedProperties(sb, partner.id)).find((p) => p.id === body.property_id);
+    if (!property) return NextResponse.json({ error: "That isn't one of your managed properties." }, { status: 403 });
+    if (body.action === "recipients") {
+      const tenants = await propertyTenantEmails(sb, property.id);
+      return NextResponse.json({ count: tenants.length });
+    }
+    const out =
+      body.action === "schedule"
+        ? await scheduleInspection(sb, partner, { propertyId: property.id, address: property.address, local: String(body.at || "") })
+        : await cancelInspection(sb, partner, { visitId: String(body.visit_id || ""), address: property.address });
+    return NextResponse.json(out, { status: out.error ? 400 : 200 });
+  }
+
   if (body?.action === "discard") {
     if (draftId) await sb.from("inspection_reports").delete().eq("id", draftId).eq("partner_id", partner.id).eq("status", "draft");
     return NextResponse.json({ ok: true });
@@ -163,6 +179,8 @@ export async function POST(request) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
   if (draftId) await sb.from("inspection_reports").delete().eq("id", draftId).eq("partner_id", partner.id).eq("status", "draft");
+
+  await markVisitDone(sb, property.id, id).catch(() => null);
 
   // His pay for this inspection ($50 + HST for Chuck), on his pay page right away.
   await recordInspectionPay(sb, partner.id, id, { address: property.address, inspectedOn: form.inspected_on, propertyId: property.id }).catch(() => null);

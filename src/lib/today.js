@@ -2,7 +2,8 @@ import "server-only";
 import { olderThanBusinessDays } from "@/lib/comms";
 import { emailEligibility } from "@/lib/serve-notice";
 import { lateApplications } from "@/lib/application-turnaround";
-import { inspectionsDue, managedOf } from "@/lib/inspection-due";
+import { lawnSnowBoard } from "@/lib/lawn-snow";
+import { inspectionsDue, managedOf, needsInspection } from "@/lib/inspection-due";
 
 // The start-of-day list: short plain lines, one page, for staff and the AI assistant.
 const T = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" });
@@ -209,11 +210,24 @@ export async function buildToday(sb) {
   // 9a2. Inspections (twice a year) overdue or never done, at managed properties
   const { data: allProps } = await sb.from("properties").select("id, address").eq("is_practice", false);
   const insp = await managedOf(sb, allProps || []).then((p) => inspectionsDue(sb, p)).catch(() => []);
-  const overdueInsp = insp.filter((x) => x.state === "overdue" || x.state === "never");
-  if (overdueInsp.length)
+  const openInsp = insp.filter(needsInspection);
+  if (openInsp.length)
     sections.push({
-      title: `Inspections overdue (${overdueInsp.length})`,
-      lines: cap(overdueInsp.map((x) => `${x.address}: ${x.last ? `last ${md(x.last)}, due ${md(x.due)}` : "none on record"}`), "Inspection Reports"),
+      title: `Inspections not done for the season (${openInsp.length}, ${openInsp[0].season}, due by ${md(openInsp[0].due)})`,
+      lines: cap(
+        openInsp.map((x) => `${x.address}: ${x.state === "overdue" ? "MISSED last season" : x.visit ? `scheduled ${md(x.visit.at)}` : "not scheduled"}${x.last ? `, last ${md(x.last)}` : ""}`),
+        "Inspection Reports"
+      ),
+    });
+
+  // 9a3. Lawn and snow: included lawns past 40 days, and landlord requests not done
+  const ls = await managedOf(sb, allProps || []).then((p) => lawnSnowBoard(sb, p)).catch(() => ({ included: [], alaCarte: [] }));
+  const lawnLate = ls.included.filter((r) => r.lawnDue?.overdue);
+  const lsAsks = ls.alaCarte.flatMap((r) => (r.requests || []).map((q) => `${r.address}: landlord asked for ${q.kind === "lawn" ? "a lawn cut" : "snow clearing"} ${md(q.on)}`));
+  if (lawnLate.length || lsAsks.length)
+    sections.push({
+      title: `Lawn and snow (${lawnLate.length + lsAsks.length})`,
+      lines: cap([...lawnLate.map((r) => `${r.address}: lawn cut overdue (due ${md(r.lawnDue.due)}, every 40 days)`), ...lsAsks], "Lawn and Snow Visits"),
     });
 
   // 9b. Cash Chuck logged but hasn't deposited after 3 days (table from 0084; skipped until it exists)

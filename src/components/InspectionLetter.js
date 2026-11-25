@@ -2,7 +2,7 @@
 
 import { longDate, money } from "@/lib/format";
 import { SITE } from "@/lib/site";
-import { QUOTE_DISCLAIMER, quoteTotals } from "@/lib/inspection-reports";
+import { QUOTE_DISCLAIMER, INSPECTION_DISCLAIMER, quoteTotals } from "@/lib/inspection-reports";
 import { IRepMark } from "@/components/Brand";
 import { APPLIANCES, CONDITION, DECISION, GUTTER, yesNo } from "@/lib/inspection-reports";
 
@@ -184,6 +184,7 @@ export default function InspectionLetter({ report: r, opts = {} }) {
         </section>
       ) : null}
 
+      <p className="receipt-note">{INSPECTION_DISCLAIMER}</p>
       <p className="receipt-note">
         {opts.contact ? `Questions about this report or the work? Email ${opts.contact}.` : `Questions? Call ${SITE.phone} or email ${SITE.email}.`}
       </p>

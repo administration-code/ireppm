@@ -32,6 +32,7 @@ export default function AgentVisits() {
   const [open, setOpen] = useState(null); // { id, kind }
   const [files, setFiles] = useState([]);
   const [note, setNote] = useState("");
+  const [charge, setCharge] = useState({ mode: "standard", amount: "" });
   const [busy, setBusy] = useState("");
   const [msg, setMsg] = useState({ kind: "", text: "", id: null });
 
@@ -40,8 +41,9 @@ export default function AgentVisits() {
     if (user) load();
   }, [user, load]);
 
-  function start(p, kind) {
-    setOpen(open?.id === p.id && open?.kind === kind ? null : { id: p.id, kind });
+  function start(p, kind, requestId = null) {
+    setCharge({ mode: "standard", amount: "" });
+    setOpen(open?.id === p.id && open?.kind === kind && !requestId ? null : { id: p.id, kind, requestId });
     setFiles([]);
     setNote("");
     setMsg({ kind: "", text: "", id: null });
@@ -59,10 +61,15 @@ export default function AgentVisits() {
       photos = out.photos;
     }
     setBusy("Saving…");
-    const out = await call("POST", { property_id: p.id, kind: open.kind, photos, note });
+    const chargeAmount = p.included ? undefined : charge.mode === "other" ? charge.amount : p.fee.amount;
+    if (!p.included && !(Number(String(chargeAmount).replace(/[$,\s]/g, "")) >= 0) ) {
+      setBusy("");
+      return setMsg({ kind: "err", text: "Enter the amount charged to the landlord.", id: p.id });
+    }
+    const out = await call("POST", { property_id: p.id, kind: open.kind, photos, note, charge_amount: chargeAmount, request_id: open.requestId || undefined });
     setBusy("");
     if (out.error) return setMsg({ kind: "err", text: out.error, id: p.id });
-    setMsg({ kind: "ok", text: `✓ ${KIND[open.kind]} visit logged.`, id: p.id });
+    setMsg({ kind: "ok", text: `✓ ${KIND[open.kind]} visit logged.${p.included ? "" : " The landlord gets an email with the charge."}`, id: p.id });
     setOpen(null);
     setFiles([]);
     setNote("");
@@ -90,6 +97,27 @@ export default function AgentVisits() {
             {p.fee.label}
           </span>
         </div>
+        {p.requests?.length ? (
+          <div className="warnbox stack" style={{ gap: 6 }}>
+            {p.requests.map((r) => (
+              <span key={r.id}>
+                <b>Landlord asked for {KIND[r.kind].toLowerCase()}</b> on {shortDate(r.on)}
+                {r.note ? `: "${r.note}"` : ""}.{" "}
+                <button type="button" className="btn primary sm" style={{ minHeight: 40 }} onClick={() => start(p, r.kind, r.id)}>
+                  Log It Done
+                </button>
+              </span>
+            ))}
+          </div>
+        ) : null}
+        {p.lawnDue ? (
+          <span className="small" style={p.lawnDue.overdue ? { color: "#8a110c", fontWeight: 600 } : p.lawnDue.days <= 7 ? { fontWeight: 600 } : undefined}>
+            {p.lawnDue.overdue
+              ? `Lawn cut overdue: was due ${shortDate(p.lawnDue.due)} (every 40 days)`
+              : `Next lawn cut due by ${shortDate(p.lawnDue.due)} (${p.lawnDue.days} day${p.lawnDue.days === 1 ? "" : "s"})`}
+          </span>
+        ) : null}
+        <span className="small">{p.snowNote}</span>
         <div className="small" style={{ display: "grid", gridTemplateColumns: "auto 1fr", columnGap: 10, rowGap: 2 }}>
           <span>Last lawn:</span>
           <b>{lastText(p.lastLawn)}</b>
@@ -120,6 +148,39 @@ export default function AgentVisits() {
               <input type="file" accept={PHOTO_ACCEPT} multiple hidden onChange={(e) => setFiles([...files, ...Array.from(e.target.files || [])].slice(0, 6))} />
             </label>
             <input aria-label="Note (optional)" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note (optional): salted the steps too" />
+            {p.included ? null : (
+              <div className="stack" style={{ gap: 6 }}>
+                <span className="small">Charge to the landlord</span>
+                <div className="req-actions" style={{ flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    aria-pressed={charge.mode === "standard"}
+                    className={`btn ${charge.mode === "standard" ? "primary" : "ghost"} sm`}
+                    style={{ minHeight: 44 }}
+                    onClick={() => setCharge({ mode: "standard", amount: "" })}
+                  >
+                    {charge.mode === "standard" ? "✓ " : ""}
+                    {money(p.fee.amount)} + HST
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={charge.mode === "other"}
+                    className={`btn ${charge.mode === "other" ? "primary" : "ghost"} sm`}
+                    style={{ minHeight: 44 }}
+                    onClick={() => setCharge({ mode: "other", amount: "" })}
+                  >
+                    {charge.mode === "other" ? "✓ " : ""}A Different Amount
+                  </button>
+                </div>
+                {charge.mode === "other" ? (
+                  <input inputMode="decimal" aria-label="Amount before HST" placeholder="Amount before HST" value={charge.amount} onChange={(e) => setCharge({ mode: "other", amount: e.target.value.replace(/[^\d.]/g, "") })} style={{ maxWidth: 200, minHeight: 48 }} />
+                ) : null}
+                <span className="small">
+                  Landlord pays {money(Number(charge.mode === "other" ? charge.amount || 0 : p.fee.amount))} + HST ={" "}
+                  {money(Math.round(Number(charge.mode === "other" ? charge.amount || 0 : p.fee.amount) * 113) / 100)}. They get an email when you save.
+                </span>
+              </div>
+            )}
             <button type="button" className="btn primary" style={{ minHeight: 52 }} disabled={Boolean(busy)} onClick={() => save(p)}>
               {busy || (files.length ? "Save Visit" : "Save Without a Photo")}
             </button>
@@ -160,7 +221,8 @@ export default function AgentVisits() {
           Included in Their Plan ({d.included.length})
         </h2>
         <p className="small" style={{ margin: 0 }}>
-          These landlords pay for lawn and snow every month. Keep them up all season.
+          These landlords pay for lawn and snow every month. Cut each lawn at least every 40 days in season (Apr 15 to Oct 31). Snow is as
+          needed: tenants call you to arrange it.
         </p>
         {d.included.length ? <ul className="plain-list stack" style={{ gap: 12 }}>{d.included.map(row)}</ul> : <p className="small">None yet.</p>}
       </section>
@@ -170,7 +232,8 @@ export default function AgentVisits() {
           Not on a Plan: Per Visit ({d.alaCarte.length})
         </h2>
         <p className="small" style={{ margin: 0 }}>
-          Only when IRep or the landlord asks. Each visit is billed to the landlord at {money(d.rates.visit)} + HST, more for large lots (shown on each).
+          Only when the landlord (or IRep) asks: their requests show up here. Each visit is billed at {money(d.rates.visit)} + HST, more for large
+          lots (shown on each). Snow is the tenant&apos;s or landlord&apos;s job here unless the city issues a notice.
         </p>
         {d.alaCarte.length ? <ul className="plain-list stack" style={{ gap: 12 }}>{d.alaCarte.map(row)}</ul> : <p className="small">None.</p>}
       </section>

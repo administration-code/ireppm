@@ -25,6 +25,9 @@ export const REPORT_STATUS = { draft: "Being written", submitted: "Ready to revi
 
 // Quotes on the inspection (0090): Chuck prices each repair and improvement; the landlord approves each one.
 export const HST_PERCENT = 13;
+// On every inspection notice and report: what this inspection is (and isn't).
+export const INSPECTION_DISCLAIMER =
+  "Please note: this is a general walk-through for IRep Property Management's records and reporting only. It is not a professional home, building or safety inspection.";
 export const QUOTE_CONTACT = { name: "Chuck", email: "chuck@ireppm.ca" };
 export const QUOTE_DISCLAIMER =
   "The amounts above are good-faith estimates based on a visual inspection of accessible areas on the date of this report. " +

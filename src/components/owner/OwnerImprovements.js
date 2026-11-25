@@ -6,7 +6,7 @@ import { getBrowserClient } from "@/lib/supabase";
 import { shortDate } from "@/lib/rent";
 import { money } from "@/lib/format";
 import { SITE } from "@/lib/site";
-import { QUOTE_DISCLAIMER, quoteTotals } from "@/lib/inspection-reports";
+import { QUOTE_DISCLAIMER, INSPECTION_DISCLAIMER, quoteTotals } from "@/lib/inspection-reports";
 import InspectionChecks, { PhotoStrip } from "@/components/InspectionChecks";
 import InspectionLetter, { normalizeOwnerReport } from "@/components/InspectionLetter";
 
@@ -181,6 +181,7 @@ export default function OwnerImprovements({ id }) {
           <b>Disclaimer.</b> {QUOTE_DISCLAIMER}
         </p>
       ) : null}
+      <p className="small" style={{ margin: 0 }}>{INSPECTION_DISCLAIMER}</p>
       <p className="small">
         Questions about this report or the work? Email {report.contact?.name && report.contact.name !== "IRep" ? `${report.contact.name} at ` : ""}
         <a href={`mailto:${report.contact?.email || SITE.email}`}>{report.contact?.email || SITE.email}</a>.

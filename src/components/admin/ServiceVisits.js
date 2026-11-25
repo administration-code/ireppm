@@ -17,12 +17,10 @@ export default function ServiceVisits() {
     (async () => {
       const sb = getBrowserClient();
       const since = new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10);
-      const { data, error: e } = await sb
-        .from("service_visits")
-        .select("id, kind, visited_on, photos, note, property_id, property:properties(address, management_package), partner:partners(name)")
-        .gte("visited_on", since)
-        .order("visited_on", { ascending: false })
-        .limit(300);
+      const q = (cols) => sb.from("service_visits").select(cols).gte("visited_on", since).order("visited_on", { ascending: false }).limit(300);
+      const base = "id, kind, visited_on, photos, note, property_id, property:properties(address, management_package), partner:partners(name)";
+      let { data, error: e } = await q(`${base}, charge_amount, request_id`);
+      if (e) ({ data, error: e } = await q(base));
       if (e) {
         setError("Couldn't load visits. If migration 0092 hasn't been run yet, run it first.");
         return setRows([]);
@@ -44,7 +42,8 @@ export default function ServiceVisits() {
         (data || []).map((v) => ({
           ...v,
           included: onPlan.has(v.property_id) || ["maintenance", "protection"].includes(v.property?.management_package),
-          fee: ownFee.get(v.property_id) ?? visitFee,
+          fee: v.charge_amount != null ? Number(v.charge_amount) : ownFee.get(v.property_id) ?? visitFee,
+          requested: Boolean(v.request_id),
           urls: (v.photos || []).map((p) => urls[p.path]).filter(Boolean),
         }))
       );
@@ -104,7 +103,7 @@ export default function ServiceVisits() {
                       {r.note ? <span className="small sub-line">{r.note}</span> : null}
                     </td>
                     <td>{KIND[r.kind]}</td>
-                    <td className="small">{r.included ? "Included in plan" : <b>Bill landlord {money(r.fee)} + HST</b>}</td>
+                    <td className="small">{r.included ? "Included in plan" : <b>Bill landlord {money(r.fee)} + HST{r.requested ? " (landlord asked)" : ""}</b>}</td>
                     <td className="small">{r.partner?.name || ""}</td>
                     <td>
                       {r.urls.length ? (

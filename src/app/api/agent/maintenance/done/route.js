@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { inspectionsDue, managedOf } from "@/lib/inspection-due";
+import { inspectionsDue, managedOf, needsInspection } from "@/lib/inspection-due";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { partnerProperties, partnerFromRequest } from "@/lib/server-auth";
 import { markJobDone, partnerDoneJobs, landlordBookings } from "@/lib/job-done";
@@ -21,7 +21,7 @@ export async function GET(request) {
       .then((props) => inspectionsDue(sb, props))
       .catch(() => []),
   ]);
-  return NextResponse.json({ done, bookings, inspectionsDue: due.filter((x) => x.state !== "ok").length });
+  return NextResponse.json({ done, bookings, inspectionsDue: due.filter(needsInspection).length });
 }
 
 export async function POST(request) {

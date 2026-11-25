@@ -1,5 +1,5 @@
 import "server-only";
-import { loadReport, ownerReportUrl, yesNo, GUTTER, ROOF, QUOTE_CONTACT, QUOTE_DISCLAIMER, quoteTotals } from "@/lib/inspection-reports";
+import { loadReport, ownerReportUrl, yesNo, GUTTER, ROOF, QUOTE_CONTACT, QUOTE_DISCLAIMER, INSPECTION_DISCLAIMER, quoteTotals } from "@/lib/inspection-reports";
 import { mailer, mailConfigured } from "@/lib/mailer";
 import { renderEmail, renderText, escapeHtml } from "@/lib/staff-alerts";
 import { money } from "@/lib/format";
@@ -58,14 +58,16 @@ export async function sendReportToOwner(sb, id, { message = "", sentBy = null } 
        <tr><td style="padding:6px;text-align:right;font-size:14px;">HST (13%)</td><td style="padding:6px;text-align:right;font-size:14px;">${money(totals.hst)}</td></tr>
        <tr><td style="padding:6px;text-align:right;font-size:16px;font-weight:600;">Estimated total</td><td style="padding:6px;text-align:right;font-size:16px;font-weight:600;">${money(totals.total)}</td></tr>`
     : "";
+  const notPro = `<p style="margin:16px 0 0;font-size:12px;line-height:1.5;color:#555;">${escapeHtml(INSPECTION_DISCLAIMER)}</p>`;
   const extraHtml = !hasItems
-    ? ""
+    ? notPro
     : `<h2 style="margin:20px 0 8px;font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;">${priced ? "Repairs and Improvements: Estimates" : "Recommended Improvements"}</h2>
        <table role="presentation" style="width:100%;border-collapse:collapse;">
          ${priced ? `<tr><td style="padding:6px;font-size:11px;letter-spacing:.8px;color:#555;">ITEM</td><td style="padding:6px;font-size:11px;letter-spacing:.8px;color:#555;text-align:right;">ESTIMATE (BEFORE HST)</td></tr>` : ""}
          ${itemRows}${totalRows}
        </table>
        ${priced ? `<p style="margin:16px 0 0;font-size:12px;line-height:1.5;color:#555;"><b>Disclaimer.</b> ${escapeHtml(QUOTE_DISCLAIMER)}</p>` : ""}
+       ${notPro}
        <p style="margin:16px 0 0;font-size:14px;">Questions about this report or the work? Email ${escapeHtml(r.partner_id ? QUOTE_CONTACT.name : "us")} at <a href="mailto:${escapeHtml(contact)}">${escapeHtml(contact)}</a>.</p>`;
   const link = { href: ownerReportUrl(id), label: hasItems ? "Approve or decline each item" : "View the inspection report" };
   const heading = hasItems ? (priced ? "Inspection Report and Estimates" : "Inspection Report and Recommended Improvements") : "Inspection Report";
@@ -76,7 +78,7 @@ export async function sendReportToOwner(sb, id, { message = "", sentBy = null } 
     ? intro
     : `${intro}\n\n${textItems}${
         priced ? `\n\nSubtotal: ${money(totals.subtotal)}\nHST (13%): ${money(totals.hst)}\nEstimated total: ${money(totals.total)}\n\nDisclaimer. ${QUOTE_DISCLAIMER}` : ""
-      }\n\nQuestions? Email ${contact}.`;
+      }\n\n${INSPECTION_DISCLAIMER}\n\nQuestions? Email ${contact}.`;
 
   const { error } = await mailer().emails.send({
     from: `IRep Property Management <${SITE.email}>`,

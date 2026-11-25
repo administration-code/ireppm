@@ -24,6 +24,31 @@ const MY_FIELDS = "id, tenancy_id, unit_id, title, status, scheduled_for, tenant
 
 const homeLabel = (h) => [h.address, h.unit_label].filter(Boolean).join(", ");
 
+// Lawn and snow at this home: included (call Chuck for snow) or not IRep's job.
+function LawnSnowNote() {
+  const [homes, setHomes] = useState([]);
+  useEffect(() => {
+    (async () => {
+      const { data } = await getBrowserClient().auth.getSession();
+      const res = await fetch("/api/tenant/lawn-snow", { headers: { Authorization: `Bearer ${data?.session?.access_token || ""}` } }).catch(() => null);
+      const out = res?.ok ? await res.json().catch(() => null) : null;
+      setHomes(out?.homes || []);
+    })();
+  }, []);
+  if (!homes.length) return null;
+  return (
+    <div className="stack" style={{ gap: 4 }}>
+      <span className="eyebrow">Lawn and Snow</span>
+      {homes.map((h) => (
+        <p key={h.address} className="small" style={{ margin: 0 }}>
+          {homes.length > 1 ? <b>{h.address}: </b> : null}
+          {h.text}
+        </p>
+      ))}
+    </div>
+  );
+}
+
 export default function MyHome({ user }) {
   const [state, setState] = useState({ loading: true, homes: [], requests: [] });
   const [reporting, setReporting] = useState(false);
@@ -130,6 +155,7 @@ export default function MyHome({ user }) {
       {homes.map((h) => (
         <MovingOut key={h.tenancy_id} home={h} user={user} showAddress={homes.length > 1} />
       ))}
+      <LawnSnowNote />
     </section>
     </>
   );

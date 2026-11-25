@@ -49,16 +49,59 @@ async function loadPortal() {
   };
 }
 
-function lawnText(l) {
+// Lawn and snow for one property: price (plus HST), last visits, and for properties not on the plan,
+// buttons to ask for a lawn cut or snow clearing.
+function LawnCell({ l, propertyId, onAsked }) {
+  const [busy, setBusy] = useState("");
+  const [msg, setMsg] = useState("");
   if (!l) return "—";
   const price = l.fee.amount != null ? `${money(l.fee.amount)} + HST ${l.fee.per === "month" ? "a month" : "per visit"}` : "Included in your package";
-  const what = l.included ? "Included" : "Per visit, when you ask";
   const lastVisit = [l.lastLawn && `lawn ${shortDate(l.lastLawn)}`, l.lastSnow && `snow ${shortDate(l.lastSnow)}`].filter(Boolean).join(", ");
+  const asked = (k) => (l.requests || []).find((r) => r.kind === k);
+  async function ask(kind) {
+    setBusy(kind);
+    setMsg("");
+    const { data } = await getBrowserClient().auth.getSession();
+    const res = await fetch("/api/owner/lawn-snow", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${data?.session?.access_token || ""}` },
+      body: JSON.stringify({ property_id: propertyId, kind }),
+    }).catch(() => null);
+    const out = res ? await res.json().catch(() => ({})) : {};
+    setBusy("");
+    if (!res?.ok) return setMsg(out.error || "That didn't go through. Email us instead.");
+    setMsg(`Asked. We'll ${kind === "lawn" ? "cut the lawn" : "clear the snow"} and email you when it's done.`);
+    onAsked();
+  }
   return (
     <>
-      <b>{what}</b>: {price}
+      <b>{l.included ? "Included" : "Per visit, when you ask"}</b>: {price}
       {l.fee.label.startsWith("Large lot") ? " (large lot)" : ""}
       {lastVisit ? <span className="sub-line">Last visit: {lastVisit}</span> : null}
+      {l.included ? (
+        <span className="sub-line">Snow is cleared as needed; your tenants call our contractor to arrange it.</span>
+      ) : (
+        <>
+          <span className="sub-line">Snow is the tenant&apos;s or your responsibility unless the city issues a notice. We can do it when you ask.</span>
+          <span className="req-actions" style={{ marginTop: 6, flexWrap: "wrap" }}>
+            {[
+              ["lawn", "Request a Lawn Cut"],
+              ["snow", "Request Snow Clearing"],
+            ].map(([k, label]) =>
+              asked(k) ? (
+                <span key={k} className="pill sub">
+                  {k === "lawn" ? "Lawn cut" : "Snow clearing"} requested {shortDate(asked(k).on)}
+                </span>
+              ) : (
+                <button key={k} type="button" className="btn ghost sm" disabled={Boolean(busy)} onClick={() => ask(k)}>
+                  {busy === k ? "Sending…" : label}
+                </button>
+              )
+            )}
+          </span>
+          {msg ? <span className="sub-line">{msg}</span> : null}
+        </>
+      )}
     </>
   );
 }
@@ -83,6 +126,7 @@ export default function OwnerHome() {
   const { loading, properties, letters, error } = state;
   // Lawn and snow price and last visits, per property.
   const [lawn, setLawn] = useState({});
+  const [lawnTick, setLawnTick] = useState(0);
   useEffect(() => {
     if (loading || !properties.length) return;
     (async () => {
@@ -91,7 +135,7 @@ export default function OwnerHome() {
       const out = res?.ok ? await res.json().catch(() => null) : null;
       setLawn(Object.fromEntries((out?.properties || []).map((p) => [p.id, p])));
     })();
-  }, [loading, properties.length]);
+  }, [loading, properties.length, lawnTick]);
   // my_owned_properties counts managed units only: a property with none is leasing only
   // (IRep found the tenant; rent goes to the landlord directly).
   const managed = properties.filter((p) => Number(p.units) > 0);
@@ -183,7 +227,11 @@ export default function OwnerHome() {
                         ? "Month to month"
                         : `First year ends ${shortDate(p.agreement_renewal)}`}
                   </td>
-                  {leasingOnly ? null : <td className="small">{lawnText(lawn[p.id])}</td>}
+                  {leasingOnly ? null : (
+                    <td className="small">
+                      <LawnCell l={lawn[p.id]} propertyId={p.id} onAsked={() => setLawnTick((n) => n + 1)} />
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

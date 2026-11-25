@@ -27,7 +27,8 @@ export const HELP_TOPICS = [
     q: "I cut a lawn or cleared snow",
     steps: [
       "Tap Lawn and Snow on your portal.",
-      "Find the property. Included ones are at the top; Not on a Plan ones are billed per visit.",
+      "Find the property. Included ones are at the top: cut each lawn at least every 40 days (it shows the date), and clear snow when tenants call you.",
+      "Not on a Plan: only when the landlord asks (their request shows in yellow; tap Log It Done). Confirm the charge before you save.",
       "Tap Log Lawn or Log Snow, take a photo, tap Save Visit. The photo is your proof if anyone says it wasn't done.",
     ],
     href: "/agent/visits",
@@ -59,7 +60,7 @@ export const HELP_TOPICS = [
     key: "inspection",
     q: "I'm doing an inspection",
     steps: [
-      "Tap Inspections. Each property shows its last inspection and when the next is due (every 6 months); tap Start It on one that's due. Or pick the property. Been there before? Tap Start From Last Time. Tap an answer for each part and add photos under it.",
+      "Tap Inspections. Tap Pick a Day and Time on each property (at least a day ahead, 8 am to 8 pm): the tenants get the notice by email automatically. On the day, tap Start It. Been there before? Tap Start From Last Time. Tap an answer for each part and add photos under it.",
       "Tap Next: Quote the Repairs. Put your price before HST on each item; the total with HST adds up at the bottom.",
       "Tap Inspection Complete: Send to Landlord. It goes straight to them. It saves as you go, or tap Save and Finish Later.",
       "Approved items show up under Open Jobs. Email the landlord to book it. It's billed on a separate invoice, not taken off rent.",
