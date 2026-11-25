@@ -101,3 +101,18 @@ export function daysBetween(fromIso, toIso) {
   if (!fromIso || !toIso) return null;
   return Math.round((new Date(`${toIso}T12:00:00`) - new Date(`${fromIso}T12:00:00`)) / 86400000);
 }
+
+// DocuSign's automatic reminders (2 days after sending, then every 2 days, set by the site on every
+// envelope out for signature). DocuSign doesn't report these back, so the dates are worked out from
+// the schedule: the last one that should have gone out, and the next one.
+export function autoReminder(r, now = Date.now()) {
+  if (!["sent", "delivered"].includes(r?.status) || !r.envelope_id || !r.sent_at || !r.terms?.auto_reminders) return null;
+  const [after, every] = String(r.terms.auto_reminders).split("/").map(Number);
+  if (!after || !every) return null;
+  const DAY = 86400000;
+  const first = new Date(r.sent_at).getTime() + after * DAY;
+  if (now < first) return { last: null, next: new Date(first).toISOString(), every };
+  const n = Math.floor((now - first) / (every * DAY));
+  const last = first + n * every * DAY;
+  return { last: new Date(last).toISOString(), next: new Date(last + every * DAY).toISOString(), every };
+}

@@ -10,7 +10,7 @@ import { refreshStaffCounts } from "@/lib/admin-nav";
 import SigStatus from "@/components/admin/signatures/SigStatus";
 import ServePanel from "@/components/admin/signatures/ServePanel";
 import MoveLease from "@/components/admin/signatures/MoveLease";
-import { SIG_KIND, kindLabel, SIG_STATUS, docusignApi, openInTab, shortDate } from "@/lib/signatures";
+import { SIG_KIND, kindLabel, SIG_STATUS, autoReminder, docusignApi, openInTab, shortDate } from "@/lib/signatures";
 
 const TENANCY_SELECT =
   "id, unit_id, start_date, rent, email_service_ok, email_service_consent, unit:units(id, label, property:properties(id, address, city, postal_code)), tenancy_tenants(full_name, email)";
@@ -150,6 +150,13 @@ export default function SignatureDetail({ id }) {
             <button type="button" className="btn ghost sm" disabled={Boolean(busy)} onClick={() => act("remind", {}, "Reminder sent.")}>
               {busy === "remind" ? "Sending…" : "Send reminder"}
             </button>
+          ) : null}
+          {autoReminder(row) ? (
+            <p className="small" style={{ flexBasis: "100%", margin: 0 }}>
+              Automatic reminders are on: DocuSign emails anyone who hasn&apos;t signed every {autoReminder(row).every} days.
+              {autoReminder(row).last ? ` Last one went out about ${shortDate(autoReminder(row).last)};` : ""} next one{" "}
+              {shortDate(autoReminder(row).next)}. DocuSign doesn&apos;t report these back, so the dates come from the schedule.
+            </p>
           ) : null}
           {row.envelope_id ? (
             <button type="button" className="btn ghost sm" disabled={Boolean(busy)} onClick={() => act("refresh", {}, "Status refreshed.")}>

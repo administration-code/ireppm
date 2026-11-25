@@ -6,7 +6,7 @@ import { getBrowserClient } from "@/lib/supabase";
 import SigStatus from "@/components/admin/signatures/SigStatus";
 import DeleteRecord from "@/components/admin/DeleteRecord";
 import { canDeleteSignature, deleteSignatureRequest } from "@/lib/delete-records";
-import { SIG_FILTERS, SIG_KIND, kindLabel, SIG_LIST_SELECT, docusignApi, openInTab, outTo, shortDate } from "@/lib/signatures";
+import { SIG_FILTERS, SIG_KIND, kindLabel, SIG_LIST_SELECT, autoReminder, docusignApi, openInTab, outTo, shortDate } from "@/lib/signatures";
 
 const LANDLORD_KINDS = ["pm_contract"];
 
@@ -104,6 +104,13 @@ export default function SignaturesList() {
     );
   };
   const remindable = (r) => ["sent", "delivered"].includes(r.status) && Boolean(r.envelope_id);
+  // The latest reminder: one sent from this site (or reported by DocuSign), or DocuSign's automatic one.
+  const lastReminder = (r) => {
+    const manual = reminded[r.id] || "";
+    const auto = autoReminder(r);
+    const autoAt = auto?.last || "";
+    return autoAt > manual ? { at: autoAt, auto: true, next: auto.next } : { at: manual, auto: false, next: auto?.next || "" };
+  };
   const togglePick = (id) =>
     setPicked((s0) => {
       const s1 = new Set(s0);
@@ -207,7 +214,7 @@ export default function SignaturesList() {
       case "sent":
         return r.sent_at || "";
       case "reminded":
-        return reminded[r.id] || "";
+        return lastReminder(r).at;
       case "completed":
         return r.completed_at || "";
       default:
@@ -415,7 +422,18 @@ export default function SignaturesList() {
                     <SigStatus status={r.status} />
                   </td>
                   <td className="small">{shortDate(r.sent_at) || "—"}</td>
-                  <td className="small">{reminded[r.id] ? shortDate(reminded[r.id]) : "—"}</td>
+                  <td className="small">
+                    {(() => {
+                      const lr = lastReminder(r);
+                      return (
+                        <>
+                          {lr.at ? shortDate(lr.at) : "—"}
+                          {lr.at && lr.auto ? <span className="muted"> (auto)</span> : null}
+                          {lr.next ? <div className="muted">Next auto: {shortDate(lr.next)}</div> : null}
+                        </>
+                      );
+                    })()}
+                  </td>
                   <td className="small">{shortDate(r.completed_at) || "—"}</td>
                   <td className="r">
                     {r.envelope_id && ["draft", "sent", "delivered"].includes(r.status) ? (
