@@ -28,6 +28,16 @@ export default function AgentPortal() {
   const [doneJobs, setDoneJobs] = useState([]);
   const [bookings, setBookings] = useState({});
   const [inspDue, setInspDue] = useState(0);
+  const [tasks, setTasks] = useState(0);
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data } = await getBrowserClient().auth.getSession();
+      const res = await fetch("/api/agent/tasks", { headers: { Authorization: `Bearer ${data?.session?.access_token || ""}` } }).catch(() => null);
+      const out = res ? await res.json().catch(() => null) : null;
+      if (Array.isArray(out?.tasks)) setTasks(out.tasks.length);
+    })();
+  }, [user]);
   useEffect(() => {
     if (!user) return;
     (async () => {
@@ -117,6 +127,9 @@ export default function AgentPortal() {
           Help: What Do I Do?
         </Link>
         <div className="req-actions">
+          <Link className={`btn ${tasks ? "primary" : "ghost"} sm`} href="/agent/tasks">
+            {tasks ? `Tasks From the Office (${tasks})` : "Tasks From the Office"}
+          </Link>
           {serve ? (
             <Link className={`btn ${serve.count ? "primary" : "ghost"} sm`} href="/agent/notices">
               {serve.count ? `Notices to Serve (${serve.count})${serve.late ? " · late" : ""}` : "Notices to Serve"}

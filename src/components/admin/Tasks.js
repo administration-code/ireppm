@@ -22,7 +22,8 @@ const daysSince = (d) => (d ? Math.max(0, Math.round((Date.parse(todayISO()) - D
 export default function Tasks() {
   const [rows, setRows] = useState(null);
   const [tab, setTab] = useState("open");
-  const [f, setF] = useState({ title: "", waiting_on: "", due_date: "", kind: "other", assigned_to: "" });
+  const [f, setF] = useState({ title: "", detail: "", waiting_on: "", due_date: "", kind: "other", assigned_to: "" });
+  const [partners, setPartners] = useState([]);
   const [msg, setMsg] = useState("");
   const [staff, setStaff] = useState([]);
   const [me, setMe] = useState(null);
@@ -30,13 +31,20 @@ export default function Tasks() {
   useEffect(() => {
     (async () => {
       const sb = getBrowserClient();
-      const [{ data: u }, { data: list }] = await Promise.all([sb.auth.getUser(), sb.rpc("staff_members")]);
+      const [{ data: u }, { data: list }, { data: field }] = await Promise.all([
+        sb.auth.getUser(),
+        sb.rpc("staff_members"),
+        sb.from("property_agents").select("partner:partners(id, name, active, email)"),
+      ]);
+      // Partners who sign in to the agent portal (Chuck), so tasks can go to them too.
+      setPartners([...new Map((field || []).map((r) => r.partner).filter((p) => p?.active && p.email).map((p) => [p.id, p])).values()]);
       const mine = (list || []).find((p) => p.id === u?.user?.id) || null;
       setStaff(list || []);
       setMe(mine);
       setWho((w) => w || (mine?.role === "admin" ? "all" : "mine"));
     })();
   }, []);
+  const partnerName = (id) => partners.find((p) => p.id === id)?.name || "Chuck";
   const nameOf = (id) => {
     const p = staff.find((x) => x.id === id);
     return p ? p.full_name || p.email : "";
@@ -46,7 +54,7 @@ export default function Tasks() {
     const res = await fetch(`/api/admin/tasks/${id}/assign`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${data?.session?.access_token || ""}` },
-      body: JSON.stringify({ assigned_to: to || null }),
+      body: JSON.stringify(String(to || "").startsWith("partner:") ? { partner_id: to.slice(8) } : { assigned_to: to || null, clear_partner: true }),
     });
     if (!res.ok) setMsg((await res.json().catch(() => ({}))).error || "Couldn't assign that task.");
     refreshStaffCounts();
@@ -59,6 +67,7 @@ export default function Tasks() {
     let q = getBrowserClient().from("staff_tasks").select("*").in("status", statuses);
     if (who === "mine" && me) q = q.eq("assigned_to", me.id);
     if (who === "unassigned") q = q.is("assigned_to", null);
+    if (who === "partner") q = q.not("partner_id", "is", null);
     const { data } = await q.order(tab === "open" ? "created_at" : "done_at", { ascending: false }).limit(200);
     setRows(data || []);
   }, [tab, who, me]);
@@ -87,6 +96,7 @@ export default function Tasks() {
       .from("staff_tasks")
       .insert({
         title: f.title.trim(),
+        detail: f.detail.trim() || null,
         status: f.waiting_on.trim() ? "waiting" : "open",
         waiting_on: f.waiting_on.trim() || null,
         waiting_since: f.waiting_on.trim() ? todayISO() : null,
@@ -97,7 +107,7 @@ export default function Tasks() {
       .single();
     if (error) return setMsg(error.message);
     if (to) await assign(row.id, to);
-    setF({ title: "", waiting_on: "", due_date: "", kind: "other", assigned_to: "" });
+    setF({ title: "", detail: "", waiting_on: "", due_date: "", kind: "other", assigned_to: "" });
     setMsg("");
     refreshStaffCounts();
     load();
@@ -114,6 +124,10 @@ export default function Tasks() {
         <div className="field" style={{ gridColumn: "span 2" }}>
           <label htmlFor="tk-title">New task</label>
           <input id="tk-title" value={f.title} onChange={(e) => setF((s) => ({ ...s, title: e.target.value }))} placeholder="Follow up with Keyur about the Upper lease" />
+        </div>
+        <div className="field" style={{ gridColumn: "span 2" }}>
+          <label htmlFor="tk-detail">Details (optional)</label>
+          <input id="tk-detail" value={f.detail} onChange={(e) => setF((s) => ({ ...s, detail: e.target.value }))} placeholder="What Chuck or the team needs to know" />
         </div>
         <div className="field">
           <label htmlFor="tk-wait">Waiting on (optional)</label>
@@ -140,6 +154,15 @@ export default function Tasks() {
                 {p.full_name || p.email}
               </option>
             ))}
+            {partners.length ? (
+              <optgroup label="Field (shows in their portal)">
+                {partners.map((p) => (
+                  <option key={p.id} value={`partner:${p.id}`}>
+                    {p.name}
+                  </option>
+                ))}
+              </optgroup>
+            ) : null}
           </select>
         </div>
         <div>
@@ -168,6 +191,11 @@ export default function Tasks() {
           <button type="button" aria-pressed={who === "all"} onClick={() => setWho("all")}>
             Everyone
           </button>
+          {partners.length ? (
+            <button type="button" aria-pressed={who === "partner"} onClick={() => setWho("partner")}>
+              {partners.length === 1 ? partners[0].name.split(" ")[0] : "Field"}
+            </button>
+          ) : null}
         </div>
       </div>
       {rows === null ? (
@@ -182,11 +210,17 @@ export default function Tasks() {
                 <b>{t.title}</b>
                 <span className="small">
                   {KIND[t.kind] || "Task"} · added {shortDate(String(t.created_at).slice(0, 10))}
-                  {t.assigned_to ? ` · ${nameOf(t.assigned_to) || "assigned"}` : " · unassigned"}
+                  {t.partner_id ? ` · ${partnerName(t.partner_id)} (in his portal)` : t.assigned_to ? ` · ${nameOf(t.assigned_to) || "assigned"}` : " · unassigned"}
                   {t.due_date ? ` · due ${shortDate(t.due_date)}` : ""}
                 </span>
               </div>
-              {t.detail ? <p className="small" style={{ margin: "4px 0" }}>{t.detail}</p> : null}
+              {t.detail ? <p className="small" style={{ margin: "4px 0", whiteSpace: "pre-wrap" }}>{t.detail}</p> : null}
+              {t.partner_done_at ? (
+                <p className="small" style={{ margin: "4px 0" }}>
+                  <b>{partnerName(t.partner_id)} marked it done {shortDate(String(t.partner_done_at).slice(0, 10))}</b>
+                  {t.partner_note ? `: “${t.partner_note}”` : "."}
+                </p>
+              ) : null}
               {t.status === "waiting" ? (
                 <p className="small" style={{ margin: "4px 0" }}>
                   Waiting on <b>{t.waiting_on}</b> since {shortDate(t.waiting_since)} ({daysSince(t.waiting_since)} days)
@@ -232,13 +266,22 @@ export default function Tasks() {
                   <button type="button" className="link-btn small" onClick={() => update(t.id, { status: "dismissed" })}>
                     Dismiss
                   </button>
-                  <select aria-label="Assign to" value={t.assigned_to || ""} onChange={(e) => assign(t.id, e.target.value)} className="small">
+                  <select aria-label="Assign to" value={t.partner_id ? `partner:${t.partner_id}` : t.assigned_to || ""} onChange={(e) => assign(t.id, e.target.value)} className="small">
                     <option value="">Unassigned</option>
                     {staff.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.full_name || p.email}
                       </option>
                     ))}
+                    {partners.length ? (
+              <optgroup label="Field (shows in their portal)">
+                {partners.map((p) => (
+                  <option key={p.id} value={`partner:${p.id}`}>
+                    {p.name}
+                  </option>
+                ))}
+              </optgroup>
+            ) : null}
                   </select>
                 </div>
               ) : (

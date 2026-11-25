@@ -4,18 +4,24 @@ import { staffFromRequest } from "@/lib/server-auth";
 import { mailer, mailConfigured } from "@/lib/mailer";
 import { renderEmail, renderText } from "@/lib/staff-alerts";
 import { SITE } from "@/lib/site";
+import { assignToPartner } from "@/lib/partner-tasks";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 // Staff: assign a task to a staff member (or unassign). The person gets a short email (task title and a link);
-// everything else stays in the portal.   POST { assigned_to: uuid | null }
+// everything else stays in the portal.   POST { assigned_to: uuid | null, clear_partner? } or { partner_id }
 export async function POST(request, { params }) {
   const sb = getSupabaseAdmin();
   const staff = await staffFromRequest(sb, request);
   if (!staff) return NextResponse.json({ error: "Staff sign-in required." }, { status: 401 });
   const { id } = await params;
   const body = await request.json().catch(() => ({}));
+  // Chuck (or another partner): the task shows in their agent portal.
+  if (body.partner_id) {
+    const r = await assignToPartner(sb, id, body.partner_id, staff.id);
+    return NextResponse.json(r, { status: r.error ? 400 : 200 });
+  }
   const to = body.assigned_to || null;
   let person = null;
   if (to) {
@@ -25,7 +31,7 @@ export async function POST(request, { params }) {
   }
   const { data: task, error } = await sb
     .from("staff_tasks")
-    .update({ assigned_to: to, assigned_by: staff.id, assigned_at: to ? new Date().toISOString() : null })
+    .update({ assigned_to: to, assigned_by: staff.id, assigned_at: to ? new Date().toISOString() : null, ...(body.clear_partner ? { partner_id: null } : {}) })
     .eq("id", id)
     .select("id, title, due_date")
     .single();

@@ -62,6 +62,22 @@ export default function SignatureDetail({ id }) {
     }
   }
 
+  // Hands Chuck a task to talk to whoever hasn't signed (shows in his portal, with a notification).
+  async function askChuck() {
+    setBusy("chuck");
+    setMessage({ text: "", tone: "" });
+    const { data } = await getBrowserClient().auth.getSession();
+    const res = await fetch("/api/admin/tasks/follow-up", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${data?.session?.access_token || ""}` },
+      body: JSON.stringify({ signature_request_id: id }),
+    }).catch(() => null);
+    const out = res ? await res.json().catch(() => ({})) : {};
+    setBusy("");
+    setMessage(res?.ok ? { text: "Task sent to Chuck. It's in his portal, and he got a notification and an email.", tone: "ok" } : { text: out.error || "That didn't go through. Try again.", tone: "err" });
+    refreshStaffCounts();
+  }
+
   async function openUrl(action, extra) {
     setMessage({ text: "", tone: "" });
     try {
@@ -149,6 +165,11 @@ export default function SignatureDetail({ id }) {
           {["sent", "delivered"].includes(row.status) ? (
             <button type="button" className="btn ghost sm" disabled={Boolean(busy)} onClick={() => act("remind", {}, "Reminder sent.")}>
               {busy === "remind" ? "Sending…" : "Send reminder"}
+            </button>
+          ) : null}
+          {["sent", "delivered"].includes(row.status) && waitingFor(row).now.length ? (
+            <button type="button" className="btn ghost sm" disabled={Boolean(busy)} onClick={askChuck}>
+              {busy === "chuck" ? "Sending…" : "Ask Chuck to Follow Up"}
             </button>
           ) : null}
           {autoReminder(row) ? (
