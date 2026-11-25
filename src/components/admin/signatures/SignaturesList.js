@@ -6,7 +6,7 @@ import { getBrowserClient } from "@/lib/supabase";
 import SigStatus from "@/components/admin/signatures/SigStatus";
 import DeleteRecord from "@/components/admin/DeleteRecord";
 import { canDeleteSignature, deleteSignatureRequest } from "@/lib/delete-records";
-import { SIG_FILTERS, SIG_KIND, kindLabel, SIG_LIST_SELECT, autoReminder, docusignApi, openInTab, outTo, shortDate } from "@/lib/signatures";
+import { SIG_FILTERS, SIG_KIND, kindLabel, SIG_LIST_SELECT, autoReminder, docusignApi, openInTab, outTo, shortDate, waitingFor } from "@/lib/signatures";
 
 const LANDLORD_KINDS = ["pm_contract"];
 
@@ -173,8 +173,8 @@ export default function SignaturesList() {
     ["title:desc", "Title Z to A"],
     ["kind:asc", "Kind A to Z"],
     ["kind:desc", "Kind Z to A"],
-    ["out:asc", "Out to, A to Z"],
-    ["out:desc", "Out to, Z to A"],
+    ["out:asc", "Waiting for, A to Z"],
+    ["out:desc", "Waiting for, Z to A"],
     ...(filter === "awaiting"
       ? [
           ["status:asc", "Status: drafts first"],
@@ -382,7 +382,7 @@ export default function SignaturesList() {
                 </th>
                 <Th k="title">Title</Th>
                 <Th k="kind">Kind</Th>
-                <Th k="out">Out to</Th>
+                <Th k="out">Waiting For</Th>
                 <Th k="status">Status</Th>
                 <Th k="sent">Sent</Th>
                 <Th k="reminded">Reminder sent</Th>
@@ -417,7 +417,25 @@ export default function SignaturesList() {
                     ) : null}
                   </td>
                   <td>{kindLabel(r)}</td>
-                  <td className="small">{outTo(r) || "—"}</td>
+                  <td className="small">
+                    {(() => {
+                      const w = ["sent", "delivered"].includes(r.status) ? waitingFor(r) : null;
+                      if (!w?.now.length) return outTo(r) || "—";
+                      return (
+                        <>
+                          <span className="muted">Waiting for </span>
+                          {w.now.map((p, i) => (
+                            <span key={i}>
+                              {i ? ", " : ""}
+                              <b>{p.name}</b>
+                              <span className="muted"> ({p.opened ? "opened" : "not opened"})</span>
+                            </span>
+                          ))}
+                          {w.later.length ? <div className="muted">Then: {w.later.join(", ")}</div> : null}
+                        </>
+                      );
+                    })()}
+                  </td>
                   <td>
                     <SigStatus status={r.status} />
                   </td>

@@ -52,6 +52,20 @@ export function outTo(row) {
   return [...new Set(names)].join(", ");
 }
 
+// Who a document is waiting on: the signers whose turn it is now (and whether they've opened it),
+// and the ones who sign after them. Copies (cc) and people who've signed are left out.
+const isCopy = (r) => r.type === "cc" || r.type === "carboncopy" || /^administration$/i.test(r.role || "");
+export function waitingFor(row) {
+  const list = (Array.isArray(row?.recipients) ? row.recipients : []).filter((r) => !isCopy(r));
+  const pending = list.filter((r) => !["completed", "signed", "declined"].includes(r.status));
+  if (!pending.length) return { now: [], later: [] };
+  const turn = Math.min(...pending.map((r) => Number(r.routing_order) || 1));
+  return {
+    now: pending.filter((r) => (Number(r.routing_order) || 1) === turn).map((r) => ({ name: r.name, opened: r.status === "delivered" || Boolean(r.delivered_at) })),
+    later: [...new Set(pending.filter((r) => (Number(r.routing_order) || 1) > turn).map((r) => r.name))],
+  };
+}
+
 async function token() {
   const { data } = await getBrowserClient().auth.getSession();
   return data?.session?.access_token || "";

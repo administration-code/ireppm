@@ -10,7 +10,7 @@ import { refreshStaffCounts } from "@/lib/admin-nav";
 import SigStatus from "@/components/admin/signatures/SigStatus";
 import ServePanel from "@/components/admin/signatures/ServePanel";
 import MoveLease from "@/components/admin/signatures/MoveLease";
-import { SIG_KIND, kindLabel, SIG_STATUS, autoReminder, docusignApi, openInTab, shortDate } from "@/lib/signatures";
+import { SIG_KIND, kindLabel, SIG_STATUS, autoReminder, docusignApi, openInTab, shortDate, waitingFor } from "@/lib/signatures";
 
 const TENANCY_SELECT =
   "id, unit_id, start_date, rent, email_service_ok, email_service_consent, unit:units(id, label, property:properties(id, address, city, postal_code)), tenancy_tenants(full_name, email)";
@@ -264,6 +264,15 @@ export default function SignatureDetail({ id }) {
         <h2 id="sig-recipients" className="sub-title">
           Recipients
         </h2>
+        {["sent", "delivered"].includes(row.status) && waitingFor(row).now.length ? (
+          <p style={{ margin: 0 }}>
+            <b>Waiting for:</b>{" "}
+            {waitingFor(row)
+              .now.map((p) => `${p.name} (${p.opened ? "opened it" : "hasn't opened it yet"})`)
+              .join(", ")}
+            {waitingFor(row).later.length ? <span className="small"> · then {waitingFor(row).later.join(", ")}</span> : null}
+          </p>
+        ) : null}
         {recipients.length ? (
           <ul className="sig-docs">
             {recipients.map((r, i) => (
