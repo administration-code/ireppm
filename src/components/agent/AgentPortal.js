@@ -233,24 +233,28 @@ export default function AgentPortal() {
         </section>
       ) : null}
 
-      <section className="boxed stack" aria-labelledby="ag-props">
-        <h2 id="ag-props" className="sec-title">
-          Your Properties
-        </h2>
-        {d.properties.length ? (
-          <ul className="plain-list">
-            {d.properties.map((p) => (
-              <li key={p.id}>
-                {p.address}
-                {p.city ? `, ${p.city}` : ""}
-                <span className="small"> · {(p.roles || []).map((r) => ROLE[r] || r).join(", ")}</span>
-              </li>
-            ))}
+      {/* Kept short: closed until he taps it. Roles only show where a property isn't one of his usual (all-role) ones. */}
+      {d.properties.length ? (
+        <details className="boxed">
+          <summary style={{ cursor: "pointer", minHeight: 44, display: "flex", alignItems: "center", fontWeight: 600 }}>
+            Your Properties ({d.properties.length})
+          </summary>
+          <ul className="plain-list stack" style={{ gap: 6, marginTop: 8 }}>
+            {d.properties.map((p) => {
+              const roles = p.roles || [];
+              const partial = roles.length < Object.keys(ROLE).length;
+              return (
+                <li key={p.id}>
+                  {p.address}
+                  {partial ? <span className="small"> · {roles.map((r) => ROLE[r] || r).join(", ")} only</span> : null}
+                </li>
+              );
+            })}
           </ul>
-        ) : (
-          <p className="small">IRep hasn&apos;t assigned you to any properties yet.</p>
-        )}
-      </section>
+        </details>
+      ) : (
+        <p className="small">IRep hasn&apos;t assigned you to any properties yet.</p>
+      )}
       <ContactGuideCard audience="partner" />
     </div>
   );
