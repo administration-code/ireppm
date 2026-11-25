@@ -108,3 +108,22 @@ export async function inspectionDueToday(sb) {
   }).catch(() => null);
   return { due: list.length };
 }
+
+// Daily: 30 days after a lawn's last logged cut (included properties, in season), and nothing logged
+// since, ask Chuck whether he cut it and forgot to log it. The 40-day limit is 10 days away.
+export async function lawnCheck30(sb) {
+  const partnerId = await chuckPartnerId(sb);
+  if (!partnerId) return { skipped: "no partner" };
+  const board = await lawnSnowBoard(sb, await partnerProperties(sb, partnerId));
+  const t = new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" });
+  const days = (iso) => Math.round((Date.parse(`${t}T12:00:00Z`) - Date.parse(`${iso}T12:00:00Z`)) / 86400000);
+  const hits = board.included.filter((r) => r.lawnDue && r.lastLawn?.on && days(r.lastLawn.on) === 30);
+  for (const r of hits)
+    await pushTo(sb, { partnerId }, {
+      title: `Did you cut the lawn at ${r.address}?`,
+      body: `Last cut logged 30 days ago. If you've cut it since, log it now. If not, it's due by ${r.lawnDue.due}.`,
+      url: "/agent/visits",
+      tag: `lawn30-${r.id}`,
+    }).catch(() => null);
+  return { asked: hits.length };
+}
