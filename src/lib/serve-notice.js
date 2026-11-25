@@ -325,7 +325,6 @@ export async function emailServe(sb, requestId, server) {
   const { error: sendError } = await mailer().emails.send({
     from: `${SITE.name} <${SITE.email}>`,
     to: elig.emails,
-    cc: [SITE.email],
     replyTo: SITE.email,
     subject: `${row.kind} notice for ${place}`,
     text: lines.join("\n\n"),

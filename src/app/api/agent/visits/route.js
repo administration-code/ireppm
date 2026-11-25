@@ -27,7 +27,6 @@ async function tellLandlord(sb, row, kind, charge, today) {
   await mailer().emails.send({
     from: `IRep Property Management <${SITE.email}>`,
     to: [to],
-    cc: [SITE.email],
     replyTo: SITE.email,
     subject: `${what}: ${p.address}`,
     html: renderEmail({ heading, intro, rows, link: { href: "https://ireppm.ca/owner", label: "Open My Landlord Portal" } }),

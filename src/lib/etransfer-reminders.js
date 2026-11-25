@@ -39,7 +39,6 @@ export async function remindOldAddress(sb, tenancyId, reason = "") {
   const { error } = await mailer().emails.send({
     from: FROM,
     to,
-    cc: [SITE.email],
     replyTo: SITE.email,
     subject: `Please update our e-Transfer address: ${SITE.paymentEmail}`,
     html,

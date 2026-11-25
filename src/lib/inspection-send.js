@@ -83,7 +83,6 @@ export async function sendReportToOwner(sb, id, { message = "", sentBy = null } 
   const { error } = await mailer().emails.send({
     from: `IRep Property Management <${SITE.email}>`,
     to: [to],
-    cc: [SITE.email],
     replyTo: [...new Set([contact, SITE.email])],
     subject: hasItems ? `${priced ? "Inspection Report and Estimates" : "Recommended Improvements"}: ${r.property.address}` : `Inspection Report: ${r.property.address}`,
     html: renderEmail({ heading, intro, rows, extraHtml, link }),
