@@ -28,10 +28,11 @@ export default function ServiceVisits() {
         return setRows([]);
       }
       const [{ data: addons }, { data: rate }] = await Promise.all([
-        sb.from("property_addons").select("property_id").eq("addon_key", "snow_lawn"),
+        sb.from("property_addons").select("property_id, addon_key, monthly_price").in("addon_key", ["snow_lawn", "snow_lawn_visit"]),
         sb.from("service_rates").select("amount").eq("key", "snow_lawn_visit").maybeSingle(),
       ]);
-      const onPlan = new Set((addons || []).map((a) => a.property_id));
+      const onPlan = new Set((addons || []).filter((a) => a.addon_key === "snow_lawn").map((a) => a.property_id));
+      const ownFee = new Map((addons || []).filter((a) => a.addon_key === "snow_lawn_visit" && a.monthly_price != null).map((a) => [a.property_id, Number(a.monthly_price)]));
       const visitFee = Number(rate?.amount ?? 75);
       const paths = (data || []).flatMap((v) => (v.photos || []).map((p) => p.path));
       const urls = {};
@@ -43,7 +44,7 @@ export default function ServiceVisits() {
         (data || []).map((v) => ({
           ...v,
           included: onPlan.has(v.property_id) || ["maintenance", "protection"].includes(v.property?.management_package),
-          fee: visitFee,
+          fee: ownFee.get(v.property_id) ?? visitFee,
           urls: (v.photos || []).map((p) => urls[p.path]).filter(Boolean),
         }))
       );

@@ -79,8 +79,8 @@ export default function PropertyAddons({ propertyId }) {
   }
 
   const priceText = (a) => {
-    if (a.monthly_price !== null && a.monthly_price !== undefined) return `${money(a.monthly_price)} / month`;
     const r = rateByKey[a.addon_key];
+    if (a.monthly_price !== null && a.monthly_price !== undefined) return formatRate(a.monthly_price, r?.unit || "per_month").replace("per job", "per visit");
     return r ? `${formatRate(r.amount, r.unit)} (standard)` : "Standard rate";
   };
 
@@ -97,8 +97,9 @@ export default function PropertyAddons({ propertyId }) {
         ) : null}
       </div>
       <p className="small">
-        Add-ons are added to the monthly fee. Adding or removing one changes the fee from the next statement. Lawn/snow
-        is passed on to the contractor.
+        Monthly add-ons are added to the monthly fee. Adding or removing one changes the fee from the next statement. Lawn/snow
+        is passed on to the contractor. Large lot? Set its price here: on a plan, Snow/Lawn with the higher monthly price; not on
+        a plan, &ldquo;Snow/Lawn (per visit)&rdquo; with the higher per-visit price. Chuck and the landlord both see it, plus HST.
       </p>
 
       {error ? <div className="warnbox">{error}</div> : null}
@@ -166,7 +167,7 @@ export default function PropertyAddons({ propertyId }) {
               </select>
             </div>
             <div className="field">
-              <label htmlFor="ad-price">Monthly price ($)</label>
+              <label htmlFor="ad-price">{rateByKey[form.addon_key]?.unit === "per_job" ? "Price per visit ($)" : "Monthly price ($)"}</label>
               <input
                 id="ad-price"
                 inputMode="decimal"

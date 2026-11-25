@@ -49,6 +49,20 @@ async function loadPortal() {
   };
 }
 
+function lawnText(l) {
+  if (!l) return "—";
+  const price = l.fee.amount != null ? `${money(l.fee.amount)} + HST ${l.fee.per === "month" ? "a month" : "per visit"}` : "Included in your package";
+  const what = l.included ? "Included" : "Per visit, when you ask";
+  const lastVisit = [l.lastLawn && `lawn ${shortDate(l.lastLawn)}`, l.lastSnow && `snow ${shortDate(l.lastSnow)}`].filter(Boolean).join(", ");
+  return (
+    <>
+      <b>{what}</b>: {price}
+      {l.fee.label.startsWith("Large lot") ? " (large lot)" : ""}
+      {lastVisit ? <span className="sub-line">Last visit: {lastVisit}</span> : null}
+    </>
+  );
+}
+
 export default function OwnerHome() {
   const { user } = useAuth();
   const [state, setState] = useState({ loading: true, properties: [], letters: [], error: "" });
@@ -67,6 +81,17 @@ export default function OwnerHome() {
   }, [user?.id]);
 
   const { loading, properties, letters, error } = state;
+  // Lawn and snow price and last visits, per property.
+  const [lawn, setLawn] = useState({});
+  useEffect(() => {
+    if (loading || !properties.length) return;
+    (async () => {
+      const { data } = await getBrowserClient().auth.getSession();
+      const res = await fetch("/api/owner/lawn-snow", { headers: { Authorization: `Bearer ${data?.session?.access_token || ""}` } }).catch(() => null);
+      const out = res?.ok ? await res.json().catch(() => null) : null;
+      setLawn(Object.fromEntries((out?.properties || []).map((p) => [p.id, p])));
+    })();
+  }, [loading, properties.length]);
   // my_owned_properties counts managed units only: a property with none is leasing only
   // (IRep found the tenant; rent goes to the landlord directly).
   const managed = properties.filter((p) => Number(p.units) > 0);
@@ -138,6 +163,7 @@ export default function OwnerHome() {
                   </th>
                 )}
                 <th scope="col">{leasingOnly ? "Service" : "Agreement"}</th>
+                {leasingOnly ? null : <th scope="col">Lawn and snow</th>}
               </tr>
             </thead>
             <tbody>
@@ -157,6 +183,7 @@ export default function OwnerHome() {
                         ? "Month to month"
                         : `First year ends ${shortDate(p.agreement_renewal)}`}
                   </td>
+                  {leasingOnly ? null : <td className="small">{lawnText(lawn[p.id])}</td>}
                 </tr>
               ))}
             </tbody>

@@ -86,7 +86,7 @@ export default function AgentVisits() {
         <div>
           <b>{p.address}</b>
           <span className="small sub-line">
-            {p.fee.amount != null ? `${money(p.fee.amount)} ${p.fee.per === "month" ? "a month" : "per visit"} · ` : ""}
+            {p.fee.amount != null ? `${money(p.fee.amount)} + HST ${p.fee.per === "month" ? "a month" : "per visit"} · ` : ""}
             {p.fee.label}
           </span>
         </div>
@@ -113,7 +113,7 @@ export default function AgentVisits() {
         {isOpen ? (
           <div className="stack" style={{ gap: 8, background: "var(--ivory, #F7F4EE)", borderRadius: 8, padding: 12 }}>
             <span className="small">
-              {KIND[open.kind]} visit today{p.included ? " (included in their plan)" : ` (${money(p.fee.amount)}, billed to the landlord)`}
+              {KIND[open.kind]} visit today{p.included ? " (included in their plan)" : ` (${money(p.fee.amount)} + HST, billed to the landlord)`}
             </span>
             <label className="btn ghost" style={{ minHeight: 48, width: "fit-content", display: "inline-flex", alignItems: "center", background: "#fff" }}>
               {files.length ? `${files.length} photo${files.length === 1 ? "" : "s"} added` : "Take or Add a Photo"}
@@ -170,7 +170,7 @@ export default function AgentVisits() {
           Not on a Plan: Per Visit ({d.alaCarte.length})
         </h2>
         <p className="small" style={{ margin: 0 }}>
-          Only when IRep or the landlord asks. Each visit is billed to the landlord at {money(d.rates.visit)}.
+          Only when IRep or the landlord asks. Each visit is billed to the landlord at {money(d.rates.visit)} + HST, more for large lots (shown on each).
         </p>
         {d.alaCarte.length ? <ul className="plain-list stack" style={{ gap: 12 }}>{d.alaCarte.map(row)}</ul> : <p className="small">None.</p>}
       </section>
