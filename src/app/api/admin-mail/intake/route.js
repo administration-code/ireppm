@@ -112,6 +112,8 @@ export async function POST(request) {
     return NextResponse.json({ error: "Could not save" }, { status: 500 });
   }
 
+  if (direction === "out") await matchPortalSend(sb, data.id, base).catch(() => {});
+
   const uploads = [];
   const stored = [];
   for (const [i, f] of files.entries()) {
@@ -131,4 +133,24 @@ export async function POST(request) {
   let intake = null;
   if (maybeMaintenance && !uploads.length) intake = await processInbound(sb, data.id).catch((err) => ({ error: String(err?.message || err) }));
   return NextResponse.json({ ok: true, uploads, intake, party: party.party_kind, label: label.category });
+}
+
+// The Gmail copy of an email the portal sent: same subject, a shared recipient, within 30 minutes.
+// Tags it "Portal" on the timeline and links the two. Quietly does nothing before migration 0096.
+async function matchPortalSend(sb, emailId, base) {
+  const at = new Date(base.received_at).getTime();
+  const { data: sends } = await sb
+    .from("portal_sent")
+    .select("id, to_emails, cc_emails")
+    .eq("subject", base.subject || "")
+    .is("inbound_email_id", null)
+    .gte("sent_at", new Date(at - 30 * 60000).toISOString())
+    .lte("sent_at", new Date(at + 30 * 60000).toISOString())
+    .order("sent_at", { ascending: false })
+    .limit(10);
+  const to = new Set(base.to_emails || []);
+  const hit = (sends || []).find((s) => [...(s.to_emails || []), ...(s.cc_emails || [])].some((e) => to.has(e))) || (sends || [])[0];
+  if (!hit) return;
+  await sb.from("portal_sent").update({ inbound_email_id: emailId }).eq("id", hit.id);
+  await sb.from("inbound_emails").update({ via_portal: true }).eq("id", emailId);
 }

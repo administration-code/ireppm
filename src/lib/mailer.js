@@ -17,17 +17,45 @@ export function mailer() {
 }
 
 async function send(msg) {
+  const result = await deliver(msg);
+  await logSend(msg, result);
+  return result;
+}
+
+async function deliver(msg) {
   if (gmailReady()) {
     try {
       await sendViaGmail(msg);
-      return { data: { ok: true }, error: null };
+      return { data: { ok: true }, error: null, provider: "gmail" };
     } catch (err) {
       console.error("[mailer] Gmail send failed:", err?.message || err);
-      return { data: null, error: { name: "gmail_error", message: err?.message || "Gmail send failed" } };
+      return { data: null, error: { name: "gmail_error", message: err?.message || "Gmail send failed" }, provider: "gmail" };
     }
   }
   if (!process.env.RESEND_API_KEY) return { data: null, error: { name: "not_configured", message: "Email isn't set up." } };
-  return new ResendClient(process.env.RESEND_API_KEY).emails.send(msg);
+  const out = await new ResendClient(process.env.RESEND_API_KEY).emails.send(msg);
+  return { ...out, provider: "resend" };
+}
+
+// Every email the portal sends (or fails to send) is noted in portal_sent, so staff can see it on the
+// Inbox's Sent tab. Never blocks or breaks a send: before migration 0096 the insert just fails quietly.
+async function logSend(msg, result) {
+  try {
+    const { getSupabaseAdmin } = await import("@/lib/supabase-admin");
+    await getSupabaseAdmin()
+      .from("portal_sent")
+      .insert({
+        to_emails: list(msg.to).map((e) => bare(e).toLowerCase()).slice(0, 30),
+        cc_emails: list(msg.cc).map((e) => bare(e).toLowerCase()).slice(0, 30),
+        bcc_count: list(msg.bcc).length,
+        subject: String(msg.subject || "").slice(0, 300),
+        status: result?.error ? "failed" : "sent",
+        error: result?.error ? String(result.error.message || result.error.name || "Failed").slice(0, 300) : null,
+        provider: result?.provider || null,
+      });
+  } catch {
+    // Logging is best-effort.
+  }
 }
 
 // ---------------------------------------------------------------------------

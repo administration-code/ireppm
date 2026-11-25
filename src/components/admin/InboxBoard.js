@@ -15,12 +15,29 @@ export default function InboxBoard() {
   const [tab, setTab] = useState("new");
   const [search, setSearch] = useState("");
   const [term, setTerm] = useState("");
+  const [who, setWho] = useState("all");
+  const [failed, setFailed] = useState([]);
+  useEffect(() => {
+    // Emails the portal couldn't send in the last two weeks (portal_sent exists after migration 0096).
+    getBrowserClient()
+      .from("portal_sent")
+      .select("id, sent_at, to_emails, subject, error")
+      .eq("status", "failed")
+      .gte("sent_at", new Date(Date.now() - 14 * 86400000).toISOString())
+      .order("sent_at", { ascending: false })
+      .limit(20)
+      .then(({ data, error }) => setFailed(error ? [] : data || []));
+  }, []);
   async function load() {
     let q = getBrowserClient().from("inbound_emails").select("*").order("received_at", { ascending: false }).limit(200);
     // A search looks through everything, received and sent, whatever its status.
     const t = term.replace(/[,()*%\\]/g, " ").trim();
     if (t) q = q.or(["subject", "from_name", "from_email", "party_name", "party_email", "body"].map((c) => `${c}.ilike.*${t}*`).join(","));
-    else q = q.eq("direction", "in").eq("status", tab);
+    else if (tab === "sent") {
+      q = q.eq("direction", "out");
+      if (who === "portal") q = q.eq("via_portal", true);
+      if (who === "gmail") q = q.eq("via_portal", false);
+    } else q = q.eq("direction", "in").eq("status", tab);
     if (cat) q = q.eq("category", cat);
     const { data } = await q;
     setRows(data || []);
@@ -28,7 +45,7 @@ export default function InboxBoard() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cat, tab, term]);
+  }, [cat, tab, term, who]);
   async function mark(id, status) {
     await getBrowserClient().from("inbound_emails").update({ status }).eq("id", id);
     refreshStaffCounts();
@@ -39,7 +56,7 @@ export default function InboxBoard() {
       <div style={{ display: "grid", gap: 8 }}>
         <span className="eyebrow">Staff · Assistant</span>
         <h1 className="admin-title">Inbox</h1>
-        <p className="small">Emails to administration@, sorted automatically. Reply in Gmail; mark them handled here. Open an email to read the whole conversation or assign it to someone.</p>
+        <p className="small">Emails to administration@, sorted automatically. Reply in Gmail; mark them handled here. Open an email to read the whole conversation or assign it to someone. The Sent tab shows everything sent, from Gmail and from the portal.</p>
       </div>
       <form
         className="req-actions"
@@ -56,12 +73,25 @@ export default function InboxBoard() {
       </form>
       <div className="req-actions" style={term ? { opacity: 0.5 } : undefined}>
         <div className="seg">
-          {["new", "handled", "ignored"].map((k) => (
+          {["new", "handled", "ignored", "sent"].map((k) => (
             <button key={k} type="button" aria-pressed={tab === k} onClick={() => setTab(k)}>
               {k[0].toUpperCase() + k.slice(1)}
             </button>
           ))}
         </div>
+        {tab === "sent" ? (
+          <div className="seg">
+            {[
+              ["all", "All Sent"],
+              ["portal", "From the Portal"],
+              ["gmail", "From Gmail"],
+            ].map(([k, v]) => (
+              <button key={k} type="button" aria-pressed={who === k} onClick={() => setWho(k)}>
+                {v}
+              </button>
+            ))}
+          </div>
+        ) : null}
         <select aria-label="Category" value={cat} onChange={(e) => setCat(e.target.value)}>
           <option value="">All categories</option>
           {Object.entries(CATS).map(([k, v]) => (
@@ -71,6 +101,24 @@ export default function InboxBoard() {
           ))}
         </select>
       </div>
+      {failed.length ? (
+        <div className="warnbox" role="status">
+          <b>
+            {failed.length === 1 ? "1 email" : `${failed.length} emails`} from the portal didn’t send in the last two weeks
+          </b>
+          <ul className="small" style={{ margin: "6px 0 0", paddingLeft: 18 }}>
+            {failed.map((f) => (
+              <li key={f.id}>
+                {shortDate(String(f.sent_at).slice(0, 10))}: “{f.subject || "(no subject)"}” to {(f.to_emails || []).join(", ") || "(no one)"}
+                {f.error ? ` · ${f.error}` : ""}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {tab === "sent" && !term ? (
+        <p className="small">Everything sent from administration@, newest first. “Portal” marks emails the website sent for you; the rest were sent from Gmail.</p>
+      ) : null}
       {rows === null ? (
         <p className="small">Loading…</p>
       ) : !rows.length ? (
@@ -84,7 +132,7 @@ export default function InboxBoard() {
                   <b>{r.subject || "(no subject)"}</b>
                 </Link>
                 <span className="small">
-                  {CATS[r.category] || "Not sorted"} · {shortDate(String(r.received_at).slice(0, 10))}
+                  {r.via_portal ? <span className="pill">Portal</span> : null} {CATS[r.category] || "Not sorted"} · {shortDate(String(r.received_at).slice(0, 10))}
                 </span>
               </div>
               <span className="small">

@@ -24,7 +24,7 @@ export async function logSentEmail(sb, draft, to) {
   } else if (draft.owner_id && party.owner_id !== draft.owner_id) link = { party_kind: "landlord", owner_id: draft.owner_id };
   if (draft.property_id) link.property_id = draft.property_id;
   const now = new Date().toISOString();
-  await sb.from("inbound_emails").insert({
+  const row = {
     message_id: `portal-${draft.id}`,
     direction: "out",
     draft_id: draft.id,
@@ -36,9 +36,16 @@ export async function logSentEmail(sb, draft, to) {
     body: String(draft.body || "").slice(0, 8000),
     received_at: now,
     status: "handled",
+    via_portal: true,
     ...party,
     ...link,
     category: LABEL_BY_TEMPLATE[draft.template_key] || (party.party_kind === "landlord" ? "landlord" : "general"),
     label_source: "rule",
-  });
+  };
+  const { error } = await sb.from("inbound_emails").insert(row);
+  // Before migration 0096 there's no via_portal column.
+  if (error && /via_portal/.test(error.message || "")) {
+    delete row.via_portal;
+    await sb.from("inbound_emails").insert(row);
+  }
 }
