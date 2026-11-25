@@ -366,6 +366,14 @@ export default function MaintenanceEditor({ id }) {
         </div>
       </div>
 
+      {request.tenant_confirmed ? (
+        <div className={request.tenant_confirmed === "fixed" ? "okbox" : "warnbox"} role="note">
+          <b>{request.tenant_confirmed === "fixed" ? "Tenant confirmed it's fixed" : "Tenant says it's still a problem"}</b>
+          {request.tenant_confirmed_at ? ` (${prettyDateTime(request.tenant_confirmed_at)})` : ""}
+          {request.tenant_confirm_note ? `: “${request.tenant_confirm_note}”` : "."}
+        </div>
+      ) : null}
+
       {needsEntryNotice(request) ? (
         <div className="warnbox entry-notice" role="note">
           <p>

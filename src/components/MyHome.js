@@ -7,6 +7,7 @@ import { getBrowserClient } from "@/lib/supabase";
 import { SITE } from "@/lib/site";
 import MovingOut from "@/components/MovingOut";
 import { GettingStarted, InsuranceCard, LeaseEndCard, PayRentCard } from "@/components/tenant/TenantCards";
+import { ComingUp, FixCheck, MyDetails, MyDocuments, MyPayments, WhoToCall, loadPortal } from "@/components/tenant/TenantExtras";
 import {
   CATEGORIES,
   MAX_PHOTOS,
@@ -60,8 +61,8 @@ export default function MyHome({ user }) {
       sb.from("my_homes").select("tenancy_id, unit_id, unit_label, address, city, postal_code, status, start_date, end_date, insurance_due, renewal_choice, collects_rent"),
       sb.from("my_maintenance").select(MY_FIELDS).order("created_at", { ascending: false }),
     ]);
-    const { data: prof } = await sb.from("profiles").select("tour_dismissed_at").eq("id", user.id).maybeSingle();
-    setState({ loading: false, homes: h.data || [], requests: r.data || [], tourDismissed: prof?.tour_dismissed_at || null });
+    const [{ data: prof }, portal] = await Promise.all([sb.from("profiles").select("tour_dismissed_at").eq("id", user.id).maybeSingle(), loadPortal()]);
+    setState({ loading: false, homes: h.data || [], requests: r.data || [], tourDismissed: prof?.tour_dismissed_at || null, portal });
   }, [user.id]);
 
   useEffect(() => {
@@ -70,6 +71,7 @@ export default function MyHome({ user }) {
   useLiveRefresh(load, 300000);
 
   const { loading, homes, requests } = state;
+  const portal = state.portal || { homes: [], documents: [] };
   if (loading || homes.length === 0) return null;
 
   return (
@@ -123,6 +125,9 @@ export default function MyHome({ user }) {
         />
       ) : null}
 
+      <ComingUp homes={portal.homes} />
+      <FixCheck homes={portal.homes} onDone={load} />
+
       {homes.map((h) => (
         <div key={`extras-${h.tenancy_id}`} className="stack" style={{ gap: 16 }}>
           {homes.length > 1 ? <p className="eyebrow" style={{ margin: 0 }}>{homeLabel(h)}</p> : null}
@@ -131,6 +136,7 @@ export default function MyHome({ user }) {
         </div>
       ))}
       <PayRentCard homes={homes} />
+      <MyPayments homes={portal.homes} />
 
       <div className="stack" style={{ gap: 10 }}>
         <h3>My Requests</h3>
@@ -152,10 +158,14 @@ export default function MyHome({ user }) {
         )}
       </div>
 
+      <MyDocuments documents={portal.documents} multi={homes.length > 1} />
+      <MyDetails homes={portal.homes} onSaved={load} />
+
       {homes.map((h) => (
         <MovingOut key={h.tenancy_id} home={h} user={user} showAddress={homes.length > 1} />
       ))}
       <LawnSnowNote />
+      <WhoToCall contacts={portal.contacts} homes={portal.homes} />
     </section>
     </>
   );

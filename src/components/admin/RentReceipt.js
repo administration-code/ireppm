@@ -110,79 +110,86 @@ export default function RentReceipt({ params }) {
         ) : null}
       </div>
 
-      <article className="receipt" aria-label="Rent receipt">
-        <header className="receipt-head">
-          <div className="receipt-brand">
-            <IRepMark />
-            <span className="wm">
-              <b>IREP</b>
-              <i>PROPERTY MANAGEMENT</i>
-            </span>
-          </div>
-          <address className="receipt-office">
-            {SITE.name}
-            <br />
-            {SITE.address}
-            <br />
-            {SITE.phone}
-            <br />
-            {SITE.email}
-          </address>
-        </header>
-
-        <h1 className="receipt-title">Rent Receipt</h1>
-        <dl className="kv receipt-facts">
-          <dt>Receipt number</dt>
-          <dd className="num">{receipt.number}</dd>
-          <dt>Date issued</dt>
-          <dd>{shortDate(receipt.issued)}</dd>
-          <dt>Tenant</dt>
-          <dd>{receipt.tenants.map((t) => t.full_name).join(", ") || "—"}</dd>
-          <dt>Rental unit</dt>
-          <dd>{receipt.unitAddress}</dd>
-          {receipt.range ? (
-            <>
-              <dt>Period covered</dt>
-              <dd>
-                {shortDate(receipt.range.from)} to {shortDate(receipt.range.to)}
-              </dd>
-            </>
-          ) : null}
-        </dl>
-
-        <table className="receipt-table">
-          <thead>
-            <tr>
-              <th scope="col">Date</th>
-              <th scope="col">For</th>
-              <th scope="col">Method</th>
-              <th scope="col" className="r">
-                Amount
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {receipt.payments.map((p) => (
-              <tr key={p.id}>
-                <td>{shortDate(p.received_on)}</td>
-                <td>{paymentFor(p)}</td>
-                <td>{methodText(p.method)}</td>
-                <td className="r num">{money(p.amount)}</td>
-              </tr>
-            ))}
-          </tbody>
-          <tfoot>
-            <tr>
-              <th scope="row" colSpan={3}>
-                Total received
-              </th>
-              <td className="r num">{money(receipt.total)}</td>
-            </tr>
-          </tfoot>
-        </table>
-
-        <p className="receipt-note">Received by {SITE.name} on behalf of the landlord.</p>
-      </article>
+      <ReceiptArticle receipt={receipt} />
     </div>
+  );
+}
+
+// The receipt itself (shared by the staff page and the tenant portal's printable receipt).
+export function ReceiptArticle({ receipt }) {
+  return (
+  <article className="receipt" aria-label="Rent receipt">
+    <header className="receipt-head">
+      <div className="receipt-brand">
+        <IRepMark />
+        <span className="wm">
+          <b>IREP</b>
+          <i>PROPERTY MANAGEMENT</i>
+        </span>
+      </div>
+      <address className="receipt-office">
+        {SITE.name}
+        <br />
+        {SITE.address}
+        <br />
+        {SITE.phone}
+        <br />
+        {SITE.email}
+      </address>
+    </header>
+
+    <h1 className="receipt-title">Rent Receipt</h1>
+    <dl className="kv receipt-facts">
+      <dt>Receipt number</dt>
+      <dd className="num">{receipt.number}</dd>
+      <dt>Date issued</dt>
+      <dd>{shortDate(receipt.issued)}</dd>
+      <dt>Tenant</dt>
+      <dd>{receipt.tenants.map((t) => t.full_name).join(", ") || "—"}</dd>
+      <dt>Rental unit</dt>
+      <dd>{receipt.unitAddress}</dd>
+      {receipt.range ? (
+        <>
+          <dt>Period covered</dt>
+          <dd>
+            {shortDate(receipt.range.from)} to {shortDate(receipt.range.to)}
+          </dd>
+        </>
+      ) : null}
+    </dl>
+
+    <table className="receipt-table">
+      <thead>
+        <tr>
+          <th scope="col">Date</th>
+          <th scope="col">For</th>
+          <th scope="col">Method</th>
+          <th scope="col" className="r">
+            Amount
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {receipt.payments.map((p) => (
+          <tr key={p.id}>
+            <td>{shortDate(p.received_on)}</td>
+            <td>{paymentFor(p)}</td>
+            <td>{methodText(p.method)}</td>
+            <td className="r num">{money(p.amount)}</td>
+          </tr>
+        ))}
+      </tbody>
+      <tfoot>
+        <tr>
+          <th scope="row" colSpan={3}>
+            Total received
+          </th>
+          <td className="r num">{money(receipt.total)}</td>
+        </tr>
+      </tfoot>
+    </table>
+
+    <p className="receipt-note">Received by {SITE.name} on behalf of the landlord.</p>
+  </article>
   );
 }
