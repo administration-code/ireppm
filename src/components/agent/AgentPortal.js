@@ -27,6 +27,7 @@ export default function AgentPortal() {
   const [serve, setServe] = useState(null);
   const [doneJobs, setDoneJobs] = useState([]);
   const [bookings, setBookings] = useState({});
+  const [inspDue, setInspDue] = useState(0);
   useEffect(() => {
     if (!user) return;
     (async () => {
@@ -35,6 +36,7 @@ export default function AgentPortal() {
       const out = res ? await res.json().catch(() => null) : null;
       if (Array.isArray(out?.done)) setDoneJobs(out.done);
       if (out?.bookings) setBookings(out.bookings);
+      if (typeof out?.inspectionsDue === "number") setInspDue(out.inspectionsDue);
     })();
   }, [user]);
   useEffect(() => {
@@ -129,7 +131,7 @@ export default function AgentPortal() {
             Vacancies
           </Link>
           <Link className="btn primary sm" href="/agent/inspection">
-            Inspection Report
+            {inspDue ? `Inspections (${inspDue} due)` : "Inspection Report"}
           </Link>
           <Link className="btn primary sm" href="/agent/visits">
             Lawn and Snow

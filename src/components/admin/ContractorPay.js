@@ -287,6 +287,13 @@ function MonthRows({ m, pct, show: cols_, chargesHst }) {
             ...m.jobs.map((j) => (
               <tr key={j.id} className="muted-row">
                 <td colSpan={cols}>
+                  {j.inspection ? (
+                    <span className="small">
+                      {day(j.completed_at)} ·{" "}
+                      {j.reportId ? <Link href={`/admin/inspection-reports/${j.reportId}`}>{j.title}</Link> : j.title} · {money(j.partner_pay)} to him
+                      {j.hst ? ` + ${money(j.hst)} HST` : ""} · paid by IRep
+                    </span>
+                  ) : (
                   <span className="small">
                     {day(j.completed_at)} · Work order:{" "}
                     <Link href={`/admin/maintenance/${j.id}`}>
@@ -303,6 +310,7 @@ function MonthRows({ m, pct, show: cols_, chargesHst }) {
                         : ""}{" "}
                     · charged to {CHARGE_LABEL[j.charge_to] || j.charge_to}
                   </span>
+                  )}
                 </td>
               </tr>
             )),

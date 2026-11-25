@@ -15,6 +15,7 @@ export const LEDGER_KIND_LABEL = {
   loan_payment: "Loan payment (other)",
   adjustment: "Adjustment",
   lawn_snow: "Lawn and snow care",
+  inspection: "Inspection",
 };
 
 export const PAY_METHODS = ["e-Transfer", "Cash", "Cheque", "Other"];
@@ -88,6 +89,24 @@ export function contractorPay(jobs, ledger, loanSharePct, opts = {}) {
         r.lawn += amt;
         r.hst += hst;
         totals.lawn += amt;
+        totals.hst += hst;
+      } else if (kind === "inspection") {
+        // Counts like a job: his price, plus HST on top when he charges it.
+        const hst = cents(ev.entry.hst);
+        owed += amt + hst;
+        r.jobs.push({
+          id: ev.entry.id,
+          inspection: true,
+          reportId: ev.entry.inspection_report_id || null,
+          title: ev.entry.notes || "Inspection",
+          partner_pay: ev.entry.amount,
+          hst: hst / 100,
+          completed_at: `${ev.entry.entry_date}T12:00:00Z`,
+          charge_to: "irep",
+        });
+        r.earned += amt;
+        r.hst += hst;
+        totals.earned += amt;
         totals.hst += hst;
       } else if (kind === "payment") {
         owed -= amt;

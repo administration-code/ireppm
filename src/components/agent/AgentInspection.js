@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import { getBrowserClient } from "@/lib/supabase";
+import { blankItem, blankUnit } from "@/lib/inspection-reports";
 import InspectionReportForm from "@/components/InspectionReportForm";
 
 async function authHeader() {
@@ -12,11 +13,14 @@ async function authHeader() {
 }
 
 // Vendors fill in an inspection report for one of their properties.
+const fmt = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric" });
+
 export default function AgentInspection() {
   const { user, ready, openSignIn } = useAuth();
   const [props, setProps] = useState(null);
   const [drafts, setDrafts] = useState([]);
   const [last, setLast] = useState({});
+  const [due, setDue] = useState([]);
   const [done, setDone] = useState(null); // { sent, to, later }
   const [open, setOpen] = useState(null); // draft being finished: { id, form, updated_at } or "new"
   const draftId = useRef(null);
@@ -28,16 +32,36 @@ export default function AgentInspection() {
     setProps(res.ok ? json.properties || [] : []);
     setDrafts(res.ok ? json.drafts || [] : []);
     setLast(res.ok ? json.last || {} : {});
+    setDue(res.ok ? json.due || [] : []);
   }
   useEffect(() => {
     if (user) load();
   }, [user]);
 
-  function start(d) {
+  function start(d, propertyId = null) {
     draftId.current = d?.id || null;
     finished.current = false;
     setDone(null);
-    setOpen(d ? { ...d, form: { ...(d.form || {}), _saved_at: d.updated_at } } : "new");
+    const p = propertyId ? props.find((x) => x.id === propertyId) : null;
+    setOpen(
+      d
+        ? { ...d, form: { ...(d.form || {}), _saved_at: d.updated_at } }
+        : p
+          ? {
+              id: `new-${p.id}`,
+              form: {
+                _fresh: true,
+                property_id: p.id,
+                inspected_on: new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" }),
+                units: p.units.map(blankUnit),
+                items: [blankItem()],
+                photos: {},
+                prices: {},
+                check_details: {},
+              },
+            }
+          : "new"
+    );
     window.scrollTo(0, 0);
   }
   async function discard(d) {
@@ -130,9 +154,43 @@ export default function AgentInspection() {
               </ul>
             </section>
           ) : null}
+          {due.length ? (
+            <section className="boxed stack" aria-labelledby="ai-due">
+              <h2 id="ai-due" className="sec-title">
+                When Each One Is Due
+              </h2>
+              <p className="small" style={{ margin: 0 }}>
+                Every property gets an inspection twice a year (every 6 months). You&apos;re paid for each one you send.
+              </p>
+              <ul className="plain-list stack" style={{ gap: 10 }}>
+                {due.map((x) => (
+                  <li key={x.id} className="req-actions" style={{ justifyContent: "space-between", flexWrap: "wrap", borderTop: "1px solid var(--line)", paddingTop: 10 }}>
+                    <span>
+                      <b>{x.address}</b>
+                      <span className="small sub-line">Last inspection: {x.last ? fmt(x.last) : "none on record"}</span>
+                      <span className="small sub-line" style={x.state === "overdue" || x.state === "never" ? { color: "#8a110c", fontWeight: 600 } : x.state === "soon" ? { fontWeight: 600 } : undefined}>
+                        {x.state === "never"
+                          ? "Due now"
+                          : x.state === "overdue"
+                            ? `Overdue since ${fmt(x.due)}`
+                            : x.state === "soon"
+                              ? `Due ${fmt(x.due)} (in ${x.inDays} day${x.inDays === 1 ? "" : "s"})`
+                              : `Next due ${fmt(x.due)}`}
+                      </span>
+                    </span>
+                    {x.state !== "ok" ? (
+                      <button type="button" className="btn primary sm" style={{ minHeight: 44 }} onClick={() => start(null, x.id)}>
+                        Start It
+                      </button>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
           <div>
-            <button type="button" className="btn primary" style={{ minHeight: 48 }} onClick={() => start(null)}>
-              Start a New Inspection
+            <button type="button" className="btn ghost" style={{ minHeight: 48 }} onClick={() => start(null)}>
+              Start a Different Inspection
             </button>
           </div>
         </div>

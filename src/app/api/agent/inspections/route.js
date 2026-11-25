@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { partnerFromRequest, partnerProperties } from "@/lib/server-auth";
 import { draftForm, reportProblem, saveReport } from "@/lib/inspection-reports";
 import { sendReportToOwner } from "@/lib/inspection-send";
+import { inspectionsDue, recordInspectionPay } from "@/lib/inspection-due";
 import { mailer, mailConfigured } from "@/lib/mailer";
 import { renderEmail, renderText } from "@/lib/staff-alerts";
 
@@ -76,8 +77,11 @@ export async function GET(request) {
   const partner = await partnerFromRequest(sb, request);
   if (!partner) return NextResponse.json({ error: "Partner sign-in required." }, { status: 401 });
   const [properties, drafts] = await Promise.all([managedProperties(sb, partner.id), myDrafts(sb, partner.id)]);
-  const last = await lastInspections(sb, properties.map((p) => p.id)).catch(() => ({}));
-  return NextResponse.json({ properties, drafts, last });
+  const [last, due] = await Promise.all([
+    lastInspections(sb, properties.map((p) => p.id)).catch(() => ({})),
+    inspectionsDue(sb, properties).catch(() => []),
+  ]);
+  return NextResponse.json({ properties, drafts, last, due });
 }
 
 function cleanForm(form) {
@@ -159,6 +163,9 @@ export async function POST(request) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
   if (draftId) await sb.from("inspection_reports").delete().eq("id", draftId).eq("partner_id", partner.id).eq("status", "draft");
+
+  // His pay for this inspection ($50 + HST for Chuck), on his pay page right away.
+  await recordInspectionPay(sb, partner.id, id, { address: property.address, inspectedOn: form.inspected_on }).catch(() => null);
 
   // Straight to the landlord: no staff review.
   const sent = await sendReportToOwner(sb, id, { sentBy: partner.name });

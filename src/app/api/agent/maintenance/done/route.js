@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
+import { inspectionsDue, managedOf } from "@/lib/inspection-due";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { partnerFromRequest } from "@/lib/server-auth";
+import { partnerProperties, partnerFromRequest } from "@/lib/server-auth";
 import { markJobDone, partnerDoneJobs, landlordBookings } from "@/lib/job-done";
 
 export const runtime = "nodejs";
@@ -12,8 +13,15 @@ export async function GET(request) {
   const sb = getSupabaseAdmin();
   const partner = await partnerFromRequest(sb, request);
   if (!partner) return NextResponse.json({ error: "Partner sign-in required." }, { status: 401 });
-  const [done, bookings] = await Promise.all([partnerDoneJobs(sb, partner.id), landlordBookings(sb, partner.id, partner.name).catch(() => ({}))]);
-  return NextResponse.json({ done, bookings });
+  const [done, bookings, due] = await Promise.all([
+    partnerDoneJobs(sb, partner.id),
+    landlordBookings(sb, partner.id, partner.name).catch(() => ({})),
+    partnerProperties(sb, partner.id)
+      .then((props) => managedOf(sb, props))
+      .then((props) => inspectionsDue(sb, props))
+      .catch(() => []),
+  ]);
+  return NextResponse.json({ done, bookings, inspectionsDue: due.filter((x) => x.state !== "ok").length });
 }
 
 export async function POST(request) {

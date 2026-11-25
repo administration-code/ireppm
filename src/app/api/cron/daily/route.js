@@ -7,7 +7,7 @@ import { buildToday } from "@/lib/today";
 import { SITE } from "@/lib/site";
 import { activateMoveIns } from "@/lib/move-ins";
 import { remindOwners } from "@/lib/application-turnaround";
-import { chuckWeekly } from "@/lib/chuck-weekly";
+import { chuckWeekly, inspectionDueToday } from "@/lib/chuck-weekly";
 import { autoLeasingFees } from "@/lib/auto-leasing-fee";
 import { drawDigest } from "@/lib/payprop-draw";
 import { mailer, mailConfigured } from "@/lib/mailer";
@@ -197,6 +197,7 @@ export async function GET(request) {
     ["moveIns", activateMoveIns],
     ["leasingFees", autoLeasingFees],
     ["chuckWeekly", chuckWeekly],
+    ["inspectionDue", inspectionDueToday],
     ["ownerReminders", remindOwners],
     ["insurance", insuranceReminders],
     ["leaseEnd", leaseEndPrompts],

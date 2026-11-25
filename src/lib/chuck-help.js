@@ -59,7 +59,7 @@ export const HELP_TOPICS = [
     key: "inspection",
     q: "I'm doing an inspection",
     steps: [
-      "Tap Inspection Report and pick the property. Been there before? Tap Start From Last Time. Tap an answer for each part and add photos under it.",
+      "Tap Inspections. Each property shows its last inspection and when the next is due (every 6 months); tap Start It on one that's due. Or pick the property. Been there before? Tap Start From Last Time. Tap an answer for each part and add photos under it.",
       "Tap Next: Quote the Repairs. Put your price before HST on each item; the total with HST adds up at the bottom.",
       "Tap Inspection Complete: Send to Landlord. It goes straight to them. It saves as you go, or tap Save and Finish Later.",
       "Approved items show up under Open Jobs. Email the landlord to book it. It's billed on a separate invoice, not taken off rent.",

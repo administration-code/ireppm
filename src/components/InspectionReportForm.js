@@ -353,7 +353,7 @@ export default function InspectionReportForm({ properties, onSubmit, submitLabel
           <label htmlFor={`${id}-date`}>Inspection date</label>
           <input id={`${id}-date`} type="date" value={form.inspected_on} onChange={(e) => set("inspected_on", e.target.value)} />
         </div>
-        {last && !initial ? (
+        {last && (!initial || initial._fresh) ? (
           copied ? (
             <p className="small" role="status" style={{ margin: 0 }}>
               ✓ Filled in from {last.inspected_on}. Change anything that&apos;s different. The furnace filter, water valve and pests are blank: check those fresh.

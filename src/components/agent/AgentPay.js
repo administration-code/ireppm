@@ -191,8 +191,8 @@ export default function AgentPay() {
                             <tr key={j.id} className="muted-row">
                               <td colSpan={cols}>
                                 <span className="small">
-                                  {day(j.completed_at)} · {j.unit?.property?.address}
-                                  {j.unit?.label && j.unit.label !== "Whole property" ? `, ${j.unit.label}` : ""}: {j.title} ·{" "}
+                                  {day(j.completed_at)} · {j.inspection ? j.title : <>{j.unit?.property?.address}
+                                  {j.unit?.label && j.unit.label !== "Whole property" ? `, ${j.unit.label}` : ""}: {j.title}</>} ·{" "}
                                   {money(j.partner_pay)}
                                   {j.hst ? ` + ${money(j.hst)} HST` : chargesHst && j.partner_hst === false ? " (no HST: price agreed with the landlord)" : ""}
                                 </span>

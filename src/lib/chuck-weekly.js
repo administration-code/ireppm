@@ -6,6 +6,8 @@ import { serveBoard } from "@/lib/serve-notice";
 import { vacancyBoard } from "@/lib/vacancies";
 import { chuckPartnerId, pushTo } from "@/lib/push";
 import { money } from "@/lib/format";
+import { inspectionsDue, managedOf } from "@/lib/inspection-due";
+import { partnerProperties } from "@/lib/server-auth";
 
 // Monday morning: one phone notification and one email to Chuck listing what's on his plate this week.
 export async function chuckWeekly(sb, { force = false } = {}) {
@@ -41,6 +43,13 @@ export async function chuckWeekly(sb, { force = false } = {}) {
   if (oldCash.length) lines.push(["Cash to deposit", `${money(oldCash.reduce((s, c) => s + Number(c.amount), 0))} held more than 3 days`]);
   const vacancies = (vac.vacancies || []).length;
   if (vacancies) lines.push(["Vacancies", `${vacancies} listed. Log showings with "I Showed It".`]);
+  const dueList = await inspectionsDue(sb, await managedOf(sb, await partnerProperties(sb, partnerId))).catch(() => []);
+  const dueNow = dueList.filter((x) => x.state !== "ok");
+  if (dueNow.length)
+    lines.push([
+      "Inspections due",
+      `${dueNow.length} (${dueNow.slice(0, 4).map((x) => x.address).join(", ")}${dueNow.length > 4 ? ", …" : ""})`,
+    ]);
   const drafts = (draftsRes.data || []).length;
   if (drafts) lines.push(["Inspections to finish", String(drafts)]);
 
@@ -64,4 +73,20 @@ export async function chuckWeekly(sb, { force = false } = {}) {
     emailed = !error;
   }
   return { items: lines.length, emailed };
+}
+
+// Daily: a phone notification on the day a property's next inspection comes due.
+export async function inspectionDueToday(sb) {
+  const partnerId = await chuckPartnerId(sb);
+  if (!partnerId) return { skipped: "no partner" };
+  const list = await inspectionsDue(sb, await managedOf(sb, await partnerProperties(sb, partnerId)));
+  const today = list.filter((x) => x.inDays === 0);
+  if (!today.length) return { due: 0 };
+  await pushTo(sb, { partnerId }, {
+    title: today.length === 1 ? `Inspection due today: ${today[0].address}` : `${today.length} inspections due today`,
+    body: today.length === 1 ? "Six months since the last one. Tap to start it." : today.map((x) => x.address).join(", ").slice(0, 160),
+    url: "/agent/inspection",
+    tag: "inspection-due",
+  }).catch(() => null);
+  return { due: today.length };
 }

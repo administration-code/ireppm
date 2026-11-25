@@ -2,6 +2,7 @@ import "server-only";
 import { olderThanBusinessDays } from "@/lib/comms";
 import { emailEligibility } from "@/lib/serve-notice";
 import { lateApplications } from "@/lib/application-turnaround";
+import { inspectionsDue, managedOf } from "@/lib/inspection-due";
 
 // The start-of-day list: short plain lines, one page, for staff and the AI assistant.
 const T = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" });
@@ -203,6 +204,16 @@ export async function buildToday(sb) {
     sections.push({
       title: `Applications over 2 business days (${lateApps.length})`,
       lines: cap(lateApps.map((a) => `${a.applicant_name || "Applicant"}, ${a.place}: ${a.businessDays} business days, ${a.step}`), "Requests → Applications"),
+    });
+
+  // 9a2. Inspections (twice a year) overdue or never done, at managed properties
+  const { data: allProps } = await sb.from("properties").select("id, address").eq("is_practice", false);
+  const insp = await managedOf(sb, allProps || []).then((p) => inspectionsDue(sb, p)).catch(() => []);
+  const overdueInsp = insp.filter((x) => x.state === "overdue" || x.state === "never");
+  if (overdueInsp.length)
+    sections.push({
+      title: `Inspections overdue (${overdueInsp.length})`,
+      lines: cap(overdueInsp.map((x) => `${x.address}: ${x.last ? `last ${md(x.last)}, due ${md(x.due)}` : "none on record"}`), "Inspection Reports"),
     });
 
   // 9b. Cash Chuck logged but hasn't deposited after 3 days (table from 0084; skipped until it exists)
