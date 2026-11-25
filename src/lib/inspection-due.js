@@ -47,7 +47,12 @@ export async function managedOf(sb, properties) {
 }
 
 // Pay for one inspection, added to the contractor's ledger once per report.
-export async function recordInspectionPay(sb, partnerId, reportId, { address, inspectedOn }) {
+export async function recordInspectionPay(sb, partnerId, reportId, { address, inspectedOn, propertyId = null }) {
+  // Practice inspections (1 Practice St) aren't paid.
+  if (propertyId) {
+    const { data: prop } = await sb.from("properties").select("is_practice").eq("id", propertyId).maybeSingle();
+    if (prop?.is_practice) return { skipped: "practice" };
+  }
   const { data: p } = await sb.from("partners").select("inspection_pay, charges_hst").eq("id", partnerId).maybeSingle();
   const amount = Number(p?.inspection_pay || 0);
   if (!(amount > 0)) return { skipped: true };
@@ -59,6 +64,7 @@ export async function recordInspectionPay(sb, partnerId, reportId, { address, in
     amount,
     hst,
     notes: `Inspection: ${address}`,
+    property_id: propertyId,
     inspection_report_id: reportId,
   });
   return error ? { error: error.message } : { amount, hst };

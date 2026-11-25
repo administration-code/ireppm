@@ -165,7 +165,7 @@ export async function POST(request) {
   if (draftId) await sb.from("inspection_reports").delete().eq("id", draftId).eq("partner_id", partner.id).eq("status", "draft");
 
   // His pay for this inspection ($50 + HST for Chuck), on his pay page right away.
-  await recordInspectionPay(sb, partner.id, id, { address: property.address, inspectedOn: form.inspected_on }).catch(() => null);
+  await recordInspectionPay(sb, partner.id, id, { address: property.address, inspectedOn: form.inspected_on, propertyId: property.id }).catch(() => null);
 
   // Straight to the landlord: no staff review.
   const sent = await sendReportToOwner(sb, id, { sentBy: partner.name });
