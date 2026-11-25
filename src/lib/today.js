@@ -1,6 +1,7 @@
 import "server-only";
 import { olderThanBusinessDays } from "@/lib/comms";
 import { emailEligibility } from "@/lib/serve-notice";
+import { lateApplications } from "@/lib/application-turnaround";
 
 // The start-of-day list: short plain lines, one page, for staff and the AI assistant.
 const T = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" });
@@ -195,6 +196,14 @@ export async function buildToday(sb) {
       "Inbox"
     ),
   });
+
+  // 9a. Applications past the 2-business-day decision target, with what's holding each up
+  const lateApps = await lateApplications(sb).catch(() => []);
+  if (lateApps.length)
+    sections.push({
+      title: `Applications over 2 business days (${lateApps.length})`,
+      lines: cap(lateApps.map((a) => `${a.applicant_name || "Applicant"}, ${a.place}: ${a.businessDays} business days, ${a.step}`), "Requests → Applications"),
+    });
 
   // 9b. Cash Chuck logged but hasn't deposited after 3 days (table from 0084; skipped until it exists)
   const { data: held, error: heldErr } = await sb.from("cash_collections").select("amount, collected_on, tenancy:tenancies(tenancy_tenants(full_name, is_primary))").eq("status", "held").order("collected_on");

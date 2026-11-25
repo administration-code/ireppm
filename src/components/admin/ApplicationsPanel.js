@@ -65,6 +65,39 @@ function groupApplications(applications) {
   });
 }
 
+// Weekdays since the application came in. Target: a decision within 2 business days.
+function businessDays(iso) {
+  let n = 0;
+  const cur = new Date(iso);
+  const now = new Date();
+  while (true) {
+    cur.setDate(cur.getDate() + 1);
+    if (cur > now) break;
+    if (cur.getDay() !== 0 && cur.getDay() !== 6) n += 1;
+  }
+  return n;
+}
+function Turnaround({ app }) {
+  if (!["submitted", "reviewing"].includes(app.status)) return null;
+  const n = businessDays(app.created_at);
+  const step =
+    app.owner_review_status === "pending"
+      ? "waiting on the landlord (they get one reminder after a business day)"
+      : app.owner_review_status === "info_requested"
+        ? "the landlord asked a question"
+        : !app.credit_checked_at
+          ? "credit check next"
+          : !String(app.reference_notes || "").trim()
+            ? "references next; after 2 business days decide with what you have"
+            : "ready to send to the landlord";
+  return (
+    <span className="sub-line small" style={n >= 2 ? { color: "#8a110c", fontWeight: 600 } : undefined}>
+      {n >= 2 ? `Over the 2-business-day target (${n} days): ` : `Business day ${n} of 2: `}
+      {step}
+    </span>
+  );
+}
+
 function shortDate(iso) {
   return new Date(iso).toLocaleDateString("en-CA", { month: "short", day: "numeric" });
 }
@@ -129,7 +162,10 @@ function ApplicationItem({ app, onChange, onRemove, earlier = [] }) {
         </div>
         <div>
           <dt>Submitted</dt>
-          <dd>{prettyDateTime(app.created_at)}</dd>
+          <dd>
+            {prettyDateTime(app.created_at)}
+            <Turnaround app={app} />
+          </dd>
         </div>
         <div>
           <dt>Credit check</dt>
