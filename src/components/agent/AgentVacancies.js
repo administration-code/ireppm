@@ -114,6 +114,7 @@ export default function AgentVacancies() {
   const [msg, setMsg] = useState("");
   const [copied, setCopied] = useState("");
   const [busy, setBusy] = useState(false);
+  const [justShowed, setJustShowed] = useState(null);
   const load = useCallback(async () => setD(await call("GET")), []);
   useEffect(() => {
     if (user) load();
@@ -153,7 +154,6 @@ export default function AgentVacancies() {
     setEdit(null);
     load();
   }
-  const [justShowed, setJustShowed] = useState(null);
   async function close(v, rented) {
     if (!window.confirm(rented ? `Mark ${v.address}${v.unit ? `, ${v.unit}` : ""} as rented and take it down?` : "Take this vacancy down?")) return;
     setBusy(true);
