@@ -79,9 +79,10 @@ export async function serveBoard(sb) {
   const { data: bals } = tenIds.length ? await sb.from("tenancy_balances").select("tenancy_id, balance").in("tenancy_id", tenIds) : { data: [] };
   const paid = new Set((bals || []).filter((b) => Number(b.balance) <= 0.5).map((b) => b.tenancy_id));
   notices = notices.filter((n) => !(n.kind === "N4" && paid.has(n.tenancy_id)));
-  // Tenants who consented to email service get it by email from the office, not from Chuck.
+  // Chuck marks every notice served himself (Rosie, Nov 26 2026), including ones the office could email:
+  // if the office emails it instead, it's recorded then and drops off his list.
   const elig = await Promise.all(notices.map((n) => emailEligibility(sb, n.tenancy_id)));
-  notices = notices.filter((n, i) => !elig[i].ok);
+  const emailOk = new Set(notices.filter((n, i) => elig[i].ok).map((n) => n.id));
   const ids = [...new Set((notices || []).map((n) => n.tenancy_id).filter(Boolean))];
   const { data: ten } = ids.length
     ? await sb.from("tenancies").select("id, tenancy_tenants(full_name, is_primary, phone), unit:units(label, property:properties(address, city))").in("id", ids)
@@ -106,6 +107,7 @@ export async function serveBoard(sb) {
       serve_by: due,
       late: today > due,
       has_pdf: Boolean(n.signed_file_path),
+      email_ok: emailOk.has(n.id),
     };
   });
   const { data: certs } = await sb

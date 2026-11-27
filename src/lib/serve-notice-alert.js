@@ -23,12 +23,8 @@ export async function notifyNoticeReady(requestId) {
       .eq("id", requestId)
       .maybeSingle();
     if (!row || !FORMS[row.kind]) return { sent: false };
-    // Tenants who consented to email service are served by email from the office: Chuck isn't needed.
-    const { emailEligibility, emailServeTask } = await import("@/lib/serve-notice");
-    if ((await emailEligibility(sb, row.tenancy_id)).ok) {
-      await emailServeTask(sb, row);
-      return { sent: false, byEmail: true };
-    }
+    // Chuck serves every notice and marks it served himself (Rosie, Nov 26 2026). Email service is still
+    // available to the office from the notice's page, but no longer replaces him.
 
     let tenants = "";
     let place = "";

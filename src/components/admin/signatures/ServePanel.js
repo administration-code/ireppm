@@ -165,6 +165,16 @@ export default function ServePanel({ row, tenancy, notice, certs, onServed }) {
         {emailBlock}
       </div>
 
+      <div className="boxed stack" style={{ gap: 4 }}>
+        <b>Chuck marks it served</b>
+        <span className="small">
+          This notice is on Chuck&apos;s Notices to Serve in his Agent Portal. After he delivers it, he taps I Delivered It and enters the date and how. That
+          records the service here and fills in his Certificate of Service, so there&apos;s nothing for the office to enter.
+        </span>
+      </div>
+
+      <details>
+        <summary className="small">Record it yourself instead (only if Chuck can&apos;t)</summary>
       <form className="stack" onSubmit={record}>
         <h3 className="small" style={{ fontWeight: 700, color: "var(--fg)" }}>
           Hand Delivery, Mail Slot or Mail
@@ -233,6 +243,7 @@ export default function ServePanel({ row, tenancy, notice, certs, onServed }) {
           <span className="small">Records the date, method and who served it, and adds it to the notices list.</span>
         </div>
       </form>
+      </details>
       <CertList certs={certs} />
     </section>
   );
