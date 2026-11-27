@@ -137,7 +137,7 @@ export default function InboxBoard() {
               </div>
               <span className="small">
                 {r.direction === "out" ? `Sent to ${(r.to_emails || []).join(", ")}` : `From ${r.from_name || r.from_email}`}
-                {r.party_kind && r.party_kind !== "unmatched" ? ` · ${r.party_kind === "landlord" ? "Landlord" : r.party_kind === "tenant" ? "Tenant" : r.party_kind === "partner" ? "Partner" : r.party_kind === "applicant" ? "Applicant" : "Ignored"}${r.party_name ? `: ${r.party_name}` : ""}` : " · Unmatched"}
+                {r.party_kind && r.party_kind !== "unmatched" ? ` · ${r.party_kind === "landlord" ? "Landlord" : r.party_kind === "tenant" ? "Tenant" : r.party_kind === "partner" ? "Partner" : r.party_kind === "applicant" ? "Applicant" : r.party_kind === "lead" ? "Lead" : "Ignored"}${r.party_name ? `: ${r.party_name}` : ""}` : " · Unmatched"}
                 {r.thread_id ? (
                   <>
                     {" · "}

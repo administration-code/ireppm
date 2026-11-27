@@ -55,6 +55,23 @@ export default function SignatureDetail({ id }) {
     reload();
   }, [reload]);
 
+  // Back from DocuSign's sending screen. "Continue" there doesn't send: the portal sends it here,
+  // through the API (so it's counted toward the plan's yearly limit).
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    const event = q.get("event") || "";
+    if (!event) return;
+    const lockToken = q.get("lockToken") || q.get("locktoken") || "";
+    window.history.replaceState(null, "", window.location.pathname);
+    if (/^send$/i.test(event)) {
+      act("send", { lockToken }, "Sent for signature through the DocuSign API.");
+    } else if (lockToken) {
+      // Back or Save and close: just release the draft so it can be opened again.
+      docusignApi(`/requests/${id}`, { body: { action: "unlock", lockToken } }).catch(() => null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
   async function act(action, extra = {}, done) {
     setBusy(action);
     setMessage({ text: "", tone: "" });
@@ -179,8 +196,13 @@ export default function SignatureDetail({ id }) {
       <section className="boxed stack" aria-label="Actions">
         <div className="req-actions">
           {row.envelope_id ? (
-            <button type="button" className="btn primary sm" onClick={() => openUrl("open")}>
-              Open in DocuSign
+            <button type="button" className={`btn ${row.status === "draft" ? "ghost" : "primary"} sm`} onClick={() => openUrl("open")}>
+              {row.status === "draft" ? "Check in DocuSign" : "Open in DocuSign"}
+            </button>
+          ) : null}
+          {row.status === "draft" && row.envelope_id ? (
+            <button type="button" className="btn primary sm" disabled={Boolean(busy)} onClick={() => act("send", {}, "Sent for signature through the DocuSign API.")}>
+              {busy === "send" ? "Sending…" : "Send for Signature"}
             </button>
           ) : null}
           {row.status === "draft" && row.envelope_id && ["lease", "N1", "N4", "N5", "certificate_of_service"].includes(row.kind) ? (
@@ -200,7 +222,7 @@ export default function SignatureDetail({ id }) {
           ) : null}
           {row.kind === "pm_contract" && row.status === "draft" && row.envelope_id ? (
             <p className="small" style={{ flexBasis: "100%", margin: 0 }}>
-              The contract&apos;s details, initials and boxes were added when the draft was made. Open in DocuSign, check, and send.
+              The contract&apos;s details, initials and boxes were added when the draft was made. Check it in DocuSign, then tap Continue there (or Send for Signature here): the portal sends it.
               Refresh Contract Fields puts them back if any were moved or deleted.
             </p>
           ) : null}

@@ -45,7 +45,7 @@ function Attachments({ list, hidden, threadId }) {
 
 // Staff: every email in and out of administration@ for a tenancy, landlord, unit or property,
 // grouped by thread, newest first. Templates and "Draft with AI" start from here; sent ones appear here.
-export default function Communications({ tenancyId, ownerId, unitId, propertyId, title = "Communications" }) {
+export default function Communications({ tenancyId, ownerId, unitId, propertyId, leadId, title = "Communications" }) {
   const [rows, setRows] = useState(null);
   const [label, setLabel] = useState("");
   const [open, setOpen] = useState({});
@@ -56,6 +56,7 @@ export default function Communications({ tenancyId, ownerId, unitId, propertyId,
       const ors = [];
       if (tenancyId) ors.push(`tenancy_id.eq.${tenancyId}`);
       if (ownerId) ors.push(`owner_id.eq.${ownerId}`);
+      if (leadId) ors.push(`lead_id.eq.${leadId}`);
       if (unitId) ors.push(`unit_id.eq.${unitId}`);
       if (propertyId) {
         ors.push(`property_id.eq.${propertyId}`);
@@ -69,7 +70,7 @@ export default function Communications({ tenancyId, ownerId, unitId, propertyId,
     return () => {
       live = false;
     };
-  }, [tenancyId, ownerId, unitId, propertyId]);
+  }, [tenancyId, ownerId, unitId, propertyId, leadId]);
 
   const threads = useMemo(() => {
     const map = new Map();

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { addTabsByRole, consoleViewUrl, ds, resolveTemplateId, getRecipients, pageImage, resendEnvelope, senderViewUrl, voidEnvelope } from "@/lib/docusign";
+import { addTabsByRole, consoleViewUrl, ds, releaseLock, resolveTemplateId, getRecipients, pageImage, removeEmptyRecipients, resendEnvelope, sendDraftEnvelope, senderViewUrl, voidEnvelope } from "@/lib/docusign";
 import { KIND_TEMPLATES, PM_TAB_LABELS, leaseMoveValues, looksCorporate, pmContractTabs } from "@/lib/docusign-templates";
 import { SIGNED_BUCKET, staffUser, syncRequest } from "@/lib/signatures-server";
 import { fillLeaseSchedule, pmLeaseRows } from "@/lib/pm-lease-schedule";
@@ -31,6 +31,21 @@ export async function POST(request, { params }) {
         const returnUrl = `${new URL(request.url).origin}/admin/signatures/${id}`;
         const url = row.status === "draft" ? await senderViewUrl(row.envelope_id, returnUrl) : await consoleViewUrl(row.envelope_id, returnUrl);
         return NextResponse.json({ url });
+      }
+      case "send": {
+        // Sends a draft through the DocuSign API (also used after "Continue" in DocuSign's sending screen).
+        if (row.status !== "draft" || !row.envelope_id) return NextResponse.json({ error: "Only a draft can be sent." }, { status: 400 });
+        await releaseLock(row.envelope_id, String(body.lockToken || "").trim() || null);
+        await removeEmptyRecipients(row.envelope_id).catch(() => null);
+        await sendDraftEnvelope(row.envelope_id);
+        const now = new Date().toISOString();
+        await sb.from("signature_requests").update({ status: "sent", sent_at: now, status_changed_at: now, error: null }).eq("id", id);
+        await syncRequest(sb, { ...row, status: "sent", sent_at: now }).catch(() => null);
+        return NextResponse.json({ ok: true });
+      }
+      case "unlock": {
+        if (row.envelope_id) await releaseLock(row.envelope_id, String(body.lockToken || "").trim() || null).catch(() => null);
+        return NextResponse.json({ ok: true });
       }
       case "remind": {
         if (!["sent", "delivered"].includes(row.status)) return NextResponse.json({ error: "Only envelopes out for signature can be resent." }, { status: 400 });

@@ -11,6 +11,7 @@ const KINDS = [
   ["landlord", "Landlord"],
   ["partner", "Partner or contractor"],
   ["applicant", "Applicant"],
+  ["lead", "Lead (new landlord)"],
   ["ignored", "Not a contact (ignore)"],
 ];
 
@@ -28,7 +29,7 @@ function Assign({ group, options, onDone }) {
     const res = await fetch("/api/admin/email-rules", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${data?.session?.access_token || ""}` },
-      body: JSON.stringify({ email: group.email, party_kind: kind, target_id: target || null, name: chosen?.name || group.name }),
+      body: JSON.stringify({ email: group.email, party_kind: kind, target_id: target || null, name: chosen?.name || group.name, subject: group.items?.[0]?.subject || "" }),
     });
     const out = await res.json().catch(() => ({}));
     setBusy(false);
@@ -48,6 +49,7 @@ function Assign({ group, options, onDone }) {
       {kind !== "ignored" ? (
         <select aria-label="Choose" value={target} onChange={(e) => setTarget(e.target.value)} style={{ maxWidth: 360 }}>
           <option value="">Choose…</option>
+          {kind === "lead" ? <option value="new">+ Add as a new lead{group.name ? ` (${group.name})` : ""}</option> : null}
           {list.map((o) => (
             <option key={o.id} value={o.id}>
               {o.label}
@@ -82,11 +84,12 @@ export default function UnmatchedEmails() {
     load();
     (async () => {
       const sb = getBrowserClient();
-      const [tenancies, owners, partners, apps] = await Promise.all([
+      const [tenancies, owners, partners, apps, leads] = await Promise.all([
         loadTenancyOptions({ includePast: true }).catch(() => []),
         sb.from("owners").select("id, name, email").order("name"),
         sb.from("partners").select("id, name, company").eq("active", true).order("name"),
         sb.from("applications").select("id, applicant_name, applicant_email, created_at").order("created_at", { ascending: false }).limit(200),
+        sb.from("landlord_inquiries").select("id, name, email, property_address, created_at").order("created_at", { ascending: false }).limit(200),
       ]);
       setOptions({
         tenant: tenancies.map((t) => {
@@ -96,6 +99,7 @@ export default function UnmatchedEmails() {
         landlord: (owners.data || []).map((o) => ({ id: o.id, name: o.name, label: o.name })),
         partner: (partners.data || []).map((p) => ({ id: p.id, name: p.company || p.name, label: [p.name, p.company].filter(Boolean).join(" · ") })),
         applicant: (apps.data || []).map((a) => ({ id: a.id, name: a.applicant_name, label: `${a.applicant_name || "Applicant"} · ${String(a.created_at).slice(0, 10)}` })),
+        lead: (leads.data || []).map((l) => ({ id: l.id, name: l.name, label: [l.name, l.property_address, String(l.created_at).slice(0, 10)].filter(Boolean).join(" · ") })),
       });
     })();
   }, []);
@@ -112,7 +116,7 @@ export default function UnmatchedEmails() {
       <div style={{ display: "grid", gap: 8 }}>
         <span className="eyebrow">Staff · Communications</span>
         <h1 className="admin-title">Unmatched Emails</h1>
-        <p className="small">Addresses the portal couldn&apos;t match to a tenant, landlord, applicant or partner. Assign each address once and the portal remembers it.</p>
+        <p className="small">Addresses the portal couldn&apos;t match to a tenant, landlord, applicant, partner or lead. Assign each address once and the portal remembers it.</p>
       </div>
       {rows === null ? (
         <p className="small">Loading…</p>

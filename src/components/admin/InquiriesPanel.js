@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import ContactLine from "@/components/admin/ContactLine";
+import Communications from "@/components/admin/comms/Communications";
 import DeleteRecord from "@/components/admin/DeleteRecord";
 import { deleteLeasingRecord } from "@/lib/delete-records";
 import { INQUIRY_STATUS, prettyDateTime, updateRow } from "@/lib/admin-requests";
@@ -9,6 +10,7 @@ import { INQUIRY_STATUS, prettyDateTime, updateRow } from "@/lib/admin-requests"
 function InquiryItem({ inquiry, onChange, onRemove }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [showEmails, setShowEmails] = useState(false);
   const statusId = `i-status-${inquiry.id}`;
 
   async function setStatus(status) {
@@ -63,7 +65,11 @@ function InquiryItem({ inquiry, onChange, onRemove }) {
       </dl>
 
       {inquiry.message ? <p className="req-note">{inquiry.message}</p> : null}
+      {showEmails ? <Communications leadId={inquiry.id} title="Emails With This Lead" /> : null}
       <div className="req-actions">
+        <button type="button" className="link-btn small" onClick={() => setShowEmails(!showEmails)}>
+          {showEmails ? "Hide Emails" : "Show Emails"}
+        </button>
         {error ? (
           <span className="small err" role="alert">
             {error}

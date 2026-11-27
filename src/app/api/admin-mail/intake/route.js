@@ -125,7 +125,13 @@ export async function POST(request) {
     attachments: all.map((a) => (idLikeAttachment(a) ? { hidden: true } : { name: String(a.name || "").slice(0, 120), type: a.type || null })),
     intake_status: files.length ? "waiting_files" : "none",
   };
-  const { data, error } = await sb.from("inbound_emails").insert(row).select("id").single();
+  let { data, error } = await sb.from("inbound_emails").insert(row).select("id").single();
+  // Before migration 0103 a lead can't be saved: keep it as unmatched.
+  if (error && row.party_kind === "lead" && /lead|party_kind/.test(error.message || "")) {
+    delete row.lead_id;
+    row.party_kind = "unmatched";
+    ({ data, error } = await sb.from("inbound_emails").insert(row).select("id").single());
+  }
   if (error?.code === "23505") return NextResponse.json({ ok: true, duplicate: true, uploads: [] });
   if (error) {
     console.error("[admin-mail] save failed:", error.message);

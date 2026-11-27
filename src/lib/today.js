@@ -200,6 +200,19 @@ export async function buildToday(sb) {
     ),
   });
 
+  // 6b. DocuSign plan usage (100 API sends per license year, renews Oct 28)
+  const { docusignUsage, DOCUSIGN_WARN } = await import("@/lib/docusign-usage");
+  const ds = await docusignUsage(sb).catch(() => null);
+  if (ds) {
+    const level = ds.used >= DOCUSIGN_WARN[1] ? "URGENT: " : ds.used >= DOCUSIGN_WARN[0] ? "WARNING: " : "";
+    sections.push({
+      title: `${level}DocuSign sends: ${ds.used}/${ds.limit} this license year`,
+      lines: [
+        `Since ${md(ds.start)} (renews Oct 28). ${Math.max(0, ds.limit - ds.used)} left.${ds.used >= DOCUSIGN_WARN[0] ? " Send only what's needed, and check the plan with DocuSign before it runs out." : ""}`,
+      ],
+    });
+  }
+
   // 7a. N4s whose arrears are paid but whose Certificate of Service is still open
   const { paidN4Lines } = await import("@/lib/n4-paid");
   const paidLines = await paidN4Lines(sb).catch(() => []);

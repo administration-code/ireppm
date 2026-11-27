@@ -56,6 +56,7 @@ export async function matchParty(sb, address) {
     if (rule.party_kind === "landlord") return { party_kind: "landlord", party_email: e, party_name: rule.name, owner_id: rule.owner_id };
     if (rule.party_kind === "applicant") return { party_kind: "applicant", party_email: e, party_name: rule.name, application_id: rule.application_id };
     if (rule.party_kind === "partner") return { party_kind: "partner", party_email: e, party_name: rule.name, partner_id: rule.partner_id };
+    if (rule.party_kind === "lead") return { party_kind: "lead", party_email: e, party_name: rule.name, lead_id: rule.lead_id };
   }
 
   const { data: people } = await sb
@@ -81,6 +82,9 @@ export async function matchParty(sb, address) {
   if (partners?.length) return { party_kind: "partner", party_email: e, party_name: partners[0].company || partners[0].name, partner_id: partners[0].id };
   const { data: apps } = await sb.from("applications").select("id, applicant_name").ilike("applicant_email", e).order("created_at", { ascending: false }).limit(1);
   if (apps?.length) return { party_kind: "applicant", party_email: e, party_name: apps[0].applicant_name, application_id: apps[0].id };
+  // Landlord leads (website inquiries, or added from Unmatched Emails).
+  const { data: leads } = await sb.from("landlord_inquiries").select("id, name").ilike("email", e).order("created_at", { ascending: false }).limit(1);
+  if (leads?.length) return { party_kind: "lead", party_email: e, party_name: leads[0].name, lead_id: leads[0].id };
   return none;
 }
 
@@ -116,8 +120,14 @@ export async function labelEmail(sb, email, party, { ai = true } = {}) {
 // Re-match every stored email from an address (after staff assign it).
 export async function rematchAddress(sb, address) {
   const party = await matchParty(sb, address);
-  const clear = { tenancy_id: null, unit_id: null, property_id: null, owner_id: null, application_id: null, partner_id: null, party_name: null };
-  const { error } = await sb.from("inbound_emails").update({ ...clear, ...party }).eq("party_email", String(address).toLowerCase());
+  const clear = { tenancy_id: null, unit_id: null, property_id: null, owner_id: null, application_id: null, partner_id: null, lead_id: null, party_name: null };
+  let { error } = await sb.from("inbound_emails").update({ ...clear, ...party }).eq("party_email", String(address).toLowerCase());
+  // Before migration 0103 there's no lead_id column (and no "lead" party).
+  if (error && /lead/.test(error.message || "")) {
+    delete clear.lead_id;
+    const p = party.party_kind === "lead" ? { party_kind: "unmatched", party_email: party.party_email } : party;
+    ({ error } = await sb.from("inbound_emails").update({ ...clear, ...p }).eq("party_email", String(address).toLowerCase()));
+  }
   if (error) throw new Error(error.message);
   return party;
 }

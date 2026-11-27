@@ -79,7 +79,7 @@ async function getToken() {
   return cached.token;
 }
 
-export async function ds(path, { method = "GET", body, binary = false, accept } = {}) {
+export async function ds(path, { method = "GET", body, binary = false, accept, headers: extra } = {}) {
   const token = await getToken();
   const res = await fetch(`${apiBase()}${path}`, {
     method,
@@ -87,6 +87,7 @@ export async function ds(path, { method = "GET", body, binary = false, accept } 
       Authorization: `Bearer ${token}`,
       Accept: accept || (binary ? "application/pdf" : "application/json"),
       ...(body ? { "Content-Type": "application/json" } : {}),
+      ...(extra || {}),
     },
     body: body ? JSON.stringify(body) : undefined,
     cache: "no-store",
@@ -96,8 +97,14 @@ export async function ds(path, { method = "GET", body, binary = false, accept } 
     throw new DocuSignError(err.message || `DocuSign returned ${res.status}`, { status: res.status, code: err.errorCode });
   }
   if (binary) return Buffer.from(await res.arrayBuffer());
-  if (res.status === 204) return {};
-  return res.json().catch(() => ({}));
+  const out = res.status === 204 ? {} : await res.json().catch(() => ({}));
+  // Every envelope sent through the API counts toward the plan's yearly limit (Today page).
+  const sentNow = body?.status === "sent" && ((method === "POST" && path === "/envelopes") || (method === "PUT" && /^\/envelopes\/[0-9a-f-]{36}$/i.test(path)));
+  if (sentNow) {
+    const id = method === "POST" ? out?.envelopeId : path.split("/")[2];
+    if (id) await import("@/lib/docusign-usage").then((m) => m.recordSend(id)).catch(() => null);
+  }
+  return out;
 }
 
 // ---------------------------------------------------------------------------
@@ -272,8 +279,23 @@ export const pageImage = (id, page, doc = "1", dpi = 72) =>
 
 export const sendDraftEnvelope = (id) => ds(`/envelopes/${id}`, { method: "PUT", body: { status: "sent" } });
 
+// After "Continue" in DocuSign's sending screen the draft is locked: release it with the lock token
+// DocuSign put on the return link, so the portal can send it through the API.
+export async function releaseLock(id, lockToken) {
+  if (!lockToken) return;
+  await ds(`/envelopes/${id}/lock`, { method: "DELETE", headers: { "X-DocuSign-Edit": JSON.stringify({ LockToken: lockToken }) } }).catch((err) => {
+    if (!/not locked|LOCK_NOT_FOUND|ENVELOPE_NOT_LOCKED/i.test(err?.message || err?.code || "")) throw err;
+  });
+}
+
+// DocuSign's sending screen, for checking and editing a draft. Its Send button doesn't send: it comes
+// back to the portal (event=Send), which sends through the API, so every envelope goes out (and is
+// counted) through the API.
 export async function senderViewUrl(id, returnUrl) {
-  const data = await ds(`/envelopes/${id}/views/sender`, { method: "POST", body: { returnUrl } });
+  const data = await ds(`/envelopes/${id}/views/sender`, {
+    method: "POST",
+    body: { returnUrl, viewAccess: "envelope", settings: { sendButtonAction: "redirect", backButtonAction: "redirect", showDiscardAction: "false" } },
+  });
   return data.url;
 }
 
