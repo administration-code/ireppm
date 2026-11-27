@@ -2,6 +2,7 @@ import "server-only";
 import { mailer, mailConfigured } from "@/lib/mailer";
 import { renderEmail, renderText } from "@/lib/staff-alerts";
 import { SITE } from "@/lib/site";
+import { money } from "@/lib/format";
 const DEFAULT_HST_PERCENT = 13; // Ontario HST, as in admin-properties
 
 // "Job done" from the Agent Portal (0086): the partner reports the date, what they did, their price before HST
@@ -54,10 +55,132 @@ export async function markJobDone(sb, partner, input) {
     })
     .eq("id", id);
   if (error) return { error: "That didn't save. Try again, or tell Rosie." };
+  await sb.from("maintenance_requests").update({ vendor_outcome: "fixed" }).eq("id", id).then(() => null, () => null);
 
   const place = [job.unit?.property?.address, job.unit?.label].filter(Boolean).join(", ");
   await jobDoneAlert(partner, { id, title: job.title, where: place, doneOn, notes, price: noCharge ? 0 : price, photos: after.length });
   return { ok: true };
+}
+
+// After a visit: the job needs the landlord's OK first. His estimate (before HST) and the scope of
+// work go on the request, which waits for staff to send it to the landlord ("Awaiting owner").
+export async function submitEstimate(sb, partner, input) {
+  const id = String(input?.id || "");
+  const scope = String(input?.scope || "").trim().slice(0, 2000);
+  const price = Math.round(Number(input?.price) * 100) / 100;
+  if (scope.length < 10) return { error: "Describe the work that's needed." };
+  if (!(price > 0 && price < 100000)) return { error: "Enter your estimate before HST." };
+  const { data: job } = await sb
+    .from("maintenance_requests")
+    .select("id, title, status, partner_id, photos, staff_notes, vendor_done_at, unit:units(label, property:properties(address))")
+    .eq("id", id)
+    .maybeSingle();
+  if (!job || job.partner_id !== partner.id) return { error: "That job wasn't found." };
+  if (["completed", "cancelled"].includes(job.status)) return { error: "That job is already closed." };
+  if (job.vendor_done_at) return { error: "You already marked that job done." };
+  const own = `${partner.userId}/`;
+  const before = (Array.isArray(input?.photos) ? input.photos : [])
+    .filter((p) => typeof p?.path === "string" && p.path.startsWith(own))
+    .slice(0, 12)
+    .map((p) => ({ path: p.path, name: String(p.name || "").slice(0, 120), stage: "before" }));
+  const { data: pt } = await sb.from("partners").select("charges_hst").eq("id", partner.id).maybeSingle();
+  const now = new Date().toISOString();
+  const { error } = await sb
+    .from("maintenance_requests")
+    .update({
+      vendor_outcome: "estimate",
+      vendor_estimate: price,
+      vendor_estimate_notes: scope,
+      vendor_estimate_at: now,
+      estimated_cost: price,
+      estimate_plus_hst: pt?.charges_hst !== false,
+      owner_approval: "pending",
+      status: "awaiting_owner",
+      photos: [...(job.photos || []), ...before],
+      staff_notes: [job.staff_notes, `${now.slice(0, 10)}: ${partner.name || "Chuck"}'s estimate ${money(price)} + HST: ${scope}`].filter(Boolean).join("\n"),
+    })
+    .eq("id", id);
+  if (error) return { error: /vendor_/.test(error.message || "") ? "This isn't switched on yet. Tell Rosie." : "That didn't save. Try again, or tell Rosie." };
+  const place = [job.unit?.property?.address, job.unit?.label].filter(Boolean).join(", ");
+  await staffAlert({
+    subject: `Estimate ready: ${job.title} (${place})`,
+    heading: "Estimate Ready for the Landlord",
+    intro: `${partner.name || "Chuck"} visited and says this job needs the landlord's OK first. Check the estimate, then tap Send Estimate to Landlord on the request.`,
+    rows: [["Job", job.title], ["Where", place], ["Work needed", scope], ["Estimate", `${money(price)}${pt?.charges_hst !== false ? " + HST" : ""}`], ["Photos", String(before.length)]],
+    link: { href: `${SITE.url}/admin/maintenance/${id}`, label: "Open the request" },
+  });
+  return { ok: true };
+}
+
+// After a visit: nothing needs repairing. Staff close it (no invoice).
+export async function markNonIssue(sb, partner, input) {
+  const id = String(input?.id || "");
+  const notes = String(input?.notes || "").trim().slice(0, 2000);
+  if (notes.length < 5) return { error: "Say what you found." };
+  const { data: job } = await sb
+    .from("maintenance_requests")
+    .select("id, title, status, partner_id, photos, vendor_done_at, unit:units(label, property:properties(address))")
+    .eq("id", id)
+    .maybeSingle();
+  if (!job || job.partner_id !== partner.id) return { error: "That job wasn't found." };
+  if (["completed", "cancelled"].includes(job.status)) return { error: "That job is already closed." };
+  if (job.vendor_done_at) return { error: "You already marked that job." };
+  const own = `${partner.userId}/`;
+  const pics = (Array.isArray(input?.photos) ? input.photos : [])
+    .filter((p) => typeof p?.path === "string" && p.path.startsWith(own))
+    .slice(0, 12)
+    .map((p) => ({ path: p.path, name: String(p.name || "").slice(0, 120), stage: "after" }));
+  const today = torontoToday();
+  const { error } = await sb
+    .from("maintenance_requests")
+    .update({
+      vendor_outcome: "non_issue",
+      vendor_done_at: new Date().toISOString(),
+      vendor_done_on: today,
+      vendor_notes: `Not an issue: ${notes}`,
+      vendor_price: 0,
+      vendor_hst: false,
+      photos: [...(job.photos || []), ...pics],
+    })
+    .eq("id", id);
+  if (error) return { error: /vendor_outcome/.test(error.message || "") ? "This isn't switched on yet. Tell Rosie." : "That didn't save. Try again, or tell Rosie." };
+  const place = [job.unit?.property?.address, job.unit?.label].filter(Boolean).join(", ");
+  await staffAlert({
+    subject: `Not an issue: ${job.title} (${place})`,
+    heading: "Checked: Not an Issue",
+    intro: `${partner.name || "Chuck"} visited and found nothing that needs repairing. Review it on Jobs Done and close it (no invoice).`,
+    rows: [["Job", job.title], ["Where", place], ["What he found", notes], ["Photos", String(pics.length)]],
+    link: { href: `${SITE.url}/admin/maintenance/done`, label: "Open Jobs Done" },
+  });
+  return { ok: true };
+}
+
+// Jobs waiting on the landlord after his estimate: { [job id]: { at, approval } }.
+export async function partnerEstimates(sb, partnerId) {
+  const { data, error } = await sb
+    .from("maintenance_requests")
+    .select("id, vendor_estimate_at, vendor_estimate, owner_approval, estimate_sent_at")
+    .eq("partner_id", partnerId)
+    .not("vendor_estimate_at", "is", null)
+    .is("vendor_done_at", null)
+    .not("status", "in", "(completed,cancelled)");
+  if (error) return {};
+  return Object.fromEntries((data || []).map((r) => [r.id, { at: r.vendor_estimate_at, price: r.vendor_estimate, approval: r.owner_approval, sent: r.estimate_sent_at }]));
+}
+
+async function staffAlert({ subject, heading, intro, rows, link }) {
+  const to = (process.env.STAFF_ALERT_EMAIL || "").split(",").map((s) => s.trim()).filter(Boolean);
+  if (!mailConfigured() || !to.length) return;
+  await mailer()
+    .emails.send({
+      from: "IRep Property Management <alerts@ireppm.ca>",
+      to,
+      replyTo: SITE.email,
+      subject: subject.slice(0, 150),
+      html: renderEmail({ heading, intro, rows, link }),
+      text: renderText({ heading, rows, link }),
+    })
+    .catch(() => null);
 }
 
 // Tells staff a partner finished a job, with a link to Jobs Done.

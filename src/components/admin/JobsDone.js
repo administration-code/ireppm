@@ -10,7 +10,7 @@ import { shortDate } from "@/lib/rent";
 const HST = 13;
 const billedFor = (price, chargeTo) => (Number(price) > 0 ? (chargeTo === "irep" ? Number(price) : Math.round(Number(price) * (100 + HST)) / 100) : 0);
 const COLS =
-  "id, title, status, urgency, charge_to, owner_approval, estimated_cost, photos, vendor_done_at, vendor_done_on, vendor_notes, vendor_price, vendor_hst, partner:partners(name), unit:units(label, property:properties(address))";
+  "id, title, vendor_outcome, status, urgency, charge_to, owner_approval, estimated_cost, photos, vendor_done_at, vendor_done_on, vendor_notes, vendor_price, vendor_hst, partner:partners(name), unit:units(label, property:properties(address))";
 
 function AfterPhotos({ photos }) {
   const after = (photos || []).filter((p) => p.stage === "after" && p.path);
@@ -42,6 +42,45 @@ function AfterPhotos({ photos }) {
         </li>
       ))}
     </ul>
+  );
+}
+
+// "Not an Issue": nothing was repaired. Close it with no charge and no invoice.
+function NonIssue({ r, onDone }) {
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  async function close() {
+    setBusy(true);
+    const { error } = await getBrowserClient()
+      .from("maintenance_requests")
+      .update({
+        status: "completed",
+        completed_at: new Date(`${r.vendor_done_on}T12:00:00`).toISOString(),
+        partner_pay: 0,
+        actual_cost: 0,
+        tenant_update: "Our maintenance lead checked this and found nothing that needs repairing. If it's still a problem, let us know.",
+      })
+      .eq("id", r.id);
+    setBusy(false);
+    if (error) return setMsg("That didn't save. Try again.");
+    refreshStaffCounts();
+    onDone();
+  }
+  return (
+    <div className="stack" style={{ gap: 8 }}>
+      <p className="small" style={{ margin: 0 }}>
+        <b>Not an issue:</b> nothing to bill. Closing it tells the tenant it was checked and found fine.
+      </p>
+      <div className="req-actions">
+        <button type="button" className="btn primary sm" disabled={busy} onClick={close}>
+          Close (No Charge)
+        </button>
+        <Link className="btn ghost sm" href={`/admin/maintenance/${r.id}`}>
+          Open the Request
+        </Link>
+        {msg ? <span className="small">{msg}</span> : null}
+      </div>
+    </div>
   );
 }
 
@@ -131,7 +170,10 @@ function Review({ r, onDone }) {
 export default function JobsDone() {
   const [rows, setRows] = useState(null);
   const load = useCallback(async () => {
-    const { data } = await getBrowserClient().from("maintenance_requests").select(COLS).not("vendor_done_at", "is", null).neq("status", "completed").order("vendor_done_at");
+    const q = (cols) => getBrowserClient().from("maintenance_requests").select(cols).not("vendor_done_at", "is", null).neq("status", "completed").order("vendor_done_at");
+    let { data, error } = await q(COLS);
+    // Before migration 0101 there's no vendor_outcome column.
+    if (error) ({ data } = await q(COLS.replace("vendor_outcome, ", "")));
     setRows(data || []);
   }, []);
   useEffect(() => {
@@ -168,7 +210,7 @@ export default function JobsDone() {
                 {r.estimated_cost ? ` · estimate was $${Number(r.estimated_cost).toFixed(2)}` : ""}
               </span>
               <AfterPhotos photos={r.photos} />
-              <Review r={r} onDone={load} />
+              {r.vendor_outcome === "non_issue" ? <NonIssue r={r} onDone={load} /> : <Review r={r} onDone={load} />}
             </li>
           ))}
         </ul>

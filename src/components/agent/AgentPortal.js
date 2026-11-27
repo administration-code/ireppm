@@ -27,6 +27,7 @@ export default function AgentPortal() {
   const [serve, setServe] = useState(null);
   const [doneJobs, setDoneJobs] = useState([]);
   const [bookings, setBookings] = useState({});
+  const [estimates, setEstimates] = useState({});
   const [inspDue, setInspDue] = useState(0);
   const [tasks, setTasks] = useState(0);
   useEffect(() => {
@@ -46,6 +47,7 @@ export default function AgentPortal() {
       const out = res ? await res.json().catch(() => null) : null;
       if (Array.isArray(out?.done)) setDoneJobs(out.done);
       if (out?.bookings) setBookings(out.bookings);
+      if (out?.estimates) setEstimates(out.estimates);
       if (typeof out?.inspectionsDue === "number") setInspDue(out.inspectionsDue);
     })();
   }, [user]);
@@ -241,7 +243,17 @@ export default function AgentPortal() {
                     </a>
                   </div>
                 ) : null}
-                <AgentJobDone job={j} userId={user.id} done={doneJobs.includes(j.id)} onDone={(id) => setDoneJobs((l) => [...l, id])} />
+                <AgentJobDone
+                  job={j}
+                  userId={user.id}
+                  done={doneJobs.includes(j.id)}
+                  estimate={estimates[j.id]}
+                  onDone={(id, outcome, price) =>
+                    outcome === "estimate"
+                      ? setEstimates((m) => ({ ...m, [id]: { at: new Date().toISOString(), price, approval: "pending", sent: null } }))
+                      : setDoneJobs((l) => [...l, id])
+                  }
+                />
               </li>
             ))}
           </ul>

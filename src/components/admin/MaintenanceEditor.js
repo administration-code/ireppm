@@ -26,6 +26,7 @@ import {
 import { MaintenancePills } from "./MaintenanceBadges";
 import { partnerName } from "./MaintenanceTable";
 import ReporterEditor from "./ReporterEditor";
+import EstimateBox from "./EstimateBox";
 import WorkOrderInvoiceEditor from "./WorkOrderInvoiceEditor";
 import PhotoPicker, { uploadPhotos } from "./PhotoPicker";
 import { specialKind } from "@/lib/maintenance-units";
@@ -365,6 +366,8 @@ export default function MaintenanceEditor({ id }) {
           <MaintenancePills request={request} />
         </div>
       </div>
+
+      <EstimateBox request={request} />
 
       {request.tenant_confirmed ? (
         <div className={request.tenant_confirmed === "fixed" ? "okbox" : "warnbox"} role="note">
