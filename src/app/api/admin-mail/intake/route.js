@@ -73,6 +73,26 @@ export async function POST(request) {
     }
   }
 
+  // An email the portal logged itself when sending (message_id "pre-…", e.g. the URGENT old-address
+  // e-Transfer email): link it to its Gmail copy instead of adding a second entry.
+  if (direction === "out") {
+    const at = new Date(body.received_at || Date.now()).getTime();
+    const { data: pre } = await sb
+      .from("inbound_emails")
+      .select("id, to_emails")
+      .like("message_id", "pre-%")
+      .eq("direction", "out")
+      .eq("subject", clip(redact(body.subject || ""), 300) || "")
+      .gte("received_at", new Date(at - 30 * 60000).toISOString())
+      .lte("received_at", new Date(at + 30 * 60000).toISOString())
+      .limit(5);
+    const hit = (pre || []).find((r) => (r.to_emails || []).some((e) => toEmails.includes(e)));
+    if (hit) {
+      await sb.from("inbound_emails").update({ message_id: messageId, thread_id: threadId }).eq("id", hit.id);
+      return NextResponse.json({ ok: true, linked: true, uploads: [] });
+    }
+  }
+
   const text = clip(redact(body.body || body.snippet || ""), 8000);
   const base = {
     message_id: messageId,

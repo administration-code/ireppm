@@ -4,7 +4,7 @@ import { mailer, mailConfigured } from "@/lib/mailer";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { escapeHtml } from "@/lib/staff-alerts";
 import { money } from "@/lib/format";
-import { isOldAddress, remindOldAddress } from "@/lib/etransfer-reminders";
+import { OLD_ADDRESS, isOldAddress, urgentOldAddress } from "@/lib/etransfer-reminders";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -51,8 +51,12 @@ async function alertStaff(payment) {
   ];
   const html = `<div style="font-family:Helvetica,Arial,sans-serif;color:#161616;background:#F7F4EE;padding:24px;">
     <div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #ddd5c9;border-radius:4px;padding:24px;">
-      <h1 style="font-family:Georgia,serif;font-weight:600;font-size:24px;margin:0 0 8px;">e-Transfer to Match</h1>
-      <p style="margin:0 0 16px;">We couldn't tell which tenancy this e-Transfer is for. Match it in the staff area.</p>
+      <h1 style="font-family:Georgia,serif;font-weight:600;font-size:24px;margin:0 0 8px;">${payment.oldAddress ? "Paid to Old Address" : "e-Transfer to Match"}</h1>
+      <p style="margin:0 0 16px;">${
+        payment.oldAddress
+          ? `This e-Transfer was sent to ${escapeHtml(OLD_ADDRESS)}. We couldn't match it to a tenant with an email on file, so no URGENT email went out. Match it, then email the tenant.`
+          : "We couldn't tell which tenancy this e-Transfer is for. Match it in the staff area."
+      }</p>
       <table style="border-collapse:collapse;font-size:14px;">${rows
         .map(
           ([k, v]) =>
@@ -67,7 +71,7 @@ async function alertStaff(payment) {
   const { error } = await mail.emails.send({
     from: FROM,
     to,
-    subject: `e-Transfer to match: ${money(payment.amount)} from ${payer}`,
+    subject: `${payment.oldAddress ? "Paid to old address" : "e-Transfer to match"}: ${money(payment.amount)} from ${payer}`,
     html,
     text,
   });
@@ -91,8 +95,6 @@ export async function POST(request) {
 
   // Connection test / heartbeat from the Apps Script: the secret matched.
   if (body?.ping) return NextResponse.json({ ok: true, ping: true, role: feed.role, retired: feed.retired });
-  // The old mailbox is read only through Dec 31, 2026.
-  if (feed.retired) return NextResponse.json({ ok: true, retired: true });
 
   const amount = Math.round(Number(body?.amount) * 100) / 100;
   const reference = clip(body?.reference, 100);
@@ -123,8 +125,11 @@ export async function POST(request) {
   ]);
   if (seenPay?.length) return NextResponse.json({ ok: true, duplicate: true, recorded: true, matched: seenPay[0].status === "matched" });
   if (seenPend?.length && body.pending) return NextResponse.json({ ok: true, duplicate: true, pending: true });
-  // Only the address the e-Transfer was sent to (never the mailbox the notice arrived in).
-  const sentTo = clip(body.sent_to, 200);
+  // The address the e-Transfer was sent to. Interac's deposit notices don't say, but since Nov 25 2026
+  // every notice for payment@ireppm.ca goes to the payment@ mailbox, so anything the old mailbox
+  // passes on was sent to the old address.
+  const sentTo = clip(body.sent_to, 200) || (feed.role === "legacy" ? OLD_ADDRESS : null);
+  const oldAddress = isOldAddress(sentTo);
 
   // Sent to the old address and not deposited automatically: staff must accept it in online banking.
   // Record it for staff (not as a payment yet) and remind the tenant to use payment@ireppm.ca.
@@ -149,11 +154,16 @@ export async function POST(request) {
       console.error("[interac] pending insert failed:", pendErr.message);
       return NextResponse.json({ error: "Could not save" }, { status: 500 });
     }
-    await alertPending({ amount, payer_name: clip(body.sent_from, 200), memo: clip(body.message, 1000), reference, received_on: receivedOn, sent_to: sentTo }).catch(
-      (err) => console.error("[interac] pending alert failed:", err?.message || err)
-    );
-    if (tenancyId) await remindOldAddress(sb, tenancyId, "Pending e-Transfer to the old address").catch(() => null);
-    return NextResponse.json({ ok: true, pending: true, id: row.id });
+    // Matched: URGENT email to the tenant right away (administration@ copied). Not matched (or no
+    // tenant email): it waits in To Match and staff are alerted instead.
+    const urgent = tenancyId
+      ? await urgentOldAddress(sb, { tenancyId, amount, receivedOn, pending: true, reference }).catch(() => ({ sent: false }))
+      : { sent: false };
+    if (!urgent.sent)
+      await alertPending({ amount, payer_name: clip(body.sent_from, 200), memo: clip(body.message, 1000), reference, received_on: receivedOn, sent_to: sentTo }).catch(
+        (err) => console.error("[interac] pending alert failed:", err?.message || err)
+      );
+    return NextResponse.json({ ok: true, pending: true, id: row.id, urgent: urgent.sent });
   }
 
   // Staff may already have recorded this e-Transfer by hand (no reference number).
@@ -203,29 +213,29 @@ export async function POST(request) {
   if (rpcError) console.error("[interac] generate_rent_charges failed:", rpcError.message);
 
   const matched = payment.status === "matched";
-  if (!matched) {
+  const urgent =
+    matched && oldAddress && payment.tenancy_id
+      ? await urgentOldAddress(sb, { tenancyId: payment.tenancy_id, amount, receivedOn, pending: false, reference }).catch(() => ({ sent: false }))
+      : { sent: false };
+  if (!matched || (oldAddress && !urgent.sent)) {
     try {
-      await alertStaff(payment);
+      await alertStaff({ ...payment, oldAddress });
     } catch (err) {
       console.error("[interac] alert email failed:", err?.message || err);
     }
   }
-
-  if (matched && isOldAddress(sentTo) && payment.tenancy_id) {
-    await remindOldAddress(sb, payment.tenancy_id, "e-Transfer sent to the old address").catch(() => null);
-  }
-  return NextResponse.json({ ok: true, recorded: true, matched });
+  return NextResponse.json({ ok: true, recorded: true, matched, urgent: urgent.sent });
 }
 
-// The old ireppm@ireprealty.com mailbox is read in parallel through this date only.
-const LEGACY_UNTIL = "2026-12-31";
+// The old ireppm@ireprealty.com mailbox keeps being read: anything that arrives there was sent to
+// the old address, and the tenant gets the URGENT email.
 const LEGACY = /ireprealty\.com/i;
 
 // Records which mailbox the reader is running in (shown under Settings → e-Transfer Reader).
 async function noteFeed(sb, body) {
   const mailbox = clip(String(body?.mailbox || "").toLowerCase(), 200);
   const role = mailbox && LEGACY.test(mailbox) ? "legacy" : "primary";
-  const retired = role === "legacy" && torontoDate() > LEGACY_UNTIL;
+  const retired = false;
   if (!mailbox) return { mailbox: null, role, retired };
   const now = new Date().toISOString();
   const { data: cur } = await sb.from("mail_feed_status").select("items_total").eq("mailbox", mailbox).maybeSingle();
@@ -256,7 +266,7 @@ async function alertPending(p) {
   const html = `<div style="font-family:Helvetica,Arial,sans-serif;color:#161616;background:#F7F4EE;padding:24px;">
     <div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #ddd5c9;border-radius:4px;padding:24px;">
       <h1 style="font-family:Georgia,serif;font-weight:600;font-size:24px;margin:0 0 8px;">e-Transfer Waiting to Be Accepted</h1>
-      <p style="margin:0 0 16px;">This e-Transfer went to the old address, so it wasn't deposited automatically. Accept it in online banking, then mark it deposited on the To Match page so it's recorded.</p>
+      <p style="margin:0 0 16px;">This e-Transfer went to the old address (${escapeHtml(OLD_ADDRESS)}), so it wasn't deposited automatically. We couldn't match it to a tenant with an email on file, so no URGENT email went out. Match it on the To Match page and contact the tenant to cancel and resend it to payment@ireppm.ca.</p>
       <table style="border-collapse:collapse;font-size:14px;">${rows
         .map(([k, v]) => `<tr><td style="padding:4px 16px 4px 0;color:#5e5852;">${escapeHtml(k)}</td><td style="padding:4px 0;">${escapeHtml(v)}</td></tr>`)
         .join("")}</table>

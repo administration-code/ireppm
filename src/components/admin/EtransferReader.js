@@ -5,7 +5,7 @@ import { getBrowserClient } from "@/lib/supabase";
 import { money } from "@/lib/format";
 import { SITE } from "@/lib/site";
 
-const LEGACY_UNTIL = "Dec 31, 2026";
+
 const when = (iso) =>
   iso ? new Date(iso).toLocaleString("en-CA", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Toronto" }) : "Never";
 const minutesAgo = (iso) => (iso ? Math.round((Date.now() - Date.parse(iso)) / 60000) : null);
@@ -92,7 +92,7 @@ export default function EtransferReader() {
                     <td className="small">
                       {r.role === "primary"
                         ? "Main reader: every e-Transfer to payment@ireppm.ca"
-                        : `Old address only: flags and reminds anyone still sending there. Stops after ${LEGACY_UNTIL}.`}
+                        : "Old address: anything sent here gets the tenant an URGENT email to use payment@ireppm.ca."}
                     </td>
                     <td className="small">{when(r.last_seen_at)}</td>
                     <td className="small">

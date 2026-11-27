@@ -1,14 +1,14 @@
 /**
- * IRep PM — Interac e-Transfer feed (version 2, Dec 2026).
+ * IRep PM — Interac e-Transfer feed (version 3, Nov 26 2026).
  * Runs inside a Gmail mailbox that receives Interac e-Transfer emails and sends each new one to
  * https://ireppm.ca/api/payments/interac, where it's matched to a tenant ("Rent Recorded").
  *
  * The same file runs in two mailboxes. It works out its role from the mailbox it's in:
- *  - administration@ireppm.ca (PRIMARY): Interac's notices for payment@ireppm.ca are delivered here.
- *    Every deposit is sent to the website for matching.
- *  - ireppm@ireprealty.com (LEGACY, through Dec 31, 2026 only): only e-Transfers sent to the OLD address
- *    are sent, so staff are flagged and the tenant is reminded to use payment@ireppm.ca. Deposits to
- *    payment@ireppm.ca are left to the primary mailbox. On Jan 1, 2027 it switches itself off.
+ *  - payment@ireppm.ca (PRIMARY): Scotia sends every "Funds Deposited" notice here. Every deposit is
+ *    sent to the website for matching.
+ *  - ireppm@ireprealty.com (OLD ADDRESS): it's no longer registered for Autodeposit, so anything that
+ *    arrives here was sent to the old address. The website emails that tenant an URGENT notice to
+ *    use payment@ireppm.ca. Keeps running until you turn it off (delete its trigger).
  *
  * Setup (once in each mailbox, signed in to Google as that mailbox):
  *  1. script.google.com → New project (or open the existing one) → paste this whole file → Save.
@@ -24,8 +24,7 @@
  * it couldn't tell whose it is). This script only reads and labels mail: it never replies to,
  * forwards or deletes an Interac email. Safe to re-run: the website ignores anything already recorded.
  */
-const VERSION = '2';
-const LEGACY_UNTIL = '2026-12-31';
+const VERSION = '3';
 // Goes through IRep's Supabase relay: Vercel challenges requests from Google's script servers.
 const ENDPOINT = 'https://xtmvfqnnmrbgucfelvtu.supabase.co/functions/v1/mail-relay?to=interac';
 const START_DATE = '2026/10/19'; // e-Transfers before this are already in the website
@@ -64,7 +63,7 @@ function testConnection() {
   const res = post_({ ping: true });
   const code = res.getResponseCode();
   if (code === 200)
-    console.log('Connected as ' + mailbox_() + ' (' + (isLegacy_() ? 'legacy: old-address e-Transfers only, through ' + LEGACY_UNTIL : 'primary') + ').');
+    console.log('Connected as ' + mailbox_() + ' (' + (isLegacy_() ? 'old address: e-Transfers sent to ireppm@ireprealty.com' : 'primary') + ').');
   else if (code === 401) console.error('401: the SECRET script property does not match PAYMENTS_WEBHOOK_SECRET in Vercel.');
   else console.error('Unexpected ' + code + ': ' + res.getContentText().slice(0, 200));
   const n = GmailApp.search('from:notify@payments.interac.ca deposited after:' + START_DATE, 0, 100).length;
@@ -82,12 +81,6 @@ function label_(name) {
 }
 
 function checkInterac() {
-  // The old mailbox is read only through Dec 31: then this switches itself off.
-  if (isLegacy_() && torontoToday_() > LEGACY_UNTIL) {
-    ScriptApp.getProjectTriggers().forEach((t) => ScriptApp.deleteTrigger(t));
-    console.log('Past ' + LEGACY_UNTIL + ': the old-address reader is switched off.');
-    return;
-  }
   post_({ ping: true }); // heartbeat for Settings → e-Transfer Reader
   const props = PropertiesService.getScriptProperties();
   const done = new Set(JSON.parse(props.getProperty('done') || '[]'));

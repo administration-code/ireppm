@@ -163,6 +163,11 @@ export async function buildToday(sb) {
     ),
   });
 
+  // 7b. e-Transfers sent to the old address (ireppm@ireprealty.com) in the last 14 days
+  const { oldAddressToday } = await import("@/lib/etransfer-reminders");
+  const oldPaid = await oldAddressToday(sb).catch(() => []);
+  sections.push({ title: `Paid to old address (${oldPaid.length})`, lines: cap(oldPaid, "To Match") });
+
   // 8. Tasks: open, and waiting on others
   const { data: tasks } = await sb.from("staff_tasks").select("title, status, waiting_on, waiting_since, due_date").in("status", ["open", "waiting"]).order("created_at");
   const waiting = (tasks || []).filter((t) => t.status === "waiting");
