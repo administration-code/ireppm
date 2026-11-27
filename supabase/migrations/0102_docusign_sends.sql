@@ -1,6 +1,6 @@
 -- 0102: DocuSign usage. One row per envelope the portal sends through the DocuSign API (the plan
 -- allows 100 a license year; the year renews Oct 28). Shown on the Today page with warnings at 80 and 95.
--- Envelopes already sent by the portal since this license year started (Oct 28, 2026) are counted too.
+-- The count starts from DocuSign's own figure: 42 used as of Nov 26, 2026.
 -- Run AFTER 0101. Safe to re-run.
 
 create table if not exists public.docusign_sends (
@@ -17,12 +17,18 @@ drop policy if exists "docusign_sends: staff read" on public.docusign_sends;
 create policy "docusign_sends: staff read" on public.docusign_sends for select using (public.is_staff());
 revoke all on public.docusign_sends from anon;
 
--- This license year so far (every portal envelope is created through the API).
-insert into public.docusign_sends (envelope_id, sent_at, source, signature_request_id, kind, title)
-select envelope_id, sent_at, 'backfill', id, kind, title
-from public.signature_requests
-where envelope_id is not null and sent_at is not null and sent_at >= '2026-10-28'
-on conflict (envelope_id) do nothing;
+-- Starting point for this license year, from DocuSign's own count: 42 of 100 used as of Nov 26, 2026.
+-- The Today page shows this plus every envelope the portal sends after it.
+create table if not exists public.docusign_usage_baseline (
+  license_year date primary key,
+  as_of timestamptz not null,
+  used int not null
+);
+alter table public.docusign_usage_baseline enable row level security;
+revoke all on public.docusign_usage_baseline from anon;
+insert into public.docusign_usage_baseline (license_year, as_of, used)
+values ('2026-10-28', '2026-11-27 02:30:00+00', 42)
+on conflict (license_year) do update set as_of = excluded.as_of, used = excluded.used;
 
 -- Which warnings have gone out this license year (80 and 95), so each is sent once.
 create table if not exists public.docusign_usage_alerts (

@@ -14,11 +14,15 @@ export function licenseYearStart(today = torontoToday()) {
   return today >= thisYear ? thisYear : `${y - 1}-${thisYear.slice(5)}`;
 }
 
+// Used this license year: DocuSign's own count when it was last checked (docusign_usage_baseline),
+// plus every envelope the portal has sent through the API since then.
 export async function docusignUsage(sb) {
   const start = licenseYearStart();
-  const { count, error } = await sb.from("docusign_sends").select("envelope_id", { count: "exact", head: true }).gte("sent_at", `${start}T00:00:00-05:00`);
+  const { data: base } = await sb.from("docusign_usage_baseline").select("as_of, used").eq("license_year", start).maybeSingle();
+  const since = base?.as_of || `${start}T00:00:00-05:00`;
+  const { count, error } = await sb.from("docusign_sends").select("envelope_id", { count: "exact", head: true }).gt("sent_at", since);
   if (error) return null;
-  return { used: count || 0, limit: DOCUSIGN_LIMIT, start };
+  return { used: (base?.used || 0) + (count || 0), limit: DOCUSIGN_LIMIT, start };
 }
 
 // Records one envelope the portal just sent through the API, and emails staff the first time the
