@@ -163,6 +163,11 @@ export async function buildToday(sb) {
     ),
   });
 
+  // 7a. N4s whose arrears are paid but whose Certificate of Service is still open
+  const { paidN4Lines } = await import("@/lib/n4-paid");
+  const paidLines = await paidN4Lines(sb).catch(() => []);
+  if (paidLines.length) sections.push({ title: `N4s paid: void the Certificate of Service (${paidLines.length})`, lines: cap(paidLines, "Signatures") });
+
   // 7b. e-Transfers sent to the old address (ireppm@ireprealty.com) in the last 14 days
   const { oldAddressToday } = await import("@/lib/etransfer-reminders");
   const oldPaid = await oldAddressToday(sb).catch(() => []);

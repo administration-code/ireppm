@@ -3,6 +3,7 @@ import { insuranceReminders, leaseEndPrompts } from "@/lib/tenant-notices";
 import { showingReminders } from "@/lib/showings";
 import { ensureAutoReminders, syncOutstanding } from "@/lib/signatures-sync";
 import { oldAddressReminders } from "@/lib/etransfer-reminders";
+import { resolvePaidN4s } from "@/lib/n4-paid";
 import { buildToday } from "@/lib/today";
 import { SITE } from "@/lib/site";
 import { activateMoveIns } from "@/lib/move-ins";
@@ -207,6 +208,7 @@ export async function GET(request) {
     ["signatures", syncOutstanding],
     ["autoReminders", ensureAutoReminders],
     ["oldAddressReminders", oldAddressReminders],
+    ["paidN4s", resolvePaidN4s],
     ["todayEmail", sendTodayEmail],
     ["tenancyChanges", async (db) => {
       const { data, error } = await db.rpc("apply_tenancy_changes");

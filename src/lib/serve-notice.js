@@ -21,6 +21,8 @@ export const SERVE_DAYS = 2; // serve within 2 days of the landlord signing
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 const FORMS = ["N4", "N5", "N1"];
 const torontoToday = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" });
+// The Toronto calendar date of a timestamp (a form signed at 9 pm is that day, not the next UTC day).
+const torontoDay = (iso) => (iso ? new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/Toronto" }) : "");
 const addDays = (d, n) => new Date(Date.parse(`${d}T12:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -65,12 +67,18 @@ export async function serveBoard(sb) {
     .is("notice_id", null)
     .gte("completed_at", since)
     .order("completed_at");
-  // Already handled the old way: a certificate with the service date was sent or signed.
+  // Already handled the old way: a certificate with the service date was signed, or sent with the date on it.
+  // (One emailed to Chuck with no date yet stays on the list, so he can enter the date here.)
   const { data: handled } = (notices || []).length
-    ? await sb.from("signature_requests").select("related_request_id").eq("kind", "certificate_of_service").in("status", ["sent", "delivered", "completed"]).in("related_request_id", notices.map((n) => n.id))
+    ? await sb.from("signature_requests").select("related_request_id, status, terms").eq("kind", "certificate_of_service").in("status", ["sent", "delivered", "completed"]).in("related_request_id", notices.map((n) => n.id))
     : { data: [] };
-  const done = new Set((handled || []).map((h) => h.related_request_id));
+  const done = new Set((handled || []).filter((h) => h.status === "completed" || h.terms?.served_on).map((h) => h.related_request_id));
   notices = (notices || []).filter((n) => !done.has(n.id));
+  // An N4 whose arrears have been paid isn't served.
+  const tenIds = [...new Set(notices.filter((n) => n.kind === "N4").map((n) => n.tenancy_id).filter(Boolean))];
+  const { data: bals } = tenIds.length ? await sb.from("tenancy_balances").select("tenancy_id, balance").in("tenancy_id", tenIds) : { data: [] };
+  const paid = new Set((bals || []).filter((b) => Number(b.balance) <= 0.5).map((b) => b.tenancy_id));
+  notices = notices.filter((n) => !(n.kind === "N4" && paid.has(n.tenancy_id)));
   // Tenants who consented to email service get it by email from the office, not from Chuck.
   const elig = await Promise.all(notices.map((n) => emailEligibility(sb, n.tenancy_id)));
   notices = notices.filter((n, i) => !elig[i].ok);
@@ -83,7 +91,7 @@ export async function serveBoard(sb) {
   const toServe = (notices || []).map((n) => {
     const t = byId.get(n.tenancy_id);
     const people = (t?.tenancy_tenants || []).slice().sort((a, b) => Number(b.is_primary) - Number(a.is_primary));
-    const signed = String(n.completed_at).slice(0, 10);
+    const signed = torontoDay(n.completed_at);
     const due = addDays(signed, SERVE_DAYS);
     const f = n.prefill || {};
     return {
@@ -155,9 +163,17 @@ export async function markDelivered(sb, partner, input) {
   const { data: n } = await sb.from("signature_requests").select("*").eq("id", id).maybeSingle();
   if (!n || !FORMS.includes(n.kind) || n.status !== "completed") return { error: "That notice wasn't found, or it isn't signed yet." };
   if (n.notice_id) return { error: "That notice is already marked delivered." };
-  const { data: already } = await sb.from("signature_requests").select("id").eq("kind", "certificate_of_service").eq("related_request_id", n.id).in("status", ["sent", "delivered", "completed"]).limit(1);
-  if (already?.length) return { error: "A Certificate of Service was already sent for this notice. Ask Rosie." };
-  if (served < String(n.completed_at).slice(0, 10)) return { error: "The date is before the landlord signed it." };
+  // A certificate already emailed to Chuck (the older way): fill in the date and method on it instead.
+  const { data: already } = await sb
+    .from("signature_requests")
+    .select("id, status, envelope_id, terms")
+    .eq("kind", "certificate_of_service")
+    .eq("related_request_id", n.id)
+    .in("status", ["sent", "delivered", "completed"])
+    .order("created_at", { ascending: false })
+    .limit(1);
+  const emailed = already?.[0] || null;
+  if (served < torontoDay(n.completed_at)) return { error: `The date is before the landlord signed it (${torontoDay(n.completed_at)}).` };
   const method = CERT_METHODS[methodKey];
 
   // 1. Record the service on the tenancy.
@@ -199,7 +215,19 @@ export async function markDelivered(sb, partner, input) {
   // 3. The certificate: fill the one prepared with the notice, or make one. Then send it to Chuck to sign.
   let certId = null;
   let certError = null;
-  try {
+  if (emailed) {
+    // Already emailed to him: put the date and method on it (he signs from the DocuSign email).
+    try {
+      if (emailed.status !== "completed" && emailed.envelope_id) {
+        await fillDraft(emailed.envelope_id, { "Date Served": dmy(served), "Other Method Details": methodKey === "other" ? details : "", "Mail Address": methodKey === "mail" ? mailAddress : "", "Fax Number": methodKey === "fax" ? cf.fax_number : "" }, [method.tab]);
+      }
+      await sb.from("signature_requests").update({ terms: { ...(emailed.terms || {}), served_on: served, method: methodKey, method_details: details || undefined, marked_by: "chuck" } }).eq("id", emailed.id);
+      certId = emailed.id;
+    } catch (err) {
+      certError = String(err?.message || err);
+      console.error("[serve] filling the emailed certificate failed:", certError);
+    }
+  } else try {
     const ids = await resolveTemplates(["certificate_of_service"]);
     const built = buildCertificate(cf, ids);
     const terms = { served_on: served, method: methodKey, notice_form: n.kind, method_details: details || undefined, marked_by: "chuck", embedded: true, embed_id: CHUCK_EMBED };
@@ -284,10 +312,16 @@ export async function markDelivered(sb, partner, input) {
           ? "Check the N5 termination date against the service date."
           : "",
     methodKey === "other" ? `Check this method is acceptable for the Board: "${details}".` : "",
-    certError ? `The Certificate of Service could NOT be sent to Chuck (${certError}). Send it from the notice page.` : "The Certificate of Service, filled in, was sent to Chuck to sign.",
+    certError
+      ? `The Certificate of Service could NOT be filled in for Chuck (${certError}). Check it from the notice page.`
+      : emailed
+        ? emailed.status === "completed"
+          ? "His Certificate of Service was already signed."
+          : "The date and method were filled in on the Certificate of Service already emailed to him; he signs it from that DocuSign email."
+        : "The Certificate of Service, filled in, was sent to Chuck to sign in his portal.",
   ].filter(Boolean);
   await alertStaff(`${tooEarly ? "Check dates: " : ""}${n.kind} delivered: ${place}`, lines, n.id);
-  return { ok: true, certificate: !certError, tooEarly, earliest };
+  return { ok: true, certificate: !certError, emailed: Boolean(emailed && emailed.status !== "completed"), tooEarly, earliest };
 }
 
 // Serve a signed N4, N5 or N1 by email (tenants who consented in writing), record it, and send the Certificate of

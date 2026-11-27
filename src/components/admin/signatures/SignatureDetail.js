@@ -26,7 +26,16 @@ async function load(id) {
     sb.from("signature_requests").select("id, title, status, terms").eq("related_request_id", id).order("created_at", { ascending: false }),
     row.related_request_id ? sb.from("signature_requests").select("id, title").eq("id", row.related_request_id).maybeSingle() : { data: null },
   ]);
-  return { row, events: events.data || [], tenancy: tenancy.data, notice: notice.data, certs: certs.data || [], parent: parent.data, error: "" };
+  // N4 (or its certificate) whose arrears are paid: offer to void the open Certificate of Service.
+  let paid = null;
+  if ((row.kind === "N4" || (row.kind === "certificate_of_service" && /\(N4\)/.test(row.title || ""))) && row.tenancy_id) {
+    const { data: b } = await sb.from("tenancy_balances").select("balance").eq("tenancy_id", row.tenancy_id).maybeSingle();
+    if (b && Number(b.balance) <= 0.5) {
+      const open = row.kind === "N4" ? (certs.data || []).filter((c) => ["draft", "sent", "delivered"].includes(c.status)) : ["draft", "sent", "delivered"].includes(row.status) ? [row] : [];
+      paid = { balance: Number(b.balance), open };
+    }
+  }
+  return { row, events: events.data || [], tenancy: tenancy.data, notice: notice.data, certs: certs.data || [], parent: parent.data, paid, error: "" };
 }
 
 const when = (iso) =>
@@ -55,6 +64,22 @@ export default function SignatureDetail({ id }) {
       refreshStaffCounts();
       await reload();
       return res;
+    } catch (err) {
+      setMessage({ text: err.message, tone: "err" });
+    } finally {
+      setBusy("");
+    }
+  }
+
+  // N4 arrears paid: void its open Certificate(s) of Service.
+  async function voidPaidCerts(list) {
+    setBusy("paidvoid");
+    setMessage({ text: "", tone: "" });
+    try {
+      for (const c of list) await docusignApi(`/requests/${c.id}`, { body: { action: "void", reason: "N4 arrears paid in full; notice no longer needed." } });
+      setMessage({ text: `Voided ${list.length === 1 ? "the Certificate of Service" : `${list.length} Certificates of Service`}.`, tone: "ok" });
+      refreshStaffCounts();
+      await reload();
     } catch (err) {
       setMessage({ text: err.message, tone: "err" });
     } finally {
@@ -128,6 +153,23 @@ export default function SignatureDetail({ id }) {
 
       {row.status === "error" && row.error ? <div className="warnbox">DocuSign error: {row.error}</div> : null}
       {row.void_reason ? <div className="warnbox">Voided: {row.void_reason}</div> : null}
+      {state.paid ? (
+        <div className="okbox stack" style={{ gap: 8 }} role="note">
+          <span>
+            <b>The arrears on this N4 have been paid</b> (balance {state.paid.balance <= 0 ? `$${Math.abs(state.paid.balance).toFixed(2)} ${state.paid.balance < 0 ? "credit" : ""}` : `$${state.paid.balance.toFixed(2)}`}). It&apos;s been
+            cleared from the N4 to-do lists and Chuck&apos;s Notices to Serve.
+            {state.paid.open.length ? " Void its Certificate of Service so it isn't signed?" : ""}
+          </span>
+          {state.paid.open.length ? (
+            <div className="req-actions">
+              <button type="button" className="btn primary sm" disabled={Boolean(busy)} onClick={() => voidPaidCerts(state.paid.open)}>
+                {busy === "paidvoid" ? "Voiding…" : state.paid.open.length === 1 ? "Void Certificate of Service" : `Void ${state.paid.open.length} Certificates`}
+              </button>
+              <span className="small">Voiding can&apos;t be undone.</span>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
       {message.text ? (
         <div className={message.tone === "ok" ? "okbox" : "warnbox"} role="status">
           {message.text}

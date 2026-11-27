@@ -35,9 +35,11 @@ function Deliver({ n, onDone }) {
     setBusy(false);
     if (out.error) return setMsg(out.error);
     onDone(
-      out.certificate
-        ? "Saved. Your Certificate of Service is filled in: tap Sign Now under Certificates to Sign."
-        : "Saved. Rosie will send you the Certificate of Service to sign."
+      !out.certificate
+        ? "Saved. Rosie will send you the Certificate of Service to sign."
+        : out.emailed
+          ? "Saved. The date and how you delivered it are now filled in on the Certificate of Service in your email from DocuSign: open that email and sign."
+          : "Saved. Your Certificate of Service is filled in with the date and how you delivered it: tap Sign Now under Certificates to Sign (you sign right here, no email)."
     );
   }
   return (
@@ -141,8 +143,8 @@ export default function AgentNotices() {
         </span>
         <h1 className="admin-title">Notices to Serve</h1>
         <p className="small">
-          When a landlord signs a notice, it shows here. Print it, deliver it, then tap I Delivered It and say how. Your Certificate of Service then
-          shows below, filled in: tap Sign Now.
+          When a landlord signs a notice, it shows here. Print it, deliver it, then tap I Delivered It and enter the date and how. That date and
+          method go straight onto your Certificate of Service, so you don&apos;t have to look anything up.
         </p>
       </div>
       {done ? (
@@ -161,6 +163,18 @@ export default function AgentNotices() {
           <b>Don&apos;t tape it to the door.</b> The Landlord and Tenant Board doesn&apos;t list that as a way to serve.
         </span>
         <span className="small">To print: tap Open the Signed N4, then Share → Print, and pick your printer.</span>
+      </section>
+
+      <section className="boxed stack" style={{ gap: 6 }}>
+        <b>Where you sign the Certificate of Service</b>
+        <span className="small">
+          <b>Most of the time: right here.</b> After I Delivered It, the certificate shows under Certificates to Sign with a <b>Sign Now</b> button. Tap it,
+          check the date, and sign. No email needed.
+        </span>
+        <span className="small">
+          <b>Older ones: in your email.</b> If a certificate says &quot;In your email&quot;, it was already emailed to you by DocuSign. Still tap I Delivered It
+          here first: the date and method get filled in on it, then open the DocuSign email and sign.
+        </span>
       </section>
 
       <section className={`boxed stack${d.toServe.length ? " attention" : ""}`} aria-labelledby="ns-serve">
@@ -217,7 +231,7 @@ export default function AgentNotices() {
           <h2 id="ns-sign" className="sec-title">
             Certificates to Sign ({d.toSign.length})
           </h2>
-          <p className="small">Everything is already filled in. Tap Sign Now, or for older ones, open the DocuSign email.</p>
+          <p className="small">The date and how you delivered it are already filled in. Tap Sign Now to sign here, or for ones marked &quot;In your email&quot;, open the DocuSign email and sign there.</p>
           <ul className="req-list">
             {d.toSign.map((c) => (
               <li key={c.id} className="req">
@@ -232,7 +246,9 @@ export default function AgentNotices() {
                     </button>
                   </div>
                 ) : (
-                  <span className="small">In your email ({c.email}) from DocuSign: open it and sign.</span>
+                  <span className="small">
+                    In your email ({c.email}) from DocuSign: open it and sign.{c.served_on ? ` The date (${shortDate(c.served_on)}) is filled in.` : ""}
+                  </span>
                 )}
               </li>
             ))}

@@ -213,6 +213,8 @@ export async function POST(request) {
   if (rpcError) console.error("[interac] generate_rent_charges failed:", rpcError.message);
 
   const matched = payment.status === "matched";
+  // A payment that clears an N4's arrears resolves the N4 right away.
+  if (matched) await import("@/lib/n4-paid").then((m) => m.resolvePaidN4s(sb)).catch(() => null);
   const urgent =
     matched && oldAddress && payment.tenancy_id
       ? await urgentOldAddress(sb, { tenancyId: payment.tenancy_id, amount, receivedOn, pending: false, reference }).catch(() => ({ sent: false }))
