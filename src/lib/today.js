@@ -23,7 +23,7 @@ const names = (t) =>
     .map((p) => p.full_name)
     .filter(Boolean)
     .join(" & ");
-const MAX = 8;
+const MAX = 12;
 const cap = (lines, more) => (lines.length > MAX ? [...lines.slice(0, MAX), `…and ${lines.length - MAX} more (${more})`] : lines);
 
 export async function buildToday(sb) {
@@ -32,30 +32,67 @@ export async function buildToday(sb) {
   const in7 = addDays(today, 7);
   const sections = [];
 
-  // 1. Arrears and N4 status
-  const { data: bal } = await sb
-    .from("tenancy_balances")
-    .select("tenancy_id, balance, tenancy:tenancies!inner(id, status, collects_rent, unit:units(label, property:properties(address)), tenancy_tenants(full_name, is_primary))")
-    .gt("balance", 0.5)
-    .in("tenancy.status", ["active", "notice"])
-    .order("balance", { ascending: false });
-  const owing = (bal || []).filter((b) => b.tenancy?.collects_rent !== false);
+  // 1. Arrears: the same numbers as the Rent page (total balance owing, and what's left of this
+  // month's rent), one line per tenancy with the last payment, N4 and payment-plan status.
+  const period = `${today.slice(0, 7)}-01`;
+  const [{ data: bals }, { data: month }] = await Promise.all([
+    sb.from("tenancy_balances").select("tenancy_id, balance, last_paid_on").gt("balance", 0.005),
+    sb.from("rent_collection").select("tenancy_id, outstanding, last_paid_on").eq("period", period).gt("outstanding", 0.005),
+  ]);
+  const balOf = new Map((bals || []).map((b) => [b.tenancy_id, b]));
+  const monthOf = new Map((month || []).map((m) => [m.tenancy_id, m]));
+  const arrearsIds = [...new Set([...balOf.keys(), ...monthOf.keys()])];
+  const { data: arrTen } = arrearsIds.length
+    ? await sb
+        .from("tenancies")
+        .select("id, status, collects_rent, notes, unit:units(label, property:properties(address)), tenancy_tenants(full_name, is_primary)")
+        .in("id", arrearsIds)
+    : { data: [] };
+  const owing = (arrTen || [])
+    .filter((t) => t.collects_rent !== false && ["active", "notice", "ended"].includes(t.status))
+    .map((t) => ({ tenancy_id: t.id, tenancy: t, balance: Number(balOf.get(t.id)?.balance || 0), monthOwing: Number(monthOf.get(t.id)?.outstanding || 0), lastPaid: balOf.get(t.id)?.last_paid_on || monthOf.get(t.id)?.last_paid_on || null }))
+    .filter((r) => r.balance > 0.5 || r.monthOwing > 0.5)
+    .sort((x, y) => Math.max(y.balance, y.monthOwing) - Math.max(x.balance, x.monthOwing));
   const ids = owing.map((b) => b.tenancy_id);
   const [{ data: n4s }, { data: n4drafts }] = await Promise.all([
-    ids.length ? sb.from("notices").select("tenancy_id, served_on, effective_date").eq("form", "N4").in("tenancy_id", ids).order("served_on", { ascending: false }) : { data: [] },
-    ids.length ? sb.from("signature_requests").select("tenancy_id, status").eq("kind", "N4").in("tenancy_id", ids).in("status", ["draft", "sent", "delivered", "completed"]) : { data: [] },
+    ids.length ? sb.from("notices").select("tenancy_id, served_on, effective_date, status, notes").eq("form", "N4").in("tenancy_id", ids).order("served_on", { ascending: false }) : { data: [] },
+    ids.length ? sb.from("signature_requests").select("tenancy_id, status, notice_id").eq("kind", "N4").in("tenancy_id", ids).in("status", ["draft", "sent", "delivered", "completed"]) : { data: [] },
   ]);
   const lastN4 = new Map();
   for (const n of n4s || []) if (!lastN4.has(n.tenancy_id)) lastN4.set(n.tenancy_id, n);
-  const n4State = new Map((n4drafts || []).map((s) => [s.tenancy_id, s.status]));
+  const n4State = new Map();
+  for (const sr of n4drafts || []) {
+    const label = sr.status === "completed" ? (sr.notice_id ? "" : "N4 signed, not served yet") : sr.status === "draft" ? "N4 draft" : "N4 out for signature";
+    if (label && !n4State.has(sr.tenancy_id)) n4State.set(sr.tenancy_id, label);
+  }
+  // Payment plans are written in the tenancy's notes ("PAYMENT PLAN …").
+  const planOf = (t) => {
+    const m = String(t?.notes || "").match(/payment plan[^\n]*/i);
+    if (!m) return "";
+    const text = m[0].replace(/^payment plan\s*[:\-–]?\s*/i, "").trim();
+    return `Plan: ${text.length > 110 ? `${text.slice(0, 107)}…` : text}`;
+  };
+  const n4Text = (id) => {
+    const n = lastN4.get(id);
+    if (n) {
+      const conf = /not confirmed/i.test(n.notes || "") ? " (date not confirmed)" : "";
+      return n.status === "resolved" ? `N4 resolved` : `N4 served ${md(n.served_on)}${conf}${n.effective_date ? `, ends ${md(n.effective_date)}` : ""}`;
+    }
+    return n4State.get(id) || "no N4";
+  };
   sections.push({
     title: `Arrears (${owing.length})`,
     lines: cap(
-      owing.map((b) => {
-        const n = lastN4.get(b.tenancy_id);
-        const st = n ? `N4 served ${md(n.served_on)}, ends ${md(n.effective_date)}` : n4State.get(b.tenancy_id) ? `N4 ${n4State.get(b.tenancy_id)}` : "no N4";
-        return `${names(b.tenancy)}, ${place(b.tenancy?.unit)}: ${$(b.balance)} (${st})`;
-      }),
+      owing.map((b) =>
+        [
+          `${names(b.tenancy)}, ${place(b.tenancy?.unit)}${b.tenancy?.status === "ended" ? " (moved out)" : ""}: ${$(b.balance > 0.5 ? b.balance : b.monthOwing)} owing${b.monthOwing > 0.5 && Math.round(b.monthOwing) !== Math.round(b.balance) ? ` (${$(b.monthOwing)} of ${md(period).split(" ")[0]})` : ""}`,
+          `last paid ${b.lastPaid ? md(b.lastPaid) : "never"}`,
+          n4Text(b.tenancy_id),
+          planOf(b.tenancy),
+        ]
+          .filter(Boolean)
+          .join(" · ")
+      ),
       "Rent page"
     ),
   });
